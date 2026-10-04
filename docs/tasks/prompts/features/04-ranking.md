@@ -1,0 +1,5 @@
+# Configurable ranking feature
+Read common-context.md, accepted score definitions and eligibility interface. Implement deterministic normalized content/rule scoring with user-adjustable priorities.
+Allowed writes: src/backend/domain/ranking*, recommendations*, test/backend/test_ranking*. Explanation and API modules are separate owners.
+Exclude passed/ineligible courses from recommendable-now ranking. Use one canonical component/weight set. Validate finite nonnegative weights, implement accepted zero-weight policy, normalize units and define missing-data treatment. Return component value, effective weight, contribution, total and stable tie-break fields. Do not invent academic-success predictions.
+Acceptance: identical inputs reproduce output; goal/priority changes can alter ordering on designed fixtures; ineligible courses never enter eligible ranking; breakdown reconciles with total; ties, all-zero, negative and nonfinite inputs follow contract. Independently calculate one fixture by hand. Handoff score metadata and examples for explanations and simulations.
