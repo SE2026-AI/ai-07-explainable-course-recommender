@@ -1,5 +1,0 @@
-# Course catalog feature
-Read common-context.md and the assignment envelope. Implement synthetic catalog loading, validation, querying and search against the accepted Course schema.
-Allowed writes: assigned files under src/backend/data/ and src/backend/domain/catalog*, test/backend/test_catalog*, tools/generate_catalog*, docs/architecture/DATASET.md. API router changes belong to the integration owner.
-Validate unique IDs, known references, positive credits, bounded workload/difficulty and declared offerings. Expose stable interfaces for list, lookup and filtering. Reject invalid data with actionable errors. Begin with a small hand-verifiable fixture, then expand to the accepted dataset target with a reproducible seed. Mark data synthetic.
-Acceptance: known lookup returns correct fields; unknown ID yields the contract error; invalid references/duplicate IDs are rejected; empty and search results are predictable. Test boundary credits and generated-data reproducibility. Handoff interfaces, fixtures and actual checks using assignment-template.md.

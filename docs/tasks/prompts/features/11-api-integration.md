@@ -1,5 +1,0 @@
-# API and application integration feature
-Read common-context.md and accepted OpenAPI/domain interfaces. Own application composition, HTTP routes, shared transport schemas and cross-module integration according to assignment.
-Allowed writes: assigned src/backend/main*, api/, models/, test/contract/, test/integration/. Do not rewrite domain algorithms without an owner-approved fix ticket.
-Implement /v1 catalog/profile/recommendations/why-not/simulation/roadmap/graph routes in accepted scope. Map validation/domain failures to stable error schemas, request IDs and documented status codes. Keep HTTP transport separate from business logic. Provide frontend fixtures matching real responses. Version contract changes and coordinate all consumers.
-Acceptance: responses validate against contract; unknown resource and invalid input map correctly; end-to-end baseline/simulation/plan flow works; no real student data; shared scoring/explanations remain consistent. Check exact response examples and relevant contract/integration tests. Handoff local startup and web integration instructions.

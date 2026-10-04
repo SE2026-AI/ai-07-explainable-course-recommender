@@ -1,5 +1,0 @@
-# End-to-end web feature
-Read common-context.md and canonical API fixtures. Implement editable synthetic profile, catalog, recommendation/explanation and priority controls incrementally in src/web/.
-Allowed writes: src/web/ except graph files assigned elsewhere, test/web/ except tests assigned elsewhere. Do not overwrite src/prototype or calculate canonical scores in UI.
-Use one mock/live API adapter. Label fixtures and scores honestly. Display why/why-not, contribution breakdown, warnings, eligibility and plan. Preserve baseline/scenario distinction. Handle loading, empty, field errors, degraded/unavailable, rapid changes and stale/out-of-order responses. Add roadmap/graph only once their interfaces are ready.
-Acceptance: complete goal/history -> recommendation -> explanation -> what-if flow; blocked courses cannot be selected; valid credit boundary works; backend errors are visible; keyboard and narrow/wide layouts usable. Handoff startup, live/mock mode, checks and viewport coverage. Do not claim native mobile support.
