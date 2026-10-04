@@ -1,0 +1,142 @@
+{
+  "fixture_version": "prompt-fixture-v2-proposed",
+  "status": "illustrative_not_approved_contract",
+  "policies": {
+    "grade_scale": [
+      0,
+      10
+    ],
+    "passing_grade": 5,
+    "prerequisites": "AND, passed before semester",
+    "workload_unit": "hours_per_week",
+    "offerings": "all terms for this fixture only"
+  },
+  "courses": [
+    {
+      "course_id": "CS101",
+      "credits": 3,
+      "prerequisites": [],
+      "workload": 4
+    },
+    {
+      "course_id": "MA101",
+      "credits": 3,
+      "prerequisites": [],
+      "workload": 5
+    },
+    {
+      "course_id": "ST201",
+      "credits": 3,
+      "prerequisites": [
+        "MA101"
+      ],
+      "workload": 6
+    },
+    {
+      "course_id": "SE201",
+      "credits": 3,
+      "prerequisites": [
+        "CS101"
+      ],
+      "workload": 4
+    },
+    {
+      "course_id": "AI301",
+      "credits": 4,
+      "prerequisites": [
+        "CS101",
+        "ST201"
+      ],
+      "workload": 8
+    },
+    {
+      "course_id": "DL401",
+      "credits": 4,
+      "prerequisites": [
+        "AI301"
+      ],
+      "workload": 9
+    }
+  ],
+  "profiles": {
+    "BASE": {
+      "passed": {
+        "CS101": 8,
+        "MA101": 7
+      },
+      "planned": [],
+      "career_goal": "ML_ENGINEER",
+      "max_credits": 6
+    },
+    "FAILED": {
+      "passed": {
+        "CS101": 8
+      },
+      "failed": {
+        "MA101": 4
+      },
+      "planned": [],
+      "max_credits": 6
+    },
+    "READY": {
+      "passed": {
+        "CS101": 8,
+        "MA101": 7,
+        "ST201": 6
+      },
+      "planned": [],
+      "max_credits": 8
+    }
+  },
+  "expected": {
+    "BASE": {
+      "eligible": [
+        "ST201",
+        "SE201"
+      ],
+      "AI301_missing": [
+        "ST201"
+      ],
+      "DL401_missing_direct": [
+        "AI301"
+      ],
+      "semester_plan_credits": 6
+    },
+    "FAILED": {
+      "ST201_eligible": false
+    },
+    "READY": {
+      "AI301_eligible": true,
+      "DL401_eligible": false
+    }
+  },
+  "ranking_example": {
+    "status": "component-level example, not goal extraction specification",
+    "components": {
+      "ST201": {
+        "goal_match": 1.0,
+        "workload_fit": 0.3
+      },
+      "SE201": {
+        "goal_match": 0.5,
+        "workload_fit": 0.9
+      }
+    },
+    "career_weights": {
+      "goal_match": 0.8,
+      "workload_fit": 0.2
+    },
+    "career_expected_scores": {
+      "ST201": 0.86,
+      "SE201": 0.58
+    },
+    "light_weights": {
+      "goal_match": 0.2,
+      "workload_fit": 0.8
+    },
+    "light_expected_scores": {
+      "ST201": 0.44,
+      "SE201": 0.82
+    }
+  }
+}

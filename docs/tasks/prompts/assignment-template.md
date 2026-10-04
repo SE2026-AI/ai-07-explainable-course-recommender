@@ -1,25 +1,29 @@
-# Assignment envelope — fill before dispatch
+# Mandatory Assignment Envelope — v2
 
-Ticket ID:
-Human owner/reviewer:
-Agent role:
-Delivery increment:
-Task prompt path:
-Contract version and paths:
-Workspace/branch/worktree:
-Dependency readiness:
-Allowed write paths:
-Read-only/forbidden paths:
-Shared-file owner:
-User outcome:
-Required input fixtures:
-Expected output artefacts/interfaces:
-Given/When/Then acceptance criteria:
-Boundary/failure criteria:
-Verification commands:
-Evidence destination: docs/tasks/runs/<run-id>.md
-Known decisions/assumptions:
+Fill before implementation. Design/research tasks may mark not-yet-created contracts as PROPOSED.
 
-Read common-context.md and the assigned task prompt before work. Missing critical contracts are a dependency blocker; report the exact missing decision. Resolve reversible local implementation choices with documented assumptions. Do not guess academic policy or rewrite another agent's files.
+- Ticket / requirement IDs:
+- Task prompt path and version:
+- Human requester / reviewer (do not invent names or leadership):
+- Workspace / current branch / input commit:
+- Increment and user outcome:
+- Accepted contract version / files / acceptance evidence:
+- Required inputs and dependency readiness:
+- Exact allowed write files:
+- Read-only files / shared-file writer:
+- Required public interface / output artifacts:
+- Success fixture and expected result:
+- Failure / boundary fixtures and expected results:
+- Given/When/Then acceptance criteria:
+- Relevant verification commands and runtime:
+- Evidence path / report layout: docs/tasks/runs/<actual-run-id>/REPORT.md (or assigned single report).
+- Changed-file baseline / patch identification:
+- Independent reviewer/tester readiness (or PENDING):
+- Consumer integration gate / next-task prerequisites:
+- Adopted policy versus proposed assumption:
+- External actions authorized (if any):
+- Stop condition / unresolved material decision:
 
-Final handoff: changed files; successful and failure examples; actual commands/results; checks not run; limitations; contract changes requested; steps for next owner.
+Before edits, echo a concise preflight. Missing academic rules or consumer interfaces block dependent implementation; do not invent them. End with the handoff format in common-context.md.
+
+Apply agent-execution-review-protocol.md: verified file/symbol/line change map, acceptance evidence matrix, defect repro/root cause and separate review/integration status.

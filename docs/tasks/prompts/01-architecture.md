@@ -124,3 +124,15 @@ Check consistency across schemas, fixtures, diagrams, scoring, and handoff. Corr
 Finish with files created, architecture/rationale, trade-offs, decisions for human review, checks performed/unperformed, and prompts ready to run next.
 
 Do not self-approve the architecture gate, implement unrelated features, or publish changes.
+
+## 14. Architecture v2 — mandatory control and data packet
+
+Read the v2 common-context and assignment envelope. Current authoring-time repository has a mock prototype, not established backend contracts. Confirm actual state. Read RELATED_WORK.md with its source-depth limitations; product capabilities do not prescribe our stack.
+
+Use fixtures/reference-scenarios.json as a concrete proposal to resolve consistency. Explicitly accept, modify or reject each policy in DECISIONS.md rather than quietly treating it as approved. Confirm BASE/FAILED/READY eligibility and the .86/.58 versus .44/.82 component arithmetic. Distinguish a component oracle from real goal-to-component extraction.
+
+Produce at least one valid and one invalid example for every proposed request type. Specify units, identifiers, hard/soft prerequisite distinction, baseline/scenario version, rank comparison set, and partial/infeasible plan semantics. Record assumptions with status PROPOSED/ACCEPTED and acceptance evidence when available; do not self-approve.
+
+Check schema/example consistency using available validators. If parser/runtime is absent, report it and preserve design rather than asserting schema validation. Every API/domain interface must name producer, consumers and error behavior. Map shared model/router/manifest ownership to an assigned writer, without inventing teammate identities.
+
+Return architecture gate checklist with individual PASS/NEEDS_INPUT/UNVERIFIED items, not an overall GO inferred from prose. Material academic semantics need human adoption; unaffected draft design may proceed. Preserve exact input revision, used prompt and output excerpt for evidence.
