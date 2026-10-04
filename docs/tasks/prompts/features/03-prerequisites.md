@@ -1,0 +1,5 @@
+# Prerequisite validation feature
+Read common-context.md and accepted catalog/profile interfaces. Implement prerequisite -> dependent graph and eligibility/why-not support.
+Allowed writes: src/backend/domain/prerequisites*, graph*, test/backend/test_prerequisites*, test_graph*. Do not edit ranking or UI.
+Detect cycles and missing course references. Initially interpret prerequisites as AND requirements already passed. Provide missing direct prerequisites, transitive dependency paths and conditional unlocks. Do not invalidate recorded completion solely because an ancestor is absent from synthetic history. Planned courses cannot satisfy same-semester requirements.
+Acceptance: all passed prerequisites make a course eligible; one missing/failed prerequisite blocks it; no-prerequisite course is eligible; partial unlock is not reported as full eligibility; cycles/references fail clearly. Verify orientation and transitive paths with a hand-built graph. Handoff stable interfaces and failure fixtures.
