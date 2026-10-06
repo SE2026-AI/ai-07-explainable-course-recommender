@@ -1,0 +1,54 @@
+{
+  "catalog_version": "catalog-demo-v1",
+  "as_of": "2026-10-06",
+  "source": "synthetic demo catalog matching docs/tasks/prompts/fixtures/reference-scenarios.json",
+  "goals": {
+    "ML_ENGINEER": "Machine Learning Engineer",
+    "SWE": "Software Engineer",
+    "DATA_ANALYST": "Data Analyst"
+  },
+  "courses": [
+    {
+      "course_id": "CS101", "title": "Nhập môn lập trình", "credits": 3, "workload_hours_per_week": 4,
+      "mandatory_prerequisites": [], "recommended_preparation": [],
+      "available_terms": ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"],
+      "topics": ["PROGRAMMING"],
+      "goal_relevance": {"ML_ENGINEER": 0.6, "SWE": 1.0, "DATA_ANALYST": 0.5}
+    },
+    {
+      "course_id": "MA101", "title": "Giải tích I", "credits": 3, "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [], "recommended_preparation": [],
+      "available_terms": ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"],
+      "topics": ["MATH"],
+      "goal_relevance": {"ML_ENGINEER": 0.8, "DATA_ANALYST": 0.6}
+    },
+    {
+      "course_id": "ST201", "title": "Xác suất thống kê", "credits": 3, "workload_hours_per_week": 6,
+      "mandatory_prerequisites": ["MA101"], "recommended_preparation": [],
+      "available_terms": ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"],
+      "topics": ["MATH", "DATA"],
+      "goal_relevance": {"ML_ENGINEER": 1.0, "SWE": 0.2, "DATA_ANALYST": 1.0}
+    },
+    {
+      "course_id": "SE201", "title": "Nhập môn công nghệ phần mềm", "credits": 3, "workload_hours_per_week": 4,
+      "mandatory_prerequisites": ["CS101"], "recommended_preparation": [],
+      "available_terms": ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"],
+      "topics": ["PROGRAMMING", "PROCESS"],
+      "goal_relevance": {"ML_ENGINEER": 0.5, "SWE": 1.0}
+    },
+    {
+      "course_id": "AI301", "title": "Trí tuệ nhân tạo", "credits": 4, "workload_hours_per_week": 8,
+      "mandatory_prerequisites": ["CS101", "ST201"], "recommended_preparation": ["MA101"],
+      "available_terms": ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"],
+      "topics": ["AI", "DATA"],
+      "goal_relevance": {"ML_ENGINEER": 1.0, "SWE": 0.4, "DATA_ANALYST": 0.6}
+    },
+    {
+      "course_id": "DL401", "title": "Học sâu", "credits": 4, "workload_hours_per_week": 9,
+      "mandatory_prerequisites": ["AI301"], "recommended_preparation": ["ST201"],
+      "available_terms": ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"],
+      "topics": ["AI"],
+      "goal_relevance": {"ML_ENGINEER": 1.0}
+    }
+  ]
+}

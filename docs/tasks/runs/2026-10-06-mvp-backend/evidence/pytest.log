@@ -1,0 +1,86 @@
+# command: python -m pytest -p no:cacheprovider -o addopts= -v
+# date: 2026-10-06T03:39:24Z  python 3.13.15  fastapi 0.118.0  pydantic 2.11.4  input HEAD dacb096 + uncommitted run diff
+============================= test session starts =============================
+platform win32 -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Administrator\AppData\Local\Programs\Python\Python313\python.exe
+rootdir: C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender
+configfile: pyproject.toml
+testpaths: test
+plugins: anyio-4.15.1, langsmith-0.13.0, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 72 items
+
+test/backend/test_catalog.py::test_bundled_catalogs_load PASSED
+test/backend/test_catalog.py::test_demo_catalog_matches_reference_fixture PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses0-duplicate] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses1-unknown course Z] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses2-cycle] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses3-itself] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses4-credits] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses5-workload] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses6-invalid course_id] PASSED
+test/backend/test_catalog.py::test_invalid_snapshot_rejected[courses7-unknown goal] PASSED
+test/backend/test_catalog.py::test_edges_point_prerequisite_to_dependent PASSED
+test/backend/test_catalog.py::test_unknown_version PASSED
+test/backend/test_explanations.py::test_every_reason_has_resolvable_evidence PASSED
+test/backend/test_explanations.py::test_blocked_course_lists_exact_missing_prerequisite PASSED
+test/backend/test_explanations.py::test_goal_reason_cites_contribution PASSED
+test/backend/test_explanations.py::test_unresolvable_evidence_is_dropped PASSED
+test/backend/test_explanations.py::test_why_not_eligible_but_lower_rank PASSED
+test/backend/test_prerequisites.py::test_base_eligible_set PASSED
+test/backend/test_prerequisites.py::test_base_missing_prerequisites PASSED
+test/backend/test_prerequisites.py::test_failed_prerequisite_blocks PASSED
+test/backend/test_prerequisites.py::test_failed_course_can_be_retaken PASSED
+test/backend/test_prerequisites.py::test_ready_profile PASSED
+test/backend/test_prerequisites.py::test_completed_courses_not_recommendable PASSED
+test/backend/test_prerequisites.py::test_same_term_selection_does_not_unlock PASSED
+test/backend/test_prerequisites.py::test_unlocks_and_offerings PASSED
+test/backend/test_prerequisites.py::test_excluded_by_user PASSED
+test/backend/test_profile.py::test_reference_profiles_are_valid PASSED
+test/backend/test_profile.py::test_history_errors[history0-UNKNOWN_COURSE] PASSED
+test/backend/test_profile.py::test_history_errors[history1-DUPLICATE_HISTORY] PASSED
+test/backend/test_profile.py::test_history_errors[history2-GRADE_STATE_MISMATCH] PASSED
+test/backend/test_profile.py::test_history_errors[history3-GRADE_STATE_MISMATCH] PASSED
+test/backend/test_profile.py::test_unknown_goal_interest_and_exclusion PASSED
+test/backend/test_profile.py::test_pass_without_grade_does_not_satisfy PASSED
+test/backend/test_profile.py::test_failed_and_planned_do_not_satisfy PASSED
+test/backend/test_profile.py::test_pass_with_missing_ancestor_only_warns PASSED
+test/backend/test_ranking.py::test_reference_arithmetic_oracle[career_weights-career_expected_scores] PASSED
+test/backend/test_ranking.py::test_reference_arithmetic_oracle[light_weights-light_expected_scores] PASSED
+test/backend/test_ranking.py::test_order_reverses_between_settings PASSED
+test/backend/test_ranking.py::test_contributions_reconcile_with_total PASSED
+test/backend/test_ranking.py::test_missing_components_renormalized PASSED
+test/backend/test_ranking.py::test_no_scorable_components_gives_no_score_not_zero PASSED
+test/backend/test_ranking.py::test_tie_break_by_course_id PASSED
+test/backend/test_ranking.py::test_repeatable_output PASSED
+test/backend/test_ranking.py::test_invalid_weights_rejected[weights0] PASSED
+test/backend/test_ranking.py::test_invalid_weights_rejected[weights1] PASSED
+test/backend/test_ranking.py::test_invalid_weights_rejected[weights2] PASSED
+test/backend/test_ranking.py::test_invalid_weights_rejected[weights3] PASSED
+test/backend/test_ranking.py::test_invalid_weights_rejected[weights4] PASSED
+test/backend/test_ranking.py::test_weights_normalized_to_one PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[6-12-lower-0.5] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[12-12-lower-0.0] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[18-12-lower-0.0] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[6-12-higher-0.5] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[18-12-higher-1.0] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[6-12-neutral-1.0] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[18-12-neutral-0.5] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[30-12-neutral-0.0] PASSED
+test/backend/test_ranking.py::test_workload_fit_formula[None-12-lower-None] PASSED
+test/backend/test_ranking.py::test_display_rounding_half_up PASSED
+test/backend/test_simulation.py::test_weight_change_keeps_baseline_and_reports_deltas PASSED
+test/backend/test_simulation.py::test_hypothetical_pass_changes_eligibility_not_rank_delta PASSED
+test/backend/test_simulation.py::test_same_scenario_is_repeatable PASSED
+test/backend/test_simulation.py::test_invalid_scenario_rejected[scenario0-scenario.hypothetical_passed] PASSED
+test/backend/test_simulation.py::test_invalid_scenario_rejected[scenario1-scenario.hypothetical_passed] PASSED
+test/backend/test_simulation.py::test_invalid_scenario_rejected[scenario2-scenario.weights] PASSED
+test/backend/test_simulation.py::test_invalid_scenario_rejected[scenario3-scenario.career_goal_ids[0]] PASSED
+test/backend/test_synthetic_data.py::test_same_seed_same_output PASSED
+test/backend/test_synthetic_data.py::test_reference_courses_match_fixture PASSED
+test/backend/test_synthetic_data.py::test_catalog_rejects_cycles_and_dangling_refs PASSED
+test/backend/test_synthetic_data.py::test_histories_respect_prerequisites_and_grades PASSED
+test/backend/test_synthetic_data.py::test_cohort_labels_stay_out_of_profiles PASSED
+test/backend/test_synthetic_data.py::test_has_failed_cohort_always_has_a_failure PASSED
+
+============================= 72 passed in 0.56s ==============================
+# exit: 0

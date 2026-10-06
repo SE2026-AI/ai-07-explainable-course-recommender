@@ -4,7 +4,7 @@ Usage:
     python tools/generate_synthetic_data.py --seed 42 --profiles 300 --out tools/out
 
 Outputs (all synthetic, no real student data):
-    catalog.json   CatalogSnapshot-like object; courses follow the CatalogCourse schema plus goal/skill tags.
+    catalog.json   CatalogSnapshot loadable by the backend (copy to src/backend/data/catalogs/catalog-synthetic-v1.json).
     goals.json     career goal -> course tag mapping (separate versioned artifact, see RECOMMENDER_DESIGN.md).
     profiles.json  list of Profile objects valid against contracts/openapi.yaml#/components/schemas/Profile.
     cohorts.json   profile_id -> group labels used ONLY by fairness checks (never sent to the API).
@@ -22,7 +22,7 @@ from pathlib import Path
 CATALOG_VERSION = "catalog-synthetic-v1"
 GENERATOR_VERSION = "synthetic-gen-0.1"
 PASSING_GRADE = 5
-TERMS = ["T1", "T2", "T3"]
+TERMS = ["2027-SPRING", "2027-FALL", "2028-SPRING", "2028-FALL"]
 
 # course_id, title, credits, hours/week, mandatory prerequisites, recommended preparation, goal tags, skill tags
 # The first six courses match docs/tasks/prompts/fixtures/reference-scenarios.json.
@@ -59,7 +59,7 @@ GOALS = {
     "SWE": {"title": "Software Engineer", "skill_tags": ["PROGRAMMING", "PROCESS", "WEB", "QUALITY"]},
     "SECURITY": {"title": "Security Engineer", "skill_tags": ["SECURITY", "SYSTEMS"]},
 }
-INTERESTS = sorted({tag for course in COURSES for tag in course[7]})
+INTERESTS = sorted({tag for course in COURSES for tag in course[7]})  # interest IDs = course topics
 
 # Grade ranges per academic pattern: (min passing grade, max grade, failure probability per course).
 PATTERNS = {
@@ -67,6 +67,15 @@ PATTERNS = {
     "average": (5.0, 8.5, 0.0),
     "has_failed": (5.0, 8.0, 0.25),
 }
+
+
+def goal_relevance(course_goals: list[str], skills: list[str]) -> dict[str, float]:
+    """Explicit goal -> course relevance in [0,1]: 0.5 for a declared goal plus up to 0.5 for skill overlap."""
+    relevance = {}
+    for goal_id in course_goals:
+        overlap = len(set(skills) & set(GOALS[goal_id]["skill_tags"])) / len(skills)
+        relevance[goal_id] = round(0.5 + 0.5 * overlap, 4)
+    return relevance
 
 
 def build_catalog() -> dict:
@@ -80,15 +89,15 @@ def build_catalog() -> dict:
             "mandatory_prerequisites": prereq,
             "recommended_preparation": prep,
             "available_terms": list(TERMS),
-            "career_goals": goals,
-            "skills": skills,
+            "topics": skills,
+            "goal_relevance": goal_relevance(goals, skills),
         })
     validate_catalog(courses)
     return {
         "catalog_version": CATALOG_VERSION,
-        "generator_version": GENERATOR_VERSION,
-        "source": "synthetic",
-        "status": "illustrative_not_approved_contract",
+        "as_of": "2026-10-06",
+        "source": f"synthetic ({GENERATOR_VERSION})",
+        "goals": {goal_id: goal["title"] for goal_id, goal in GOALS.items()},
         "courses": courses,
     }
 

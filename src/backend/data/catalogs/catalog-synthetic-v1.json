@@ -1,0 +1,584 @@
+{
+  "catalog_version": "catalog-synthetic-v1",
+  "as_of": "2026-10-06",
+  "source": "synthetic (synthetic-gen-0.1)",
+  "goals": {
+    "ML_ENGINEER": "Machine Learning Engineer",
+    "DATA_ANALYST": "Data Analyst",
+    "SWE": "Software Engineer",
+    "SECURITY": "Security Engineer"
+  },
+  "courses": [
+    {
+      "course_id": "CS101",
+      "title": "Introduction to Programming",
+      "credits": 3,
+      "workload_hours_per_week": 4,
+      "mandatory_prerequisites": [],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "PROGRAMMING"
+      ],
+      "goal_relevance": {
+        "SWE": 1.0,
+        "ML_ENGINEER": 1.0,
+        "DATA_ANALYST": 0.5
+      }
+    },
+    {
+      "course_id": "MA101",
+      "title": "Calculus I",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "MATH"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0,
+        "DATA_ANALYST": 1.0
+      }
+    },
+    {
+      "course_id": "ST201",
+      "title": "Probability and Statistics",
+      "credits": 3,
+      "workload_hours_per_week": 6,
+      "mandatory_prerequisites": [
+        "MA101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "MATH",
+        "DATA"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0,
+        "DATA_ANALYST": 1.0
+      }
+    },
+    {
+      "course_id": "SE201",
+      "title": "Software Engineering Fundamentals",
+      "credits": 3,
+      "workload_hours_per_week": 4,
+      "mandatory_prerequisites": [
+        "CS101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "PROGRAMMING",
+        "PROCESS"
+      ],
+      "goal_relevance": {
+        "SWE": 1.0
+      }
+    },
+    {
+      "course_id": "AI301",
+      "title": "Artificial Intelligence",
+      "credits": 4,
+      "workload_hours_per_week": 8,
+      "mandatory_prerequisites": [
+        "CS101",
+        "ST201"
+      ],
+      "recommended_preparation": [
+        "MA102"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "AI",
+        "DATA"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0
+      }
+    },
+    {
+      "course_id": "DL401",
+      "title": "Deep Learning",
+      "credits": 4,
+      "workload_hours_per_week": 9,
+      "mandatory_prerequisites": [
+        "AI301"
+      ],
+      "recommended_preparation": [
+        "MA201"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "AI"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0
+      }
+    },
+    {
+      "course_id": "MA102",
+      "title": "Calculus II",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [
+        "MA101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "MATH"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0
+      }
+    },
+    {
+      "course_id": "MA201",
+      "title": "Linear Algebra",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [
+        "MA101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "MATH"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0,
+        "DATA_ANALYST": 1.0
+      }
+    },
+    {
+      "course_id": "CS102",
+      "title": "Object-Oriented Programming",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [
+        "CS101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "PROGRAMMING"
+      ],
+      "goal_relevance": {
+        "SWE": 1.0
+      }
+    },
+    {
+      "course_id": "CS201",
+      "title": "Data Structures and Algorithms",
+      "credits": 4,
+      "workload_hours_per_week": 7,
+      "mandatory_prerequisites": [
+        "CS102"
+      ],
+      "recommended_preparation": [
+        "MA101"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "PROGRAMMING",
+        "ALGORITHMS"
+      ],
+      "goal_relevance": {
+        "SWE": 0.75,
+        "ML_ENGINEER": 0.75
+      }
+    },
+    {
+      "course_id": "CS202",
+      "title": "Databases",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [
+        "CS101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "DATA"
+      ],
+      "goal_relevance": {
+        "SWE": 0.5,
+        "DATA_ANALYST": 1.0
+      }
+    },
+    {
+      "course_id": "CS203",
+      "title": "Computer Networks",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [
+        "CS101"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "SYSTEMS"
+      ],
+      "goal_relevance": {
+        "SWE": 0.5,
+        "SECURITY": 1.0
+      }
+    },
+    {
+      "course_id": "CS204",
+      "title": "Operating Systems",
+      "credits": 3,
+      "workload_hours_per_week": 6,
+      "mandatory_prerequisites": [
+        "CS102"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "SYSTEMS"
+      ],
+      "goal_relevance": {
+        "SWE": 0.5,
+        "SECURITY": 1.0
+      }
+    },
+    {
+      "course_id": "SE301",
+      "title": "Software Testing",
+      "credits": 3,
+      "workload_hours_per_week": 4,
+      "mandatory_prerequisites": [
+        "SE201"
+      ],
+      "recommended_preparation": [
+        "CS102"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "PROCESS",
+        "QUALITY"
+      ],
+      "goal_relevance": {
+        "SWE": 1.0
+      }
+    },
+    {
+      "course_id": "SE302",
+      "title": "Web Application Development",
+      "credits": 3,
+      "workload_hours_per_week": 6,
+      "mandatory_prerequisites": [
+        "CS202",
+        "SE201"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "WEB",
+        "PROGRAMMING"
+      ],
+      "goal_relevance": {
+        "SWE": 1.0
+      }
+    },
+    {
+      "course_id": "SE303",
+      "title": "Mobile Application Development",
+      "credits": 3,
+      "workload_hours_per_week": 6,
+      "mandatory_prerequisites": [
+        "CS102"
+      ],
+      "recommended_preparation": [
+        "SE201"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "MOBILE",
+        "PROGRAMMING"
+      ],
+      "goal_relevance": {
+        "SWE": 0.75
+      }
+    },
+    {
+      "course_id": "DA301",
+      "title": "Data Visualization",
+      "credits": 3,
+      "workload_hours_per_week": 4,
+      "mandatory_prerequisites": [
+        "ST201"
+      ],
+      "recommended_preparation": [
+        "CS202"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "DATA",
+        "VISUALIZATION"
+      ],
+      "goal_relevance": {
+        "DATA_ANALYST": 1.0
+      }
+    },
+    {
+      "course_id": "DA302",
+      "title": "Data Mining",
+      "credits": 3,
+      "workload_hours_per_week": 6,
+      "mandatory_prerequisites": [
+        "ST201",
+        "CS202"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "DATA",
+        "AI"
+      ],
+      "goal_relevance": {
+        "DATA_ANALYST": 0.75,
+        "ML_ENGINEER": 1.0
+      }
+    },
+    {
+      "course_id": "ML302",
+      "title": "Machine Learning",
+      "credits": 4,
+      "workload_hours_per_week": 8,
+      "mandatory_prerequisites": [
+        "ST201",
+        "MA201",
+        "CS101"
+      ],
+      "recommended_preparation": [
+        "MA102"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "AI",
+        "MATH"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 1.0,
+        "DATA_ANALYST": 0.75
+      }
+    },
+    {
+      "course_id": "NLP401",
+      "title": "Natural Language Processing",
+      "credits": 3,
+      "workload_hours_per_week": 7,
+      "mandatory_prerequisites": [
+        "ML302"
+      ],
+      "recommended_preparation": [
+        "DL401"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "AI",
+        "LANGUAGE"
+      ],
+      "goal_relevance": {
+        "ML_ENGINEER": 0.75
+      }
+    },
+    {
+      "course_id": "SEC301",
+      "title": "Information Security",
+      "credits": 3,
+      "workload_hours_per_week": 5,
+      "mandatory_prerequisites": [
+        "CS203"
+      ],
+      "recommended_preparation": [
+        "CS204"
+      ],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "SECURITY",
+        "SYSTEMS"
+      ],
+      "goal_relevance": {
+        "SECURITY": 1.0
+      }
+    },
+    {
+      "course_id": "SEC401",
+      "title": "Network Security",
+      "credits": 3,
+      "workload_hours_per_week": 6,
+      "mandatory_prerequisites": [
+        "SEC301"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "SECURITY"
+      ],
+      "goal_relevance": {
+        "SECURITY": 1.0
+      }
+    },
+    {
+      "course_id": "PM301",
+      "title": "Software Project Management",
+      "credits": 3,
+      "workload_hours_per_week": 3,
+      "mandatory_prerequisites": [
+        "SE201"
+      ],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "PROCESS"
+      ],
+      "goal_relevance": {
+        "SWE": 1.0
+      }
+    },
+    {
+      "course_id": "HU101",
+      "title": "Technical Writing",
+      "credits": 2,
+      "workload_hours_per_week": 3,
+      "mandatory_prerequisites": [],
+      "recommended_preparation": [],
+      "available_terms": [
+        "2027-SPRING",
+        "2027-FALL",
+        "2028-SPRING",
+        "2028-FALL"
+      ],
+      "topics": [
+        "COMMUNICATION"
+      ],
+      "goal_relevance": {
+        "SWE": 0.5,
+        "DATA_ANALYST": 0.5,
+        "ML_ENGINEER": 0.5,
+        "SECURITY": 0.5
+      }
+    }
+  ]
+}
