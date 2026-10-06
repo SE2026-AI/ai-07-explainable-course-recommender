@@ -27,7 +27,7 @@ describe("web journey", () => {
     expect(screen.getByTestId("eligible-SE201")).toBeInTheDocument();
     expect(screen.queryByTestId("eligible-AI301")).toBeNull();
     const ai = screen.getByTestId("ineligible-AI301");
-    expect(within(ai).getByText(/ST201/)).toBeInTheDocument();
+    expect(within(ai).getAllByText(/ST201/).length).toBeGreaterThan(0); // reason text + prerequisite path
     expect(within(ai).queryByText(/%$/)).toBeNull(); // blocked courses carry no score
   });
 

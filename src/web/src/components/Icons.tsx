@@ -1,0 +1,20 @@
+// Small inline stroke icons (decorative; always aria-hidden).
+import type { ReactNode } from "react";
+
+function Svg({ size = 18, children }: { size?: number; children: ReactNode }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {children}
+    </svg>
+  );
+}
+
+export const CapIcon = ({ size = 22 }: { size?: number }) => (
+  <Svg size={size}><path d="M3 7l9-4 9 4-9 4-9-4z" /><path d="M7 9.5V15c0 1.5 2.2 3 5 3s5-1.5 5-3V9.5" /></Svg>
+);
+export const CheckIcon = () => <Svg><path d="M20 6L9 17l-5-5" /></Svg>;
+export const LockIcon = () => <Svg><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>;
+export const ArrowIcon = () => <Svg size={16}><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></Svg>;
+export const AlertIcon = () => <Svg><circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><path d="M12 16h.01" /></Svg>;
+export const CloseIcon = () => <Svg size={16}><path d="M6 6l12 12" /><path d="M18 6L6 18" /></Svg>;

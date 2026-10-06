@@ -3,7 +3,8 @@ import { ApiError, createLiveClient, createMockClient, type ApiClient, type ApiM
 import type { CatalogCourse, CatalogMeta, Profile, RecommendationResponse, SimulationResponse, Weights } from "./api/types";
 import { COMPONENTS } from "./api/types";
 import { ProfileForm } from "./components/ProfileForm";
-import { Results } from "./components/Results";
+import { AlertIcon, CapIcon } from "./components/Icons";
+import { Results, type RankPreview } from "./components/Results";
 import { WhatIf } from "./components/WhatIf";
 import { WhyNot } from "./components/WhyNot";
 import { createLatestRunner } from "./lib/latest";
@@ -139,71 +140,89 @@ export default function App({ clientFor = defaultClientFor, initialMode = "live"
   const fieldErrors = fieldErrorsOf(error);
   const data = submitted?.data;
 
+  const preview: RankPreview | undefined = scenarioChanged && simulation
+    ? Object.fromEntries(simulation.changes.map((c) => [c.course_id, { rank: c.rank_after, score: c.score_after }]))
+    : undefined;
+
   return (
     <div className="app">
       <header className="top">
-        <div>
-          <h1>Gợi ý môn học có giải thích</h1>
-          <p className="muted">AI-07 · dữ liệu giả lập · điểm là mức phù hợp theo quy tắc, không phải xác suất thành công</p>
-        </div>
-        <div className="mode" role="group" aria-label="Nguồn dữ liệu">
-          <label className="check">
-            <input type="radio" name="mode" checked={mode === "live"} onChange={() => { setMode("live"); setSubmitted(null); }} /> API thật
-          </label>
-          <label className="check">
-            <input type="radio" name="mode" checked={mode === "mock"} onChange={() => { setMode("mock"); setFault(""); setSubmitted(null); }} /> Mock
-          </label>
-          {mode === "mock" && <span className="badge mock" data-testid="mock-badge">MOCK · dữ liệu ghi sẵn cho hồ sơ BASE, không tính toán</span>}
+        <div className="top-inner">
+          <div className="brand">
+            <div className="logo"><CapIcon /></div>
+            <div>
+              <h1>Gợi ý môn học có giải thích</h1>
+              <p>AI-07 · dữ liệu giả lập · điểm là mức phù hợp theo quy tắc, không phải xác suất thành công</p>
+            </div>
+          </div>
+          <div className="top-tools">
+            {mode === "mock" && <span className="badge mock" data-testid="mock-badge">MOCK · dữ liệu ghi sẵn cho hồ sơ BASE, không tính toán</span>}
+            <fieldset className="segmented" aria-label="Nguồn dữ liệu">
+              <label>
+                <input type="radio" name="mode" checked={mode === "live"} onChange={() => { setMode("live"); setSubmitted(null); }} />
+                <span>API thật</span>
+              </label>
+              <label>
+                <input type="radio" name="mode" checked={mode === "mock"} onChange={() => { setMode("mock"); setFault(""); setSubmitted(null); }} />
+                <span>Mock</span>
+              </label>
+            </fieldset>
+          </div>
         </div>
       </header>
 
       <main className="layout">
-        <div className="col">
-          <ProfileForm profile={profile} meta={meta} courses={courses} fieldErrors={fieldErrors} onChange={setProfile} />
-          <div className="actions primary-actions">
-            <button type="button" className="primary" onClick={() => recommend(weights)} disabled={loading || weightTotal <= 0}>
-              {loading ? "Đang gợi ý…" : "Gợi ý môn học"}
-            </button>
-            {mode === "live" && (
-              <label className="fault">
-                Giả lập lỗi
-                <select value={fault} onChange={(e) => setFault(e.target.value as Fault)}>
-                  <option value="">không</option>
-                  <option value="ranking_failure">ranking lỗi (degraded)</option>
-                  <option value="explanation_failure">giải thích lỗi (degraded)</option>
-                  <option value="catalog_unavailable">catalog mất (503)</option>
-                </select>
-              </label>
+        <div className="side">
+          <ProfileForm
+            profile={profile} meta={meta} courses={courses} fieldErrors={fieldErrors} onChange={setProfile}
+            footer={(
+              <>
+                <button type="button" className="primary" onClick={() => recommend(weights)} disabled={loading || weightTotal <= 0}>
+                  {loading ? "Đang gợi ý…" : "Gợi ý môn học"}
+                </button>
+                {mode === "live" && (
+                  <label className="fault">
+                    Giả lập lỗi (kiểm thử)
+                    <select value={fault} onChange={(e) => setFault(e.target.value as Fault)}>
+                      <option value="">không</option>
+                      <option value="ranking_failure">ranking lỗi (degraded)</option>
+                      <option value="explanation_failure">giải thích lỗi (degraded)</option>
+                      <option value="catalog_unavailable">catalog mất (503)</option>
+                    </select>
+                  </label>
+                )}
+              </>
             )}
-          </div>
-          <WhatIf
-            weights={weights}
-            baseline={submitted?.weights ?? null}
-            onChange={setWeights}
-            onAdopt={() => recommend(weights)}
-            onReset={() => submitted && setWeights(submitted.weights)}
-            simulation={scenarioChanged ? simulation : null}
-            loading={simLoading}
-            error={simError}
           />
         </div>
 
-        <div className="col">
-          <div aria-live="polite">
+        <div className="main">
+          <div aria-live="polite" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {error != null && (
               <div className="banner error" role="alert" data-testid="error-banner">
-                {describe(error)} <span className="muted">Hồ sơ nháp của bạn vẫn được giữ.</span>
+                <AlertIcon />
+                <span>{describe(error)} <span className="muted">Hồ sơ nháp của bạn vẫn được giữ.</span></span>
               </div>
             )}
             {stale && data && (
               <div className="banner info" data-testid="stale-banner">
-                Hồ sơ đã thay đổi; kết quả dưới đây là của hồ sơ trước. Bấm “Gợi ý môn học” để cập nhật.
+                <AlertIcon />
+                <span>Hồ sơ đã thay đổi; kết quả dưới đây là của hồ sơ trước. Bấm “Gợi ý môn học” để cập nhật.</span>
+              </div>
+            )}
+            {preview && !stale && (
+              <div className="banner info" role="status">
+                <AlertIcon />
+                <span>Đang xem kịch bản what-if — thứ hạng gốc vẫn được giữ đến khi bạn bấm “Dùng làm gốc”.</span>
               </div>
             )}
             {data?.status === "degraded" && (
               <div className="banner warn" data-testid="degraded-banner">
-                Kết quả không đầy đủ (degraded):
-                <ul>{data.warnings.map((w, i) => <li key={i}>{w.code}: {w.message}</li>)}</ul>
+                <AlertIcon />
+                <div>
+                  Kết quả không đầy đủ (degraded):
+                  <ul>{data.warnings.map((w, i) => <li key={i}>{w.code}: {w.message}</li>)}</ul>
+                </div>
               </div>
             )}
             {data && data.status !== "degraded" && data.warnings.length > 0 && (
@@ -215,11 +234,27 @@ export default function App({ clientFor = defaultClientFor, initialMode = "live"
           {loading && !data && <p className="muted" role="status">Đang tải gợi ý…</p>}
           {!data && !loading && error == null && (
             <section className="panel empty-state">
-              <h2>3. Gợi ý</h2>
-              <p className="muted">Chọn hồ sơ mẫu (BASE, FAILED, READY) hoặc tự nhập, rồi bấm “Gợi ý môn học”.</p>
+              <div>
+                <div className="eyebrow">Bước 2 · kết quả</div>
+                <h2>Môn nên học kỳ tới</h2>
+              </div>
+              <p>Chọn hồ sơ mẫu (BASE, FAILED, READY) hoặc tự nhập, rồi bấm “Gợi ý môn học”.</p>
             </section>
           )}
-          {data && <Results data={data} stale={stale} />}
+          {data && <Results data={data} stale={stale} preview={preview} />}
+        </div>
+
+        <div className="side">
+          <WhatIf
+            weights={weights}
+            baseline={submitted?.weights ?? null}
+            onChange={setWeights}
+            onAdopt={() => recommend(weights)}
+            onReset={() => submitted && setWeights(submitted.weights)}
+            simulation={scenarioChanged ? simulation : null}
+            loading={simLoading}
+            error={simError}
+          />
           <WhyNot courses={courses} disabled={courses.length === 0} onAsk={askWhyNot} />
         </div>
       </main>

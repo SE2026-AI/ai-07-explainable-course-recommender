@@ -12,36 +12,45 @@ export function WhyNot({ courses, disabled, onAsk }: Props) {
   const [result, setResult] = useState<WhyNotResult | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function ask() {
-    if (!courseId) return;
+  async function ask(id: string) {
+    setCourseId(id);
+    setResult(null);
     setBusy(true);
     try {
-      setResult(await onAsk(courseId));
+      setResult(await onAsk(id));
     } finally {
       setBusy(false);
     }
   }
 
+  const title = courses.find((c) => c.course_id === result?.course_id)?.title;
+
   return (
     <section className="panel" aria-labelledby="whynot-title">
-      <h2 id="whynot-title">4. Vì sao (không) gợi ý môn này?</h2>
-      <div className="row">
-        <label>
-          Môn học
-          <select value={courseId} onChange={(e) => { setCourseId(e.target.value); setResult(null); }}>
-            <option value="">— chọn môn —</option>
-            {courses.map((c) => <option key={c.course_id} value={c.course_id}>{c.course_id} · {c.title}</option>)}
-          </select>
-        </label>
-        <button type="button" onClick={ask} disabled={disabled || !courseId || busy}>{busy ? "Đang hỏi…" : "Giải thích"}</button>
+      <div>
+        <div className="eyebrow">Hỏi nhanh</div>
+        <h2 id="whynot-title">Vì sao (không) gợi ý?</h2>
+        <p className="muted" style={{ marginTop: 6 }}>Chọn một môn để xem lý do.</p>
       </div>
+      <div className="chip-grid" role="group" aria-label="Chọn môn học">
+        {courses.map((c) => (
+          <button key={c.course_id} type="button" className="chip mono" title={c.title}
+            aria-pressed={courseId === c.course_id} disabled={disabled || busy} onClick={() => ask(c.course_id)}>
+            {c.course_id}
+          </button>
+        ))}
+      </div>
+      {busy && <p className="muted" role="status">Đang hỏi…</p>}
       {result && (
-        <div className="card" aria-live="polite" data-testid="whynot-result">
-          <p>
-            <strong>{result.course_id}</strong>: {result.eligible ? `đủ điều kiện, hạng ${result.rank ?? "—"}` : "chưa thể học ngay"}
+        <div className={`why-result ${result.eligible ? "eligible" : "blocked"}`} aria-live="polite" data-testid="whynot-result">
+          <strong>{result.course_id}{title && ` · ${title}`}</strong>
+          <p className="status">
+            {result.eligible
+              ? `Đủ điều kiện · hạng ${result.rank ?? "—"}${result.score_percent != null ? ` (${result.score_percent}%)` : ""}`
+              : "Chưa thể học ngay"}
           </p>
-          <ul className="reasons">
-            {result.reasons.map((r, i) => <li key={i}><span className="code">{r.code}</span> {r.text}</li>)}
+          <ul>
+            {result.reasons.map((r, i) => <li key={i}>{r.text} <span className="code">{r.code}</span></li>)}
           </ul>
         </div>
       )}
