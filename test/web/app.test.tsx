@@ -96,6 +96,17 @@ describe("web journey", () => {
     expect(screen.getAllByTestId(/^eligible-/).map((el) => el.dataset.testid)).toEqual(baselineOrder);
   });
 
+  it("why-not distinguishes completed, blocked and eligible courses", async () => {
+    render(<App initialMode="mock" clientFor={() => createMockClient(0)} />);
+    const chip = async (id: string) => {
+      await userEvent.click(await screen.findByRole("button", { name: id }));
+      return screen.findByTestId("whynot-result");
+    };
+    expect(await chip("CS101")).toHaveTextContent("Đã hoàn thành");
+    await waitFor(async () => expect(await chip("AI301")).toHaveTextContent(/Chưa thể học ngay.*ST201/));
+    await waitFor(async () => expect(await chip("SE201")).toHaveTextContent(/Đủ điều kiện · hạng 2/));
+  });
+
   it("marks results stale when the profile changes after submission", async () => {
     render(<App initialMode="mock" clientFor={() => createMockClient(0)} />);
     await submit();

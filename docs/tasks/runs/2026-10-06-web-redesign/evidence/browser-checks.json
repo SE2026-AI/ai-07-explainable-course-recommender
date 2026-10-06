@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-06T04:49:42.488Z",
+  "browser": "Chrome/154.0.8037.93",
+  "url": "http://localhost:5173/",
+  "checks": [
+    {
+      "id": "KBD-1 primary button reachable by Tab",
+      "ok": true,
+      "detail": "25 Tab presses"
+    },
+    {
+      "id": "AC-1 BASE eligible set",
+      "ok": true,
+      "detail": "eligible=ST201,SE201"
+    },
+    {
+      "id": "AC-1 AI301 blocked by ST201",
+      "ok": true,
+      "detail": "AI301Trí tuệ nhân tạo4 tín chỉST201AI301Chưa qua môn tiên quyết bắt buộc: ST201.MISSING_PREREQUISITE"
+    },
+    {
+      "id": "AC-2 what-if comparison from /v1/simulations",
+      "ok": true,
+      "detail": "ST2011 → 177.8%54.5% | SE2012 → 242.6%53.0%"
+    },
+    {
+      "id": "AC-2 baseline list unchanged during what-if",
+      "ok": true,
+      "detail": "eligible-ST201|1|77.8% ; eligible-SE201|2|42.6%"
+    },
+    {
+      "id": "UI-1 no horizontal overflow at 400px",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "id": "AC-3 invalid grade shows field error",
+      "ok": true,
+      "detail": "Điểm CS101: Input should be less than or equal to 10"
+    },
+    {
+      "id": "ERR-1 ranking failure shown as degraded",
+      "ok": true,
+      "detail": "Kết quả không đầy đủ (degraded):RANKING_UNAVAILABLE: Không tính được điểm xếp hạng; chỉ trả về danh sách đủ điều kiện, không có thứ hạng."
+    },
+    {
+      "id": "AC-6 catalog outage shows 503 status and keeps draft",
+      "ok": true,
+      "detail": "API tạm thời không khả dụng (CATALOG_UNAVAILABLE). Có thể thử lại. Hồ sơ nháp của bạn vẫn được giữ. | grade=8"
+    },
+    {
+      "id": "AC-5 mock mode is labeled",
+      "ok": true,
+      "detail": "MOCK · dữ liệu ghi sẵn cho hồ sơ BASE, không tính toán"
+    }
+  ]
+}

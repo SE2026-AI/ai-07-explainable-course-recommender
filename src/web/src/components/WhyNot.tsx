@@ -47,7 +47,9 @@ export function WhyNot({ courses, disabled, onAsk }: Props) {
           <p className="status">
             {result.eligible
               ? `Đủ điều kiện · hạng ${result.rank ?? "—"}${result.score_percent != null ? ` (${result.score_percent}%)` : ""}`
-              : "Chưa thể học ngay"}
+              : result.reason_codes.includes("COMPLETED")
+                ? "Đã hoàn thành"
+                : "Chưa thể học ngay"}
           </p>
           <ul>
             {result.reasons.map((r, i) => <li key={i}>{r.text} <span className="code">{r.code}</span></li>)}
