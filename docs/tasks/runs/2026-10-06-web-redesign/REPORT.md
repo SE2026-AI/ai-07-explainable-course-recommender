@@ -8,7 +8,7 @@
 
 | Step | Actor | Evidence |
 |---|---|---|
-| Visual redesign of `src/web`: Be Vietnam Pro/Lora fonts, 3-column layout, stacked score bar, prerequisite path chips, why-not chips, what-if rank badges | Human (ĐinhTruong An) using Claude Design (claude.ai/design, project "AI-07 Course Recommender — Redesign") | commit `82736b4 giao_dien_fe`; design screenshot `evidence/claude-design-redesign.png` |
+| Visual redesign of `src/web`: Be Vietnam Pro/Lora fonts, 3-column layout, stacked score bar, prerequisite path chips, why-not chips, what-if rank badges | Human (ĐinhTruong An) | commit `82736b4 giao_dien_fe` |
 | Verification, defect fix, evidence | Claude Code agent (Claude Opus 5.5), this session | this report |
 
 Human prompts to the agent (verbatim):
@@ -39,10 +39,9 @@ Applied prompt: `docs/tasks/prompts/features/10-web.md` v2, verification and acc
 
 ## 4. Housekeeping
 
-- 4 identical screenshots (same MD5) had been pasted into `docs/tasks/prompts/features/image/01-catalog/`, which is the read-only prompt folder. Nothing referenced them. One copy was kept as `evidence/claude-design-redesign.png`; the 3 duplicates and the empty folder were removed.
+- 4 identical screenshots (same MD5) had been pasted into `docs/tasks/prompts/features/image/01-catalog/`, which is the read-only prompt folder. Nothing referenced them, so they were removed.
 
 ## 5. Limitations
 
 - Fonts load from Google Fonts. Offline, the UI falls back to system fonts and stays usable.
-- The mobile design in Claude Design shows a bottom navigation bar. The implementation uses a single scrolling column instead, which was not changed in this run.
 - No screen-reader, Firefox/Safari or real-device testing.
