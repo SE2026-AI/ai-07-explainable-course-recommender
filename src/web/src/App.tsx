@@ -2,13 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, createLiveClient, createMockClient, type ApiClient, type ApiMode } from "./api/client";
 import type { CatalogCourse, CatalogMeta, Profile, RecommendationResponse, SimulationResponse, Weights } from "./api/types";
 import { COMPONENTS } from "./api/types";
-import { ProfileForm } from "./components/ProfileForm";
+import { GraphView } from "./components/GraphView";
 import { AlertIcon, CapIcon } from "./components/Icons";
+import { Login } from "./components/Login";
+import { PlanView } from "./components/PlanView";
+import { ProfileForm } from "./components/ProfileForm";
+import { RoadmapView } from "./components/RoadmapView";
 import { Results, type RankPreview } from "./components/Results";
 import { WhatIf } from "./components/WhatIf";
 import { WhyNot } from "./components/WhyNot";
 import { createLatestRunner } from "./lib/latest";
 import { DEFAULT_WEIGHTS, PRESETS, loadDraft, sameJson, saveDraft } from "./lib/profile";
+import { initials, loadSession, saveSession, type Session } from "./lib/session";
 
 type Fault = "" | "ranking_failure" | "explanation_failure" | "catalog_unavailable";
 
@@ -24,7 +29,17 @@ interface Props {
   clientFor?: (mode: ApiMode, fault: Fault) => ApiClient;
   initialMode?: ApiMode;
   simulateDebounceMs?: number;
+  /** Show the demo login first (the real entry point sets this; tests start signed in). */
+  requireLogin?: boolean;
 }
+
+type View = "recommend" | "plan" | "roadmap" | "graph";
+const VIEWS: { id: View; label: string }[] = [
+  { id: "recommend", label: "Gợi ý" },
+  { id: "plan", label: "Kế hoạch kỳ" },
+  { id: "roadmap", label: "Lộ trình" },
+  { id: "graph", label: "Đồ thị tiên quyết" },
+];
 
 const defaultClientFor = (mode: ApiMode, fault: Fault) => (mode === "mock" ? createMockClient() : createLiveClient("/v1", fault || undefined));
 
@@ -43,8 +58,11 @@ function describe(err: unknown): string {
   return `${err.code}: ${err.message}`;
 }
 
-export default function App({ clientFor = defaultClientFor, initialMode = "live", simulateDebounceMs = 250 }: Props) {
+export default function App({ clientFor = defaultClientFor, initialMode = "live", simulateDebounceMs = 250, requireLogin = false }: Props) {
   const saved = useMemo(loadDraft, []);
+  const [session, setSession] = useState<Session | null>(() => (requireLogin ? loadSession() : null));
+  const [view, setView] = useState<View>("recommend");
+  const [autoRun, setAutoRun] = useState(false);
   const [mode, setMode] = useState<ApiMode>(initialMode);
   const [fault, setFault] = useState<Fault>("");
   const client = useMemo(() => clientFor(mode, fault), [clientFor, mode, fault]);
@@ -136,6 +154,30 @@ export default function App({ clientFor = defaultClientFor, initialMode = "live"
     }
   }
 
+  // After entering from the login screen, run the first recommendation once the new profile and catalog are in place.
+  useEffect(() => {
+    if (!autoRun || courses.length === 0) return;
+    setAutoRun(false);
+    recommend(weights);
+  }, [autoRun, courses.length, recommend, weights]);
+
+  function enter(next: Session) {
+    saveSession(next);
+    setSession(next);
+    setProfile(structuredClone(PRESETS[next.preset]));
+    setSubmitted(null);
+    setError(null);
+    setView("recommend");
+    setAutoRun(true);
+  }
+
+  function logout() {
+    saveSession(null);
+    setSession(null);
+    setSubmitted(null);
+    setSimulation(null);
+  }
+
   const stale = submitted != null && (!sameJson(profile, submitted.profile) || catalogVersion !== submitted.catalogVersion);
   const fieldErrors = fieldErrorsOf(error);
   const data = submitted?.data;
@@ -143,6 +185,11 @@ export default function App({ clientFor = defaultClientFor, initialMode = "live"
   const preview: RankPreview | undefined = scenarioChanged && simulation
     ? Object.fromEntries(simulation.changes.map((c) => [c.course_id, { rank: c.rank_after, score: c.score_after }]))
     : undefined;
+
+  if (requireLogin && !session) return <Login onEnter={enter} />;
+
+  const terms = meta?.terms ?? [];
+  const goalTitle = meta?.goals.find((g) => profile.career_goal_ids.includes(g.goal_id))?.title;
 
   return (
     <div className="app">
@@ -155,6 +202,11 @@ export default function App({ clientFor = defaultClientFor, initialMode = "live"
               <p>AI-07 · dữ liệu giả lập · điểm là mức phù hợp theo quy tắc, không phải xác suất thành công</p>
             </div>
           </div>
+          <nav className="tabs" aria-label="Chức năng">
+            {VIEWS.map((v) => (
+              <button key={v.id} type="button" className="tab" aria-current={view === v.id ? "page" : undefined} onClick={() => setView(v.id)}>{v.label}</button>
+            ))}
+          </nav>
           <div className="top-tools">
             {mode === "mock" && <span className="badge mock" data-testid="mock-badge">MOCK · dữ liệu ghi sẵn cho hồ sơ BASE, không tính toán</span>}
             <fieldset className="segmented" aria-label="Nguồn dữ liệu">
@@ -167,11 +219,28 @@ export default function App({ clientFor = defaultClientFor, initialMode = "live"
                 <span>Mock</span>
               </label>
             </fieldset>
+            {session && (
+              <div className="user-chip">
+                <div className="user-text">
+                  <strong>{session.displayName} · {session.role === "advisor" ? "Cố vấn" : "Sinh viên"}</strong>
+                  <span>Hồ sơ {profile.profile_id}{goalTitle ? ` · ${goalTitle}` : ""}</span>
+                </div>
+                <span className="avatar" aria-hidden="true">{initials(session.displayName)}</span>
+                <button type="button" className="secondary" onClick={logout}>Đăng xuất</button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="layout">
+      {view === "plan" && (
+        <PlanView data={data ?? null} profile={profile} terms={terms} loading={loading}
+          onRecommend={() => recommend(weights)} onNavigate={setView} />
+      )}
+      {view === "roadmap" && <RoadmapView courses={courses} profile={profile} terms={terms} data={data ?? null} onNavigate={setView} />}
+      {view === "graph" && <GraphView courses={courses} profile={profile} data={data ?? null} onNavigate={setView} />}
+
+      <main className="layout" hidden={view !== "recommend"}>
         <div className="side">
           <ProfileForm
             profile={profile} meta={meta} courses={courses} fieldErrors={fieldErrors} onChange={setProfile}

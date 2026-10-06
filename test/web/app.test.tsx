@@ -115,3 +115,32 @@ describe("web journey", () => {
     expect(screen.getByTestId("stale-banner")).toBeInTheDocument();
   });
 });
+
+describe("demo login and extra views", () => {
+  it("requires the demo login, then opens the plan view with the recommended courses", async () => {
+    render(<App requireLogin initialMode="mock" clientFor={() => createMockClient(0)} />);
+    await userEvent.click(screen.getByRole("button", { name: /^Đăng nhập/ }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Nhập tài khoản và mật khẩu");
+    await userEvent.type(screen.getByLabelText("MSSV hoặc email trường"), "22001535");
+    await userEvent.type(screen.getByLabelText("Mật khẩu"), "demo");
+    await userEvent.click(screen.getByRole("button", { name: /^Đăng nhập/ }));
+    await screen.findByTestId("eligible-ST201"); // first recommendation runs automatically
+    await userEvent.click(screen.getByRole("button", { name: "Kế hoạch kỳ" }));
+    const st = screen.getByTestId("plan-ST201");
+    await userEvent.click(within(st).getByRole("button", { name: /Thêm/ }));
+    expect(screen.getByText("3 / 6")).toBeInTheDocument();
+    expect(screen.getByText("Hợp lệ")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Đăng xuất" }));
+    expect(screen.getByRole("heading", { name: "Đăng nhập" })).toBeInTheDocument();
+  });
+
+  it("graph view colors nodes from history and the recommendation result", async () => {
+    render(<App initialMode="mock" clientFor={() => createMockClient(0)} />);
+    await submit();
+    await screen.findByTestId("eligible-ST201");
+    await userEvent.click(screen.getByRole("button", { name: "Đồ thị tiên quyết" }));
+    expect(screen.getByTestId("node-CS101")).toHaveClass("passed");
+    expect(screen.getByTestId("node-ST201")).toHaveClass("eligible");
+    expect(screen.getByTestId("node-AI301")).toHaveClass("blocked");
+  });
+});

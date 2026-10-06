@@ -138,6 +138,9 @@ export interface CatalogCourse {
   credits: number;
   workload_hours_per_week: number | null;
   mandatory_prerequisites: string[];
+  recommended_preparation?: string[];
+  available_terms?: string[];
+  topics?: string[];
 }
 
 export interface CatalogPage {
