@@ -1,0 +1,302 @@
+openapi: 3.1.0
+info:
+  title: AI-07 Explainable Course Recommender API
+  version: 0.1.0
+  description: Draft stateless API contract. Policies and schemas are proposals pending human adoption.
+servers:
+  - url: http://localhost:8000/v1
+paths:
+  /catalog/courses:
+    get:
+      operationId: listCourses
+      summary: List catalog courses
+      parameters:
+        - {in: query, name: catalog_version, schema: {type: string}}
+        - {in: query, name: q, schema: {type: string, maxLength: 100}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
+        - {in: query, name: cursor, schema: {type: string}}
+      responses:
+        '200': {description: Catalog page, content: {application/json: {schema: {$ref: '#/components/schemas/CatalogPage'}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /catalog/graph:
+    get:
+      operationId: getPrerequisiteGraph
+      parameters:
+        - {in: query, name: catalog_version, required: true, schema: {type: string, minLength: 1}}
+      responses:
+        '200': {description: Directed prerequisite graph, content: {application/json: {schema: {$ref: '#/components/schemas/Graph'}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /profiles/validate:
+    post:
+      operationId: validateProfile
+      requestBody: {$ref: '#/components/requestBodies/ProfileRequest'}
+      responses:
+        '200': {description: Valid profile report, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileValidation'}}}}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /recommendations:
+    post:
+      operationId: recommendCourses
+      requestBody: {$ref: '#/components/requestBodies/RecommendationRequest'}
+      responses:
+        '200': {description: Eligible ranked and ineligible relevant courses, content: {application/json: {schema: {$ref: '#/components/schemas/RecommendationResponse'}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /why-not:
+    post:
+      operationId: explainWhyNot
+      requestBody: {$ref: '#/components/requestBodies/WhyNotRequest'}
+      responses:
+        '200': {description: Evidence-backed course disposition, content: {application/json: {schema: {$ref: '#/components/schemas/WhyNotResponse'}}}}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /simulations:
+    post:
+      operationId: simulateScenario
+      requestBody: {$ref: '#/components/requestBodies/SimulationRequest'}
+      responses:
+        '200': {description: Baseline and scenario comparison, content: {application/json: {schema: {$ref: '#/components/schemas/SimulationResponse'}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /semester-plans:
+    post:
+      operationId: planSemester
+      requestBody: {$ref: '#/components/requestBodies/SemesterPlanRequest'}
+      responses:
+        '200': {description: Complete, partial or infeasible term plan, content: {application/json: {schema: {$ref: '#/components/schemas/PlanResponse'}}}}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /roadmaps:
+    post:
+      operationId: buildRoadmap
+      requestBody: {$ref: '#/components/requestBodies/RoadmapRequest'}
+      responses:
+        '200': {description: Complete, partial or infeasible bounded roadmap, content: {application/json: {schema: {$ref: '#/components/schemas/RoadmapResponse'}}}}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+components:
+  requestBodies:
+    ProfileRequest: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileRequest'}}}}
+    RecommendationRequest: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RecommendationRequest'}}}}
+    WhyNotRequest: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/WhyNotRequest'}}}}
+    SimulationRequest: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SimulationRequest'}}}}
+    SemesterPlanRequest: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SemesterPlanRequest'}}}}
+    RoadmapRequest: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RoadmapRequest'}}}}
+  schemas:
+    HistoryRecord:
+      type: object
+      additionalProperties: false
+      required: [course_id, state]
+      properties:
+        course_id: {type: string, pattern: '^[A-Z0-9_-]+$'}
+        state: {type: string, enum: [passed, failed, planned]}
+        grade: {type: [number, 'null'], minimum: 0, maximum: 10, description: Proposed 0-10 scale; missing grade never implies pass.}
+        completed_term: {type: [string, 'null']}
+        source_record_id: {type: [string, 'null']}
+    Profile:
+      type: object
+      additionalProperties: false
+      required: [profile_id, history, career_goal_ids, interest_ids, workload_preference, max_credits_per_term]
+      properties:
+        profile_id: {type: string, minLength: 1}
+        history: {type: array, items: {$ref: '#/components/schemas/HistoryRecord'}}
+        career_goal_ids: {type: array, uniqueItems: true, items: {type: string}}
+        interest_ids: {type: array, uniqueItems: true, items: {type: string}}
+        workload_preference:
+          type: object
+          additionalProperties: false
+          required: [hours_per_week_budget, direction]
+          properties:
+            hours_per_week_budget: {type: number, exclusiveMinimum: 0, maximum: 168}
+            direction: {type: string, enum: [lower, higher, neutral]}
+        max_credits_per_term: {type: integer, minimum: 1, maximum: 60}
+        excluded_course_ids: {type: array, uniqueItems: true, items: {type: string}}
+    Weights:
+      type: object
+      additionalProperties: false
+      properties:
+        goal_match: {type: number, minimum: 0, maximum: 1}
+        interest_match: {type: number, minimum: 0, maximum: 1}
+        preparation: {type: number, minimum: 0, maximum: 1}
+        workload_fit: {type: number, minimum: 0, maximum: 1}
+      anyOf:
+        - properties: {goal_match: {type: number, exclusiveMinimum: 0}}
+        - properties: {interest_match: {type: number, exclusiveMinimum: 0}}
+        - properties: {preparation: {type: number, exclusiveMinimum: 0}}
+        - properties: {workload_fit: {type: number, exclusiveMinimum: 0}}
+      description: At least one supplied weight must be positive; normalize to sum 1. Cross-field sum and finiteness are validated by API.
+    BaseRequest:
+      type: object
+      required: [contract_version, catalog_version, profile]
+      properties:
+        contract_version: {type: string, const: 0.1.0}
+        catalog_version: {type: string, minLength: 1}
+        request_id: {type: string}
+        profile: {$ref: '#/components/schemas/Profile'}
+    ProfileRequest:
+      allOf: [{$ref: '#/components/schemas/BaseRequest'}]
+    RecommendationRequest:
+      allOf:
+        - {$ref: '#/components/schemas/BaseRequest'}
+        - type: object
+          properties:
+            weights: {$ref: '#/components/schemas/Weights'}
+            term_id: {type: string}
+            include_ineligible: {type: boolean, default: true}
+    WhyNotRequest:
+      allOf:
+        - {$ref: '#/components/schemas/BaseRequest'}
+        - type: object
+          required: [course_ids]
+          properties:
+            course_ids: {type: array, minItems: 1, uniqueItems: true, items: {type: string}}
+            weights: {$ref: '#/components/schemas/Weights'}
+    SimulationRequest:
+      allOf:
+        - {$ref: '#/components/schemas/BaseRequest'}
+        - type: object
+          required: [baseline_version, scenario]
+          properties:
+            baseline_version: {type: string}
+            weights: {$ref: '#/components/schemas/Weights'}
+            scenario:
+              type: object
+              required: [scenario_id, scenario_version]
+              properties:
+                scenario_id: {type: string}
+                scenario_version: {type: string}
+                career_goal_ids: {type: array, items: {type: string}}
+                interest_ids: {type: array, items: {type: string}}
+                weights: {$ref: '#/components/schemas/Weights'}
+                workload_preference: {$ref: '#/components/schemas/Profile/properties/workload_preference'}
+                selected_course_ids: {type: array, uniqueItems: true, items: {type: string}}
+                hypothetical_passed: {type: array, uniqueItems: true, items: {type: string}}
+                max_credits_per_term: {type: integer, minimum: 1, maximum: 60}
+                excluded_course_ids: {type: array, items: {type: string}}
+    SemesterPlanRequest:
+      allOf:
+        - {$ref: '#/components/schemas/BaseRequest'}
+        - type: object
+          required: [term_id, selected_course_ids, max_credits]
+          properties:
+            term_id: {type: string}
+            selected_course_ids: {type: array, uniqueItems: true, items: {type: string}}
+            max_credits: {type: integer, minimum: 1, maximum: 60}
+            allow_partial: {type: boolean, default: true}
+    RoadmapRequest:
+      allOf:
+        - {$ref: '#/components/schemas/BaseRequest'}
+        - type: object
+          required: [start_term_id, horizon_terms, max_credits_per_term]
+          properties:
+            start_term_id: {type: string}
+            horizon_terms: {type: array, minItems: 1, maxItems: 12, items: {type: string}}
+            max_credits_per_term: {type: integer, minimum: 1, maximum: 60}
+            target_course_ids: {type: array, uniqueItems: true, items: {type: string}}
+    CatalogCourse:
+      type: object
+      required: [course_id, title, credits, mandatory_prerequisites, available_terms]
+      properties:
+        course_id: {type: string}
+        title: {type: string}
+        credits: {type: integer, minimum: 1}
+        workload_hours_per_week: {type: [number, 'null'], minimum: 0}
+        mandatory_prerequisites: {type: array, items: {type: string}}
+        recommended_preparation: {type: array, items: {type: string}}
+        available_terms: {type: array, items: {type: string}}
+    CatalogPage:
+      type: object
+      required: [request_id, contract_version, catalog_version, items]
+      properties:
+        request_id: {type: string}
+        contract_version: {type: string}
+        catalog_version: {type: string}
+        items: {type: array, items: {$ref: '#/components/schemas/CatalogCourse'}}
+        next_cursor: {type: [string, 'null']}
+    Graph:
+      type: object
+      required: [request_id, catalog_version, nodes, edges]
+      properties:
+        request_id: {type: string}
+        catalog_version: {type: string}
+        nodes: {type: array, items: {type: string}}
+        edges: {type: array, items: {type: object, required: [prerequisite_course_id, dependent_course_id], properties: {prerequisite_course_id: {type: string}, dependent_course_id: {type: string}}}}
+    ProfileValidation:
+      type: object
+      required: [request_id, valid, errors, warnings]
+      properties:
+        request_id: {type: string}
+        valid: {type: boolean}
+        errors: {type: array, items: {type: object}}
+        warnings: {type: array, items: {type: object}}
+    RecommendationResponse:
+      type: object
+      required: [request_id, contract_version, catalog_version, algorithm_version, status, eligible, ineligible]
+      properties:
+        request_id: {type: string}
+        contract_version: {type: string}
+        catalog_version: {type: string}
+        algorithm_version: {type: string}
+        status: {type: string, enum: [ok, empty, degraded]}
+        eligible: {type: array, items: {type: object}}
+        ineligible: {type: array, items: {type: object}}
+        warnings: {type: array, items: {type: object}}
+    WhyNotResponse:
+      type: object
+      required: [request_id, catalog_version, results]
+      properties:
+        request_id: {type: string}
+        catalog_version: {type: string}
+        results: {type: array, items: {type: object}}
+    SimulationResponse:
+      type: object
+      required: [request_id, baseline_version, scenario_id, scenario_version, comparable_candidate_set_id, baseline, scenario, changes]
+      properties:
+        request_id: {type: string}
+        baseline_version: {type: string}
+        scenario_id: {type: string}
+        scenario_version: {type: string}
+        comparable_candidate_set_id: {type: string}
+        baseline: {type: object}
+        scenario: {type: object}
+        changes: {type: array, items: {type: object}}
+    PlanResponse:
+      type: object
+      required: [request_id, term_id, status, credit_limit, credits_used, included_course_ids, unscheduled]
+      properties:
+        request_id: {type: string}
+        term_id: {type: string}
+        status: {type: string, enum: [complete, partial, infeasible]}
+        credit_limit: {type: integer}
+        credits_used: {type: integer}
+        included_course_ids: {type: array, items: {type: string}}
+        unscheduled: {type: array, items: {type: object, required: [course_id, reason_code], properties: {course_id: {type: string}, reason_code: {type: string}}}}
+    RoadmapResponse:
+      type: object
+      required: [request_id, status, terms, unscheduled]
+      properties:
+        request_id: {type: string}
+        status: {type: string, enum: [complete, partial, infeasible]}
+        terms: {type: array, items: {type: object, required: [term_id, course_ids, credits], properties: {term_id: {type: string}, course_ids: {type: array, items: {type: string}}, credits: {type: integer}}}}
+        unscheduled: {type: array, items: {type: object}}
+    Error:
+      type: object
+      required: [request_id, contract_version, error]
+      properties:
+        request_id: {type: string}
+        contract_version: {type: string}
+        error:
+          type: object
+          required: [code, message, retryable]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            retryable: {type: boolean}
+            details: {type: object}
+  responses:
+    Conflict: {description: Stale catalog or invalid graph, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    ValidationError: {description: Invalid request, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    Unavailable: {description: Required service/catalog unavailable, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}

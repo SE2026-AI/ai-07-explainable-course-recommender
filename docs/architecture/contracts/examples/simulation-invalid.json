@@ -1,0 +1,5 @@
+{
+  "contract_version": "0.1.0", "catalog_version": "catalog-demo-v1", "profile": {
+    "profile_id": "SYN-BASE", "history": [], "career_goal_ids": [], "interest_ids": [], "workload_preference": {"hours_per_week_budget": 12, "direction": "lower"}, "max_credits_per_term": 6
+  }, "scenario": {"scenario_id": "x", "scenario_version": "1", "hypothetical_passed": ["MISSING999"]}
+}

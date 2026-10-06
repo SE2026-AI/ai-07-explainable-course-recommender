@@ -1,0 +1,1 @@
+﻿{"request_id":"req-whatif","baseline_version":"base-v1","scenario_id":"whatif-light","scenario_version":"1","comparable_candidate_set_id":"sha256:fixture-set","baseline":{"scores":{"ST201":0.86,"SE201":0.58}},"scenario":{"scores":{"ST201":0.44,"SE201":0.82}},"changes":[{"course_id":"ST201","rank_before":1,"rank_after":2},{"course_id":"SE201","rank_before":2,"rank_after":1}]}

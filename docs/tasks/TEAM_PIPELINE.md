@@ -18,21 +18,25 @@ Hồ sơ + mục tiêu + ưu tiên → kiểm tra input → catalog → bỏ mô
 Môn thiếu điều kiện đi vào why-not. What-if chạy lại cùng engine trên bản sao baseline. Roadmap chỉ coi môn hoàn thành ở kỳ trước là điều kiện cho kỳ sau.
 
 ## Pipeline triển khai và prompt tương ứng
-| Mốc | Prompt | Phụ thuộc | Người review |
-|---|---|---|---|
-| 0. Chốt vấn đề và scope | management/01-product-backlog.md | Đề tài và repo | Bạn |
-| 1. Kiến trúc và contract | 01-architecture.md | Scope | Bạn, A, B, C |
-| 2. Tạo task có thể giao | management/02-task-dispatch.md | Contract được chốt | Bạn |
-| 3. Dữ liệu/hồ sơ | features/01-catalog.md, 02-profile-goals.md | Schema | A |
-| 4. Tiên quyết | features/03-prerequisites.md | Catalog/profile interfaces | A |
-| 5. Ranking và giải thích | features/04-ranking.md → 05-explanations.md | Eligibility | B |
-| 6. Web và API | features/10-web.md, 11-api-integration.md | Contract fixtures; rồi backend thật | Bạn, C |
-| 7. What-if/kế hoạch | features/06-what-if.md → 07-semester-plan.md → 08-roadmap.md | Ranking và graph | B |
-| 8. Graph UI | features/09-graph-ui.md | Graph API và web shell | A, C |
-| 9. Reliability | features/12-reliability.md | Luồng tích hợp | Bạn |
-| 10. Kiểm chứng độc lập | 06-verification.md | Bản tích hợp | A, B, C theo phạm vi |
-| 11. Sửa lỗi và review | management/03-review-change.md | Findings | Bạn và owner |
-| 12. Chuẩn bị bàn giao | 07-build-release.md, 08-evidence-audit.md | Checks liên quan đạt | Bạn |
+Danh sách ticket, tiêu chí nghiệm thu và owner nằm trong [BACKLOG.md](BACKLOG.md). Cột "Ticket" dưới đây trỏ tới đó.
+
+| Mốc | Prompt | Ticket | Phụ thuộc | Người review |
+|---|---|---|---|---|
+| 0. Chốt vấn đề, scope và policy giả lập | management/01-product-backlog.md | T-00 | Đề tài và repo | Bạn |
+| 1. Kiến trúc, contract, ADR rules vs ML | 01-architecture.md | T-12 | Scope | Bạn, A, B, C |
+| 2. Tạo task có thể giao | management/02-task-dispatch.md | BACKLOG.md | Contract được chốt | Bạn |
+| 3. Khung dự án + synthetic data | 07-build-release.md, features/01-catalog.md | T-01, T-02 | T-00 | Bạn, A |
+| 4. Dữ liệu/hồ sơ | features/01-catalog.md, 02-profile-goals.md | T-03, T-04 | Schema | A |
+| 5. Tiên quyết | features/03-prerequisites.md | T-05 | Catalog/profile interfaces | A |
+| 6. Ranking và giải thích | features/04-ranking.md → 05-explanations.md | T-06, T-07 | Eligibility | B |
+| 7. What-if | features/06-what-if.md | T-08 | Ranking | B |
+| 8. Web và API | features/10-web.md, 11-api-integration.md | T-09, T-10 | Contract fixtures; rồi backend thật | Bạn, C |
+| 9. Fairness + bằng chứng ADR | — (xem FAIRNESS.md, ADR-001) | T-13, T-14 | Synthetic data, ranking | B, A |
+| 10. Reliability | features/12-reliability.md | T-11 | Luồng tích hợp | Bạn |
+| 11. Kiểm chứng độc lập | 06-verification.md | T-15 | Bản tích hợp | A, B, C theo phạm vi |
+| 12. Sửa lỗi và review | management/03-review-change.md | — | Findings | Bạn và owner |
+| 13. Chuẩn bị bàn giao | 07-build-release.md, 08-evidence-audit.md | — | Checks liên quan đạt | Bạn |
+| Stretch (chỉ khi lõi xong) | features/07-semester-plan.md, 08-roadmap.md, 09-graph-ui.md | S-01…S-03 | What-if, graph API | B, C |
 
 Có thể làm web shell bằng fixtures song song với backend sau khi chốt contract. Chỉ chạy song song khi file allowlist không giao nhau. Backend API/router/app entrypoint có một owner là integration agent; feature agents chủ yếu viết domain services.
 

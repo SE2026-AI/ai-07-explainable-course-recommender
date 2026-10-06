@@ -1,0 +1,6 @@
+﻿{
+  "contract_version": "0.1.0", "catalog_version": "catalog-demo-v1", "profile": {
+    "profile_id": "SYN-BASE", "history": [{"course_id": "CS101", "state": "passed", "grade": 8}, {"course_id": "MA101", "state": "passed", "grade": 7}],
+    "career_goal_ids": ["ML_ENGINEER"], "interest_ids": [], "workload_preference": {"hours_per_week_budget": 12, "direction": "lower"}, "max_credits_per_term": 6
+  }, "term_id": "2027-FALL", "selected_course_ids": ["ST201", "SE201"], "max_credits": 6, "allow_partial": false
+}
