@@ -10,7 +10,7 @@ Team: SE2026-T24 / SE.2026.14 · Cập nhật: 2026-10-06 · Contract: `0.1.0` (
 - Ticket chỉ `DONE` khi test ở cột "Test" pass và có người khác owner review.
 - Đường dẫn tuân theo cấu trúc bắt buộc: `docs/`, `src/backend`, `src/web`, `test/…`, `tools/`, `build/deploy`. Không tạo `backend/`, `frontend/`, `tests/` ở gốc repo.
 
-Bằng chứng lượt chạy MVP backend: [runs/2026-10-06-mvp-backend/REPORT.md](runs/2026-10-06-mvp-backend/REPORT.md).
+Bằng chứng: [MVP backend](runs/2026-10-06-mvp-backend/REPORT.md) · [MVP web](runs/2026-10-06-mvp-web/REPORT.md).
 
 ## Mốc 0 — Chốt quyết định (chặn mọi ticket code)
 
@@ -31,7 +31,7 @@ Bằng chứng lượt chạy MVP backend: [runs/2026-10-06-mvp-backend/REPORT.m
 | T-07 | **Explanation**: reason code + evidence; why-not | `src/backend/domain/explanations.py` | features/05-explanations | T-06 | Mọi lý do đều trỏ tới thành phần điểm hoặc bản ghi catalog có thật; môn bị chặn liệt kê đúng tiên quyết thiếu | `test/backend/test_explanations.py` | | REVIEW (MVP run 2026-10-06, chờ review độc lập) |
 | T-08 | **What-if controls**: chạy lại với trọng số hoặc kịch bản mới, baseline bất biến | `src/backend/domain/simulation.py` | features/06-what-if | T-06, T-07 | Digest baseline không đổi; có `scenario_id` mới; rank delta chỉ tính trên môn có ở cả hai tập | `test/backend/test_simulation.py` | | REVIEW (MVP run 2026-10-06, chờ review độc lập) |
 | T-09 | **API** `/v1`: catalog, profiles/validate, recommendations, why-not, simulations; map lỗi 400/409/422/503 | `src/backend/app.py`, `src/backend/routers/` | features/11-api-integration | T-05…T-08 | Response khớp OpenAPI; mọi fixture trong `contracts/examples` pass; catalog lỗi thì 503, không có ranking giả | `test/contract/`, `test/integration/` | | REVIEW (MVP run 2026-10-06, chờ review độc lập) |
-| T-10 | **Web UI**: chọn mục tiêu, sở thích; xem gợi ý và lý do; thanh trượt trọng số (what-if); xem why-not | `src/web/` | features/10-web | T-01 (dùng fixture), sau đó T-09 | Chạy được với fixture mode (có nhãn rõ) và với API thật; hiển thị đủ 3 trạng thái normal/degraded/unavailable | `test/web/` | | TODO |
+| T-10 | **Web UI**: chọn mục tiêu, sở thích; xem gợi ý và lý do; thanh trượt trọng số (what-if); xem why-not | `src/web/` | features/10-web | T-01 (dùng fixture), sau đó T-09 | Chạy được với fixture mode (có nhãn rõ) và với API thật; hiển thị đủ 3 trạng thái normal/degraded/unavailable | `test/web/` | | REVIEW (MVP web 2026-10-06, chờ review độc lập) |
 | T-11 | **Reliability**: tiêm lỗi catalog và ranking | `test/integration/` | features/12-reliability | T-09 | Theo bảng Q-01…Q-09 trong `RELIABILITY.md` | `test/integration/test_faults.py` | | TODO |
 
 ## Kiểm chứng — bắt buộc theo đề

@@ -1,0 +1,21 @@
+# command: npm test (src/web)  date: 2026-10-06T03:57:32Z  node v24.21.0
+
+> ai07-web@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Users/Administrator/OneDrive/Desktop/kythuatphanmem/ai-07-explainable-course-recommender/src/web
+
+ ✓ ../../test/web/latest.test.ts (3 tests) 18ms
+ ✓ ../../test/web/app.test.tsx (6 tests) 2290ms
+   ✓ web journey > AC-1/AC-5: BASE in mock mode shows ST201+SE201 eligible and AI301 blocked by ST201, labeled MOCK  563ms
+   ✓ web journey > AC-6: API unavailable keeps the draft profile and shows the status  394ms
+   ✓ web journey > AC-2/AC-4: what-if shows the latest scenario only and leaves the baseline list unchanged  579ms
+   ✓ web journey > marks results stale when the profile changes after submission  326ms
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  10:57:35
+   Duration  8.89s (transform 1.33s, setup 2.98s, collect 1.71s, tests 2.31s, environment 4.37s, prepare 1.07s)
+
+# exit: 0
