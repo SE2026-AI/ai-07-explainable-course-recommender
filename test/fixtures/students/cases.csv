@@ -1,0 +1,20 @@
+﻿university_code,student_code,curriculum_code,year_of_study,description
+HUS,T01,HUS-7480113QTD-2022,1,"KHMT&TT năm 1, chưa học môn nào"
+HUS,T02,HUS-7480113QTD-2022,2,"KHMT&TT năm 2, đạt hết"
+HUS,T03,HUS-7480113QTD-2022,2,"Trượt MAT2505 (3,0) kỳ 2, chưa học lại"
+HUS,T04,HUS-7480113QTD-2022,3,"Trượt MAT2505 kỳ 2, học lại đạt kỳ 3"
+HUS,T05,HUS-7480113QTD-2022,2,"MAT2502 đúng 4,0 = đạt (ranh giới)"
+HUS,T06,HUS-7480113QTD-2022,4,"KHMT&TT năm 4, còn rất ít môn"
+HUS,T07,HUS-7480113QTD-2022,2,Không có sở thích
+HUS,T08,HUS-7480113QTD-2022,2,"Giống hệt T02, chỉ khác nhóm: gợi ý phải giống T02"
+HUS,T09,HUS-7480113QTD-2022,3,Chọn Tiếng Nga B1; MAT1205E vẫn yêu cầu FLF1107
+HUS,T10,HUS-7480113QTD-2022,3,Đã đủ 5 TC khối lĩnh vực (II)
+HUS,T11,HUS-7460108-2022,2,"KHDL năm 2: dùng khung KHDL, không có MAT1205E"
+HUS,T12,HUS-7460108-2022,3,"KHDL năm 3: MAT3148 là môn bắt buộc, đã học kỳ 4"
+HUS,T13,HUS-7460108-2022,4,KHDL năm 4: MAT3562 cần MAT2400 và MAT3533
+HUS,T14,HUS-7460108-2022,3,"KHDL: trượt MAT2323 kỳ 3, chưa học lại"
+HUS,T15,HUS-7480113QTD-2022,3,"Miễn FLF1107 nhờ chứng chỉ: miễn tính là đạt, nên đã học được MAT1205E"
+DEMO,T01,DEMO-7480201-2024,2,"Trường DEMO, CÙNG mã T01 với sinh viên HUS; 4,5 là TRƯỢT vì DEMO đạt từ 5,0; đã học CS202 nhờ điều kiện HOẶC (MAT2505)"
+DEMO,T02,DEMO-7480201-2024,2,"Trường DEMO năm 2, đạt hết"
+HUS,T16,HUS-7480113QTD-2022,3,"Không khai sở thích; điểm cao ở các môn chủ đề Dữ liệu (9,0), môn khác 6,5"
+HUS,T17,HUS-7480113QTD-2022,3,Như T16 nhưng học giỏi chủ đề Toán: gợi ý tự chọn nên khác T16
