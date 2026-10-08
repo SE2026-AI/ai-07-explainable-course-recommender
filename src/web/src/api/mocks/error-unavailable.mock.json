@@ -1,0 +1,1 @@
+﻿{"request_id":"req-error","contract_version":"0.1.0","error":{"code":"CATALOG_UNAVAILABLE","message":"The requested catalog snapshot is unavailable.","retryable":true,"details":{"catalog_version":"catalog-demo-v1"}}}
