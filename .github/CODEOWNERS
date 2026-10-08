@@ -1,0 +1,19 @@
+# Thay các @TV?-GITHUB bằng tên tài khoản GitHub thật của từng người.
+# Mỗi dòng: đường dẫn  người sở hữu (tự động được gắn vào Pull Request)
+
+/src/api/          @HuuHungPham2004
+/.github/          @HuuHungPham2004
+/docs/tasks/       @HuuHungPham2004
+
+/src/catalog/      @hoangdoanhus
+/src/profile/      @hoangdoanhus
+/src/data/         @hoangdoanhus
+
+/src/rules/        @hoangminhdang2004
+
+/src/recommender/  @duc2803
+/src/explain/      @duc2803 @hoangminhdang2004
+/build/deploy/     @duc2803
+
+/src/web/          @truongan
+/docs/ui/          @truongan
