@@ -1,0 +1,4 @@
+# Giữ nguyên định dạng file dữ liệu trên mọi hệ điều hành
+*.csv text eol=lf
+*.sql text eol=lf
+*.py  text eol=lf

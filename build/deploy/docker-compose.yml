@@ -1,0 +1,27 @@
+# PostgreSQL cho phát triển trên máy cá nhân.
+#   Bật:   docker compose -f build/deploy/docker-compose.yml up -d
+#   Tắt:   docker compose -f build/deploy/docker-compose.yml down        (giữ dữ liệu)
+#   Xóa:   docker compose -f build/deploy/docker-compose.yml down -v     (xóa sạch dữ liệu)
+# Tài khoản/mật khẩu dưới đây CHỈ dùng trên máy cá nhân, khớp DEFAULT_URL trong src/data/db/build.py.
+name: coursereco
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-coursereco}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coursereco}
+      POSTGRES_DB: ${POSTGRES_DB:-course_recommender}
+      TZ: Asia/Ho_Chi_Minh
+      PGTZ: Asia/Ho_Chi_Minh
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  pgdata:

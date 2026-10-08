@@ -11,3 +11,5 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+# File sinh ra từ database – tạo lại bằng: python -m tools.export_excel
+data/xem_du_lieu.xlsx
