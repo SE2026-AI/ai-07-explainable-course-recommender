@@ -1,0 +1,3 @@
+﻿key,value,note
+target_term_code,20261,Học kỳ app đang gợi ý (học kỳ 1 năm học 2026–2027); mỗi sinh viên lấy theo lịch của trường mình
+schema_version,3.0.0,Phiên bản lược đồ; tăng khi đổi cấu trúc bảng (xem docs/architecture/data-model.md mục Thay đổi lược đồ)

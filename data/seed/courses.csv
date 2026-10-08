@@ -1,0 +1,90 @@
+﻿university_code,code,name,name_en,credits,lecture_hours,practice_hours,self_study_hours,teaching_language
+HUS,PHI1006,Triết học Mác - Lênin,Marxist - Leninist Philosophy,3,42,6,102,vi
+HUS,PEC1008,Kinh tế chính trị Mác - Lênin,Marxist-Leninist Political Economy,2,30,0,70,vi
+HUS,PHI1002,Chủ nghĩa xã hội khoa học,Scientific socialism,2,28,4,68,vi
+HUS,HIS1001,Lịch sử Đảng Cộng sản Việt Nam,History of Vietnamese Communist Party,2,28,4,68,vi
+HUS,POL1001,Tư tưởng Hồ Chí Minh,Ho Chi Minh's Ideology,2,28,4,68,vi
+HUS,THL1057,Nhà nước và pháp luật đại cương,General State and Law,2,30,0,70,vi
+HUS,HUS1011,Tin học cơ sở,General Informatics,3,10,40,100,vi
+HUS,FLF1107,Tiếng Anh B1,English B1,5,25,50,175,vi
+HUS,FLF1207,Tiếng Nga B1,Russian B1,5,25,50,175,vi
+HUS,FLF1307,Tiếng Pháp B1,French B1,5,25,50,175,vi
+HUS,FLF1407,Tiếng Trung Quốc B1,Chinese B1,5,25,50,175,vi
+HUS,FLF1507,Tiếng Đức B1,German B1,5,25,50,175,vi
+HUS,FLF1607,Tiếng Nhật Bản B1,Japanese B1,5,25,50,175,vi
+HUS,FLF1707,Tiếng Hàn Quốc B1,Korean B1,5,25,50,175,vi
+HUS,HUS1012,Kỹ năng bổ trợ,Soft skills,3,31,14,105,vi
+HUS,HUS1021,Khoa học Trái Đất và sự sống,Earth and Life Sciences,3,33,24,93,vi
+HUS,HUS1022,Nhập môn Internet kết nối vạn vật,Introduction to Internet of Things,2,24,12,64,vi
+HUS,HUS1023,Nhập môn phân tích dữ liệu,Introduction to Data Analysis,2,20,20,60,vi
+HUS,HUS1024,Nhập môn Robotic,Introduction to Robotics,3,30,20,100,vi
+HUS,HIS1056,Cơ sở văn hóa Việt Nam,Introduction to Vietnamese Culture,3,42,6,102,vi
+HUS,MAT2505,Lập trình cơ bản,Introduction to Programming,3,22,46,82,vi
+HUS,MAT2400,Đại số tuyến tính,Linear Algebra,5,50,50,150,vi
+HUS,MAT2501,Giải tích 1,Calculus 1,4,40,40,120,vi
+HUS,MAT2502,Giải tích 2,Calculus 2,4,40,40,120,vi
+HUS,MAT2503,Giải tích 3,Calculus 3,2,15,30,55,vi
+HUS,MAT2403,Phương trình vi phân,Differential Equations,3,30,30,90,vi
+HUS,MAT2323,Xác suất - Thống kê,Probability - Statistics,4,45,30,125,vi
+HUS,MAT2407,Tối ưu hóa,Optimization,3,30,30,90,vi
+HUS,MAT1204,Phương pháp nghiên cứu khoa học,Research Methodology,3,15,60,75,vi
+HUS,MAT1205E,Tiếng Anh chuyên ngành khoa học máy tính,English for Computer Science,2,10,40,50,en
+HUS,MAT3500,Toán rời rạc,Discrete Mathematics,4,45,30,125,vi
+HUS,MAT3557,Môi trường lập trình Linux,Linux Programming Environment,2,15,30,55,vi
+HUS,MAT3550E,Nguyên lí hệ điều hành,Principles of Operating Systems,3,30,30,90,en
+HUS,MAT3507,Cơ sở dữ liệu,Databases,4,40,40,120,vi
+HUS,MAT1202,Lập trình hướng đối tượng,Object Oriented Programming,3,22,46,82,vi
+HUS,MAT3514,Cấu trúc dữ liệu và thuật toán,Data Structures and Algorithms,4,40,40,120,vi
+HUS,MAT3552E,Thiết kế và đánh giá thuật toán,Algorithm Design and Analysis,3,30,30,90,en
+HUS,MAT3505,Kiến trúc máy tính,Computer Architecture,3,30,30,90,vi
+HUS,MAT3373E,Nhập môn an toàn máy tính,Introduction to Computer Security,3,40,10,100,en
+HUS,MAT3506,Mạng máy tính,Computer Networks,3,40,10,100,vi
+HUS,MAT1206E,Nhập môn Trí tuệ nhân tạo,Introduction to Artificial Intelligence,3,30,30,90,en
+HUS,MAT3374,Thực tập thực tế phát triển phần mềm,Internship on software development,3,15,60,75,vi
+HUS,MAT1207,Công nghệ phần mềm,Software Engineering,3,22,46,82,vi
+HUS,MAT3541E,Nguyên lí các ngôn ngữ lập trình,Principles of Programming Languages,3,30,30,90,en
+HUS,MAT3533,Học máy,Machine Learning,3,30,30,90,vi
+HUS,MAT3519,Ngôn ngữ lập trình thứ hai,Second Programming Language,2,10,40,50,vi
+HUS,MAT3558,Lập trình mobile,Programming for mobile platforms,2,10,40,50,vi
+HUS,MAT1208,Xây dựng hệ thống nhúng,Embedded System Workshop,2,0,30,70,vi
+HUS,MAT3560,Phát triển phần mềm trò chơi,Introduction to game design and development,2,10,40,50,vi
+HUS,MAT3148,Tính toán song song,Parallel Computing,3,30,30,90,vi
+HUS,MAT3554E,Ngôn ngữ hình thức và ôtômat,Formal Language and Automata,3,40,10,100,en
+HUS,MAT3562E,Thị giác máy tính,Computer Vision,3,30,30,90,en
+HUS,MAT3561E,Xử lí ngôn ngữ tự nhiên và ứng dụng,Natural Language Processing and applications,3,35,20,95,en
+HUS,MAT3563,Một số vấn đề chọn lọc về thị giác máy tính,Advanced Reading in Computer Vision,3,30,30,90,vi
+HUS,MAT3534,Khai phá dữ liệu,Data Mining,3,30,30,90,vi
+HUS,MAT3542,Phát triển ứng dụng web,Web Applications Development,3,30,30,90,vi
+HUS,MAT3539,Mật mã và an toàn dữ liệu,Cryptography and Data Security,3,30,30,90,vi
+HUS,MAT3452,Phân tích thống kê nhiều chiều,Multivariate Statistical Analysis,3,30,30,90,vi
+HUS,MAT3453,Phương pháp chọn mẫu dữ liệu,Sampling Methods,3,30,30,90,vi
+HUS,MAT2034,Giải tích số,Numerical Analysis,3,30,30,90,vi
+HUS,MAT3538,Các hệ thống tri thức,Knowledge-Based Systems,3,30,30,90,vi
+HUS,MAT3535,Tìm kiếm thông tin,Information Retrieval,3,30,30,90,vi
+HUS,MAT4080,Khóa luận tốt nghiệp,Graduation Thesis,7,70,60,215,vi
+HUS,MAT1203,Phân tích và thiết kế hệ thống thông tin,Analysis and Design of Information Systems,4,10,100,90,vi
+HUS,MAT3377,Một số vấn đề chọn lọc về Trí tuệ nhân tạo,Selected topics on Artificial Intelligence,3,30,30,90,vi
+HUS,MAT3378,Quản trị dữ liệu lớn,Management of big and complex data,3,24,42,84,vi
+HUS,MAT3379,Phân tích hồi quy và ứng dụng,Applied Regression Analysis,3,24,42,84,vi
+HUS,MAT3381,Thực tập thực tế về Khoa học dữ liệu,Project in Data Science,3,0,90,60,vi
+HUS,MAT3382,Lập trình cho Khoa học dữ liệu,Programming for Data Science,2,14,32,54,vi
+HUS,MAT3383,Trực quan hóa thông tin,Information Visualization,2,15,30,55,vi
+HUS,MAT1209,Tự động hóa,Autonomous Robotics,2,0,30,70,vi
+HUS,MAT3385,Cơ sở dữ liệu Web và hệ thống thông tin,Web Database and Information Systems,3,30,30,90,vi
+HUS,MAT3504,Thiết kế và đánh giá thuật toán,Algorithms Design and Analysis,3,30,30,90,vi
+HUS,MAT3508,Nhập môn trí tuệ nhân tạo,Introduction to Artificial Intelligence,3,30,30,90,vi
+HUS,MAT3386,Phương pháp tính toán trong thống kê và khoa học dữ liệu,Computational Methods in Statistics and Data Science,3,15,60,75,vi
+HUS,MAT3387,Kĩ thuật lấy mẫu khảo sát,Survey Sampling Techniques,3,30,30,90,vi
+HUS,MAT3388,Phân tích chuỗi thời gian,Analysis of Time Series,3,30,30,90,vi
+HUS,MAT3389,Quy hoạch thực nghiệm,Introduction to Design of Experiments,3,30,30,90,vi
+HUS,MAT3390,Nhập môn Tin sinh học,Introduction to Bioinformatics,3,30,30,90,vi
+HUS,MAT3391,Hệ thống thông tin địa lí,Introduction to GIS,3,30,30,90,vi
+HUS,MAT3392,Ứng dụng dữ liệu lớn trong quản lí rủi ro tai biến thiên nhiên,Big data in risk management of natural disasters,3,30,30,90,vi
+HUS,MAT3393,Khai thác dữ liệu trong Hóa học,Data mining in Chemistry,3,30,30,90,vi
+HUS,MAT3394,Mô hình toán sinh thái,Mathematical Ecology,3,40,10,100,vi
+HUS,MAT3562,Thị giác máy tính,Computer Vision,3,30,30,90,vi
+HUS,MAT3395,Lí thuyết trò chơi,Game Theory,3,40,10,100,vi
+HUS,MAT3399,Xử lí ngôn ngữ tự nhiên và học sâu,Natural Language Processing with Deep Learning,3,24,42,84,vi
+HUS,MAT4083,Khóa luận tốt nghiệp,Graduation Thesis,7,75,60,215,vi
+HUS,MAT3397,Một số vấn đề ứng dụng của khoa học dữ liệu,Selected topics on data science application,4,10,100,90,vi
+HUS,MAT3398,Một số chủ đề trong mô hình hóa và phân tích dữ liệu,Topics in Modeling and Data Analysis,3,15,60,75,vi
