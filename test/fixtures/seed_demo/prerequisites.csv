@@ -1,0 +1,6 @@
+﻿curriculum_code,course_code,group_no,required_course_code,requirement_type
+DEMO-7480201-2024,CS201,1,CS101,prerequisite
+DEMO-7480201-2024,CS202,1,CS101,prerequisite
+DEMO-7480201-2024,CS202,1,MAT2505,prerequisite
+DEMO-7480201-2024,CS301,1,CS201,prerequisite
+DEMO-7480201-2024,CS303,1,MAT2505,prerequisite

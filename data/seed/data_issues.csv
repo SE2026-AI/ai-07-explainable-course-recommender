@@ -1,0 +1,8 @@
+﻿source_code,entity_type,entity_key,issue_type,description,status
+QD3568_2023,course,HUS:MAT4080,hours_mismatch,Giờ lý thuyết + thực hành + tự học = 345 khác số tín chỉ × 50 = 350 (theo công thức của chính văn bản),open
+QD3568_2023,data_source,QD3568_2023,document_number,"Trang quyết định ghi số 3568, phần CTĐT ghi 'ban hành theo QĐ 3569'",open
+QD3569_2023,curriculum_block,HUS-7460108-2022:I.2,credit_note,Ngoại ngữ B1 ghi 5/15 nhưng liệt kê 7 học phần (35 tín chỉ),open
+QD3569_2023,curriculum_block,HUS-7460108-2022:V.2,credit_note,Tự chọn ghi 28/63 nhưng các học phần liệt kê cộng lại 57 tín chỉ; số cần chọn 28 khớp,open
+QD3569_2023,curriculum_block,HUS-7460108-2022:V.2.4,numbering,Văn bản đánh số trùng V.2.3 cho hai nhóm tự chọn; dữ liệu dùng V.2.4,resolved_in_data
+QD3568_2023,prerequisite,HUS-7480113QTD-2022:MAT1205E,cross_rule,MAT1205E yêu cầu FLF1107 (Tiếng Anh B1) dù nhóm Ngoại ngữ B1 cho chọn 7 ngoại ngữ,open
+QD3568_2023,prerequisite,*,external_course_code,"Một số điều kiện tiên quyết dùng mã không thuộc CTĐT (MAT2301, MAT2303, MAT2311, MAT2316, MAT2318, MAT2319, MAT2321, MAT2406); giữ nguyên văn, không liên kết được",open

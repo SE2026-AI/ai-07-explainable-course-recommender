@@ -5,3 +5,8 @@ httpx
 pytest
 pytest-cov
 ruff
+# Tầng dữ liệu (src/data): PostgreSQL + nạp CSV
+pandas>=2.0
+SQLAlchemy>=2.0
+psycopg[binary]>=3.1
+openpyxl>=3.1

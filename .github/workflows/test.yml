@@ -1,0 +1,38 @@
+name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coursereco
+          POSTGRES_PASSWORD: coursereco
+          POSTGRES_DB: course_recommender
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U coursereco"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://coursereco:coursereco@localhost:5432/course_recommender
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Kiểm thử
+        run: pytest
+      - name: Dữ liệu tự tạo và lược đồ khớp với code (chạy lại phải ra y hệt)
+        run: |
+          python -m tools.generate_synthetic
+          python -m tools.generate_fixtures
+          python -m tools.export_schema
+          git diff --exit-code data/synthetic test/fixtures/students data/schema
+      - name: Nạp được vào database thật
+        run: python -m tools.build_db

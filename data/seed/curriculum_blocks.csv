@@ -1,0 +1,29 @@
+﻿curriculum_code,code,parent_code,name,selection_rule,required_credits,counts_toward_total,sort_order,note
+HUS-7480113QTD-2022,I,,Khối kiến thức chung,container,21,1,1,"Chưa tính GDTC, GDQP-AN và Kỹ năng bổ trợ"
+HUS-7480113QTD-2022,I.1,I,Học phần bắt buộc khối chung,all,16,1,2,
+HUS-7480113QTD-2022,I.2,I,Ngoại ngữ B1,choose_credits,5,1,3,Chọn 1 trong 7 ngoại ngữ
+HUS-7480113QTD-2022,I.3,I,Kỹ năng bổ trợ,all,3,0,4,Không tính vào tổng tín chỉ
+HUS-7480113QTD-2022,II,,Khối kiến thức theo lĩnh vực,choose_credits,5,1,5,Chọn 5 trong 13 tín chỉ
+HUS-7480113QTD-2022,III,,Khối kiến thức theo khối ngành,all,3,1,6,
+HUS-7480113QTD-2022,IV,,Khối kiến thức theo nhóm ngành,all,28,1,7,
+HUS-7480113QTD-2022,V,,Khối kiến thức ngành,container,72,1,8,
+HUS-7480113QTD-2022,V.1,V,Các học phần bắt buộc,all,49,1,9,
+HUS-7480113QTD-2022,V.2,V,Các học phần tự chọn,container,16,1,10,
+HUS-7480113QTD-2022,V.2.1,V.2,Tự chọn về kĩ năng phần mềm,choose_credits,4,1,11,Chọn 4 trong 8 tín chỉ
+HUS-7480113QTD-2022,V.2.2,V.2,Tự chọn về Trí tuệ nhân tạo và phát triển phần mềm,choose_credits,12,1,12,Chọn 12 trong 39 tín chỉ
+HUS-7480113QTD-2022,V.3,V,Khóa luận tốt nghiệp/các học phần thay thế,choose_credits,7,1,13,Khóa luận MAT4080 hoặc MAT1203 + MAT3377
+HUS-7460108-2022,I,,Khối kiến thức chung,container,21,1,1,"Chưa tính GDTC, GDQP-AN và Kỹ năng bổ trợ"
+HUS-7460108-2022,I.1,I,Học phần bắt buộc khối chung,all,16,1,2,
+HUS-7460108-2022,I.2,I,Ngoại ngữ B1,choose_credits,5,1,3,Chọn 1 trong 7 ngoại ngữ; văn bản ghi 5/15 nhưng liệt kê 7 học phần (35 TC)
+HUS-7460108-2022,I.3,I,Kỹ năng bổ trợ,all,3,0,4,Không tính vào tổng tín chỉ
+HUS-7460108-2022,II,,Khối kiến thức theo lĩnh vực,choose_credits,5,1,5,Chọn 5 trong 13 tín chỉ
+HUS-7460108-2022,III,,Khối kiến thức theo khối ngành,all,3,1,6,
+HUS-7460108-2022,IV,,Khối kiến thức theo nhóm ngành,all,28,1,7,
+HUS-7460108-2022,V,,Khối kiến thức ngành,container,70,1,8,
+HUS-7460108-2022,V.1,V,Các học phần bắt buộc,all,35,1,9,
+HUS-7460108-2022,V.2,V,Các học phần tự chọn,container,28,1,10,Văn bản ghi 28/63; các học phần liệt kê cộng lại 57 tín chỉ
+HUS-7460108-2022,V.2.1,V.2,Tự chọn về kĩ năng phần mềm,choose_credits,4,1,11,Chọn 4 trong 6 tín chỉ
+HUS-7460108-2022,V.2.2,V.2,Tự chọn về khoa học máy tính,choose_credits,6,1,12,Chọn 6 trong 9 tín chỉ
+HUS-7460108-2022,V.2.3,V.2,Tự chọn về Thống kê và Khai phá dữ liệu,choose_credits,9,1,13,Chọn 9 trong 15 tín chỉ
+HUS-7460108-2022,V.2.4,V.2,Tự chọn về ứng dụng Khoa học dữ liệu,choose_credits,9,1,14,Văn bản đánh số trùng V.2.3; chọn 9 trong 27 tín chỉ
+HUS-7460108-2022,V.3,V,Khóa luận tốt nghiệp/các học phần thay thế,choose_credits,7,1,15,Khóa luận MAT4083 hoặc MAT3397 + MAT3398
