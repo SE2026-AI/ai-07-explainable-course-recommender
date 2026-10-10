@@ -1,0 +1,42 @@
+# Triển khai AI-07 trên máy chủ. Hướng dẫn đầy đủ: docs/setup.md
+# Cấu hình đọc từ file .env nằm cùng thư mục với file này, không commit vào repo.
+#   docker compose -f build/deploy/docker-compose.prod.yml up -d
+name: ai07
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      PGTZ: ${TZ:-Asia/Ho_Chi_Minh}
+    # Không mở cổng ra ngoài: chỉ các service trong cùng network truy cập được.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../..
+      dockerfile: build/deploy/Dockerfile
+    image: ai07-api:${APP_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    depends_on:
+      db:
+        condition: service_healthy
+    # Chỉ lắng nghe trên localhost của máy chủ; TLS và tên miền do reverse proxy phía trước đảm nhiệm.
+    ports:
+      - "${API_BIND:-127.0.0.1:8000}:8000"
+
+volumes:
+  pgdata:

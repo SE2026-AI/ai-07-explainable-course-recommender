@@ -1,0 +1,21 @@
+# Không đưa vào ngữ cảnh build, và do đó không vào image.
+.git/
+.github/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+build/
+docs/
+test/
+node_modules/
+dist/
+.vscode/
+.idea/
+.DS_Store
+data/xem_du_lieu.xlsx
