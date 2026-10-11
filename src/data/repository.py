@@ -30,6 +30,20 @@ class Repository:
     def setting(self, key):
         return self._q("SELECT value FROM app_settings WHERE key = :k", k=key)["value"].iloc[0]
 
+    def universities(self):
+        """Danh sách trường. `is_demo` = 1 là trường giả lập chỉ dùng cho kiểm thử."""
+        return self._q("""SELECT code AS university_code, name, name_en, short_name,
+                                 CASE WHEN is_demo THEN 1 ELSE 0 END AS is_demo
+                          FROM universities ORDER BY code""")
+
+    def terms(self, university_code):
+        """Lịch học kỳ của một trường, cũ đến mới. Mỗi trường có lịch riêng."""
+        return self._q("""SELECT t.code AS term_code, t.term_no, t.name,
+                                 a.code AS academic_year_code, a.start_year, t.start_date, t.end_date
+                          FROM terms t JOIN universities u ON u.id = t.university_id
+                          JOIN academic_years a ON a.id = t.academic_year_id
+                          WHERE u.code = :u ORDER BY t.code""", u=university_code)
+
     def target_term(self, university_code):
         """Học kỳ cần gợi ý (app_settings.target_term_code) trong lịch của chính trường đó."""
         code = self.setting("target_term_code")
@@ -75,6 +89,21 @@ class Repository:
         df["elective_block"] = df["block_code"].where(df["selection_rule"] == "choose_credits")
         return df
 
+    def blocks(self, curriculum_code):
+        """MỌI khối kiến thức của khung, dạng cây trả về phẳng kèm parent_block_code (None ở gốc).
+
+        Khác `elective_blocks`: hàm này giữ cả khối `all` và khối `container`, nên dùng được để
+        dựng cây khối và tính tiến độ. `counts_toward_total` = 0 là khối không tính vào tổng tín
+        chỉ tốt nghiệp."""
+        return self._q("""SELECT b.code AS block_code, b.name AS block_name,
+                                 p.code AS parent_block_code, b.selection_rule, b.required_credits,
+                                 CASE WHEN b.counts_toward_total THEN 1 ELSE 0 END AS counts_toward_total,
+                                 b.sort_order, b.note
+                          FROM curriculum_blocks b
+                          JOIN curricula c ON c.id = b.curriculum_id
+                          LEFT JOIN curriculum_blocks p ON p.id = b.parent_block_id
+                          WHERE c.code = :c ORDER BY b.sort_order""", c=curriculum_code)
+
     def elective_blocks(self, curriculum_code):
         return self._q("""SELECT b.code AS block_code, b.name AS block_name, b.required_credits
                           FROM curriculum_blocks b JOIN curricula c ON c.id = b.curriculum_id
@@ -108,6 +137,27 @@ class Repository:
         sv["latest_scores"] = sv["student_id"].map(diem).apply(lambda x: x if isinstance(x, dict) else {})
         return sv
 
+    def block_progress(self, student_id):
+        """Tiến độ theo từng khối của CTĐT chính: cần bao nhiêu tín chỉ, đã đạt bao nhiêu.
+
+        Tính trên lần học gần nhất của mỗi môn; môn được miễn tính là đạt. Khối `container`
+        luôn có earned_credits = 0 vì không chứa học phần trực tiếp."""
+        return self._q("""SELECT b.code AS block_code, b.name AS block_name, b.selection_rule,
+                                 b.required_credits,
+                                 CASE WHEN b.counts_toward_total THEN 1 ELSE 0 END AS counts_toward_total,
+                                 COALESCE(SUM(c.credits) FILTER (
+                                     WHERE r.status IN ('passed', 'exempted')), 0) AS earned_credits
+                          FROM student_programs sp
+                          JOIN curriculum_blocks b ON b.curriculum_id = sp.curriculum_id
+                          LEFT JOIN curriculum_courses cc ON cc.block_id = b.id
+                          LEFT JOIN courses c ON c.id = cc.course_id
+                          LEFT JOIN v_course_results r ON r.course_id = cc.course_id
+                               AND r.student_id = sp.student_id AND r.recency = 1
+                          WHERE sp.student_id = :s AND sp.is_primary
+                          GROUP BY b.id, b.code, b.name, b.selection_rule, b.required_credits,
+                                   b.counts_toward_total, b.sort_order
+                          ORDER BY b.sort_order""", s=student_id)
+
     def course_results(self, student_id=None):
         sql = "SELECT * FROM v_course_results" + (" WHERE student_id = :s" if student_id else "")
         return self._q(sql + " ORDER BY student_id, term_code, course_code", s=student_id)
@@ -120,3 +170,13 @@ class Repository:
     def sensitive_attributes(self):
         """CHỈ dùng cho đánh giá công bằng. Không đưa vào thuật toán gợi ý."""
         return self._q("SELECT student_id, attribute_code, value FROM student_attributes")
+
+    # ---------------- Chất lượng dữ liệu ----------------
+    def data_issues(self):
+        """Các chỗ văn bản gốc mâu thuẫn hoặc thiếu, kèm văn bản đã dẫn ra chúng.
+
+        Ghi lại thay vì âm thầm sửa, nên đây là dữ liệu công khai: `GET /v1/data-issues`."""
+        return self._q("""SELECT s.code AS source_code, s.title AS source_title, s.document_number,
+                                 i.entity_type, i.entity_key, i.issue_type, i.description, i.status
+                          FROM data_issues i JOIN data_sources s ON s.id = i.source_id
+                          ORDER BY s.code, i.entity_type, i.entity_key, i.issue_type""")
