@@ -109,14 +109,21 @@ v1 chưa mô hình hóa việc học phần nào được mở ở học kỳ n�
 
 | `status` | Nghĩa | Có thể được gợi ý |
 | --- | --- | --- |
-| `passed` | Đã đạt, gồm cả trường hợp được miễn | Không |
-| `retake` | Đã học, chưa đạt, chưa học lại thành công | Có |
-| `eligible` | Chưa học, đủ điều kiện tiên quyết, khối chưa đủ tín chỉ | Có |
-| `missing_prerequisite` | Chưa đủ điều kiện tiên quyết | Không |
-| `block_complete` | Môn tự chọn thuộc khối đã đủ số tín chỉ cần chọn | Không |
+| `passed` | Đã đạt, gồm cả trường hợp được miễn; luôn giữ trạng thái này dù quy tắc khác cũng áp dụng | Không |
+| `block_complete` | Môn tự chọn chưa đạt thuộc khối đã tích lũy đủ tín chỉ yêu cầu từ các môn đã đạt trong chính khối đó | Không |
+| `missing_prerequisite` | Chưa thỏa ít nhất một nhóm điều kiện tiên quyết | Không |
+| `retake` | Đã học, chưa đạt, chưa học lại thành công; chỉ áp dụng khi không có trạng thái ưu tiên cao hơn | Có |
+| `eligible` | Chưa học, thỏa mọi nhóm điều kiện tiên quyết và khối tự chọn (nếu có) chưa đủ tín chỉ yêu cầu | Có |
 
 Mỗi học phần của khung có đúng một trạng thái. Tập giá trị này trùng cột `expected_status` trong
 `test/fixtures/students/expected_course_status.csv`.
+
+Nếu nhiều quy tắc cùng áp dụng, chọn đúng một trạng thái theo thứ tự ưu tiên:
+`passed` > `block_complete` > `missing_prerequisite` > `retake` > `eligible`.
+Tín chỉ hoàn thành khối tự chọn chỉ tính tín chỉ của học phần trong khối đó mà sinh viên đã đạt
+(bao gồm học phần được miễn). Môn trượt, đang nợ hoặc chỉ đủ điều kiện không được tính. Khi đã đủ
+`required_credits`, các học phần còn lại trong khối được gán `block_complete`; học phần đã đạt vẫn là
+`passed`. Quy tắc này không áp dụng cho môn ngoài khối tự chọn.
 
 Lược đồ dữ liệu còn hai trạng thái kết quả là `withdrawn` và `in_progress`. Khi dữ liệu có kết quả ở
 hai trạng thái này, tập giá trị trên được mở rộng thêm, dưới dạng giá trị enum mới.
@@ -135,6 +142,8 @@ Một nhóm chỉ có một thành viên là điều kiện bắt buộc. Một 
 rỗng nghĩa là học phần không có điều kiện tiên quyết.
 
 Client KHÔNG ĐƯỢC làm phẳng cấu trúc hai tầng này thành một danh sách mã, vì làm vậy biến HOẶC thành VÀ.
+Một nhóm được thỏa khi ít nhất một mã trong nhóm nằm trong tập môn đã đạt; mọi nhóm đều phải được thỏa.
+Danh sách nhóm rỗng luôn được xem là đủ điều kiện.
 
 Điều kiện tiên quyết được xét trên **môn đã đạt ở các học kỳ trước**. Môn đang học hoặc đang nằm trong
 cùng một kế hoạch học kỳ không tính là đã đạt. Lược đồ có `requirement_type = corequisite` cho trường hợp
