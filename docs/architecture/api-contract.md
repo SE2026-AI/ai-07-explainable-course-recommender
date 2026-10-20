@@ -256,7 +256,7 @@ client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức
   "api_version": "1.0.0",
   "schema_version": "3.0.0",
   "algorithm": "rule_based_weighted",
-  "algorithm_version": "1.0.0",
+  "algorithm_version": "1.0.1",
   "default_term": "20261",
   "curriculum_codes": ["HUS-7460108-2022", "HUS-7480113QTD-2022"]
 }
@@ -477,7 +477,7 @@ Phản hồi, rút gọn còn hai học phần:
   "student_code": "T03",
   "curriculum_code": "HUS-7480113QTD-2022",
   "term": "20261",
-  "algorithm_version": "1.0.0",
+  "algorithm_version": "1.0.1",
   "what_if": false,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
@@ -485,7 +485,7 @@ Phản hồi, rút gọn còn hai học phần:
   "items": [
     {
       "rank": 1, "course_code": "MAT2505", "course_name": "Lập trình cơ bản", "credits": 3,
-      "block_code": "III", "status": "retake", "score": 5.5,
+      "block_code": "III", "status": "retake", "score": 5.7083,
       "reasons": [
         {"code": "outstanding_retake", "contribution": 3.0,
          "text": "Bạn chưa đạt môn này ở học kỳ 20252 (điểm 3,0).",
@@ -496,19 +496,27 @@ Phản hồi, rút gọn còn hai học phần:
                   "MAT3514", "MAT3519", "MAT3539", "MAT3550E", "MAT3554E", "MAT3558", "MAT3560"]}},
         {"code": "overdue", "contribution": 1.0,
          "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
-         "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1}}
+         "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1}},
+        {"code": "strong_topic", "contribution": 0.2083,
+         "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
+         "data": {"topic_code": "lap_trinh", "topic_name": "Lập trình", "average_score": 5.25,
+                  "course_codes": ["HUS1011", "MAT2505"]}}
       ]
     },
     {
       "rank": 2, "course_code": "MAT2323", "course_name": "Xác suất - Thống kê", "credits": 4,
-      "block_code": "IV", "status": "eligible", "score": 2.75,
+      "block_code": "IV", "status": "eligible", "score": 3.3333,
       "reasons": [
         {"code": "on_time", "contribution": 2.0,
          "text": "Đúng kỳ dự kiến của chương trình (kỳ 3).",
          "data": {"recommended_semester": 3, "target_semester": 3}},
         {"code": "unlocks", "contribution": 0.75,
          "text": "Đạt môn này sẽ mở khóa 5 học phần khác của chương trình.",
-         "data": {"count": 5, "course_codes": ["MAT3452", "MAT3453", "MAT3533", "MAT3534", "MAT3535"]}}
+         "data": {"count": 5, "course_codes": ["MAT3452", "MAT3453", "MAT3533", "MAT3534", "MAT3535"]}},
+        {"code": "strong_topic", "contribution": 0.5833,
+         "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
+         "data": {"topic_code": "toan", "topic_name": "Toán", "average_score": 7.5,
+                  "course_codes": ["MAT2400", "MAT2501", "MAT2502", "MAT3500"]}}
       ]
     }
   ],

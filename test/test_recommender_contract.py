@@ -9,6 +9,7 @@ chứ không được lặng lẽ bỏ qua.
 """
 import json
 from itertools import combinations
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -222,3 +223,23 @@ def test_a_student_read_at_an_earlier_term_is_ranked_as_of_that_term(repo_all):
 def test_invalid_weights_and_assumptions_raise_value_error(repo_all, kwargs, message):
     with pytest.raises(ValueError, match=message):
         rec.recommend(repo_all, _t03(repo_all), **kwargs)
+
+
+def _contract_response_example(section, marker):
+    """Khối JSON ví dụ phản hồi đứng sau `marker` trong mục `section` của hợp đồng. Ví dụ là một phần của
+    đặc tả, nên test đọc thẳng từ tài liệu: sửa ví dụ mà không sửa code (hay ngược lại) sẽ làm test đỏ."""
+    text = Path("docs/architecture/api-contract.md").read_text(encoding="utf-8")
+    after = text[text.index(f"### {section} "):]
+    after = after[after.index(marker):]
+    start = after.index("```json") + len("```json")
+    return json.loads(after[start:after.index("```", start)])
+
+
+def test_the_recommendation_example_of_the_contract_is_what_t03_really_gets(repo_all):
+    example = _contract_response_example("6.6", "Phản hồi, rút gọn còn hai học phần:")
+    result = rec.recommend(repo_all, repo_all.student("HUS", "T03"), k=2)
+    assert result["items"] == example["items"]
+    assert result["candidate_count"] == example["candidate_count"]
+    assert result["weights"] == example["weights"]
+    assert result["what_if"] == example["what_if"]
+    assert rec.ALGORITHM_VERSION == example["algorithm_version"]

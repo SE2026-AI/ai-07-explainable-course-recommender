@@ -226,27 +226,34 @@ def test_target_semester_of_the_contract_example():
 
 # ---------------- Hai ví dụ của mục 6.6 ----------------
 
-def test_the_first_contract_example_adds_up_to_5_5():
-    """MAT2505: đang nợ từ kỳ 20252, trễ một kỳ, mở khóa 12 học phần."""
+def test_the_first_contract_example_adds_up_to_5_7083():
+    """MAT2505: đang nợ từ kỳ 20252, trễ một kỳ, mở khóa 12 học phần, chủ đề Lập trình trung bình 5,25."""
+    topic = {"topic_code": "lap_trinh", "topic_name": "Lập trình", "average_score": 5.25,
+             "course_codes": ["MAT2505", "HUS1011"]}
     reasons = scoring.sort_reasons([
         scoring.outstanding_retake({"term_code": "20252", "score": 3.0, "attempt_no": 1}, W),
         scoring.schedule(2, 3, W),
         scoring.unlocks("MAT2505", {f"C{index}": [["MAT2505"]] for index in range(12)}, W),
+        scoring.strong_topic(topic, 4.0, 10.0, W),
     ])
-    assert [reason["code"] for reason in reasons] == ["outstanding_retake", "unlocks", "overdue"]
-    assert [reason["contribution"] for reason in reasons] == [3.0, 1.5, 1.0]
-    assert scoring.total_score(reasons) == 5.5
+    assert [reason["code"] for reason in reasons] == ["outstanding_retake", "unlocks", "overdue", "strong_topic"]
+    assert [reason["contribution"] for reason in reasons] == [3.0, 1.5, 1.0, 0.2083]
+    assert reasons[3]["text"] == "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học."
+    assert scoring.total_score(reasons) == 5.7083
 
 
-def test_the_second_contract_example_adds_up_to_2_75():
-    """MAT2323: đúng kỳ dự kiến, mở khóa 5 học phần."""
+def test_the_second_contract_example_adds_up_to_3_3333():
+    """MAT2323: đúng kỳ dự kiến, mở khóa 5 học phần, chủ đề Toán trung bình 7,5."""
+    topic = {"topic_code": "toan", "topic_name": "Toán", "average_score": 7.5,
+             "course_codes": ["MAT2400", "MAT2501", "MAT2502", "MAT3500"]}
     reasons = scoring.sort_reasons([
         scoring.schedule(3, 3, W),
         scoring.unlocks("MAT2323", {f"C{index}": [["MAT2323"]] for index in range(5)}, W),
+        scoring.strong_topic(topic, 4.0, 10.0, W),
     ])
-    assert [reason["code"] for reason in reasons] == ["on_time", "unlocks"]
-    assert [reason["contribution"] for reason in reasons] == [2.0, 0.75]
-    assert scoring.total_score(reasons) == 2.75
+    assert [reason["code"] for reason in reasons] == ["on_time", "unlocks", "strong_topic"]
+    assert [reason["contribution"] for reason in reasons] == [2.0, 0.75, 0.5833]
+    assert scoring.total_score(reasons) == 3.3333
 
 
 def test_the_package_publishes_the_algorithm_constants_the_api_reads():

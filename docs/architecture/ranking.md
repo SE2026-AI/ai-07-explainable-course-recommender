@@ -129,18 +129,25 @@ nó không bao giờ được là tiêu chí quyết định.
 
 ## 4. Kiểm chứng với hai ví dụ của hợp đồng
 
-Mục 6.6 có hai học phần kèm điểm. Công thức ở trên tái tạo đúng cả hai, và
-`test/test_scoring.py` kiểm lại từng dòng dưới đây:
+Mục 6.6 có hai học phần kèm điểm, là hai phần tử đầu của gợi ý thật cho sinh viên kiểm thử `HUS/T03`.
+`test/test_scoring.py` kiểm lại từng dòng dưới đây bằng hàm thuần, và
+`test/test_recommender_contract.py` kiểm cả hai phần tử khớp nguyên văn ví dụ khi chạy `recommend()` trên
+dữ liệu kiểm thử:
 
 | Học phần | Lý do | Mức độ | `contribution` |
 | --- | --- | --- | --- |
 | MAT2505 | `outstanding_retake` | đang nợ từ kỳ 20252 | 3,0 |
 | | `unlocks` | `min(1, 12/10) = 1` | 1,5 |
 | | `overdue` | `min(1, 1/2) = 0,5` | 1,0 |
-| | **tổng** | | **5,5** |
+| | `strong_topic` | `(5,25 − 4) / (10 − 4) = 0,2083` | 0,2083 |
+| | **tổng** | | **5,7083** |
 | MAT2323 | `on_time` | kỳ 3, đúng kỳ | 2,0 |
 | | `unlocks` | `min(1, 5/10) = 0,5` | 0,75 |
-| | **tổng** | | **2,75** |
+| | `strong_topic` | `(7,5 − 4) / (10 − 4) = 0,5833` | 0,5833 |
+| | **tổng** | | **3,3333** |
+
+Bản trước của ví dụ thiếu hai dòng `strong_topic`, nên ghi tổng 5,5 và 2,75 — đúng số học, nhưng không
+phải điều hệ thống thật sự trả về cho T03.
 
 ## 5. Sắp xếp, trần khối tự chọn và chọn `k` phần tử
 
