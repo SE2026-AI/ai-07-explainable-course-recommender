@@ -2,11 +2,11 @@
 
 Hàm công bố cho tầng API (mục 6.6) và cho `test/test_recommender_contract.py`:
 
-    recommend(repo, student, k=5, weights=None, status=None, term_code=None) -> list[dict]
+    recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None) -> dict
 
-`student` là một dòng của `repo.students()`. Trạng thái học phần do `src/rules/status.py` quyết định;
-tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức của sáu tiêu chí:
-`docs/architecture/ranking.md`.
+`student` là một dòng của `repo.student()` hoặc `repo.students()`. Trạng thái học phần do
+`src/rules/status.py` quyết định; tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức
+của sáu tiêu chí: `docs/architecture/ranking.md`.
 """
 import pandas as pd
 
@@ -23,6 +23,7 @@ from src.recommender.scoring import (
     unlocks,
 )
 from src.recommender.selection import pick_items
+from src.recommender.whatif import apply_assumptions
 from src.rules.status import course_status, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
@@ -48,6 +49,16 @@ def _semester_key(course):
     """Khóa sắp xếp theo kỳ dự kiến; học phần không ghi kỳ xếp sau cùng (mục 3.3)."""
     semester = _recommended_semester(course)
     return MISSING_SEMESTER if semester is None else semester
+
+
+def _attempt_term(repo, university_code, term_code):
+    """Học kỳ chính (không phải kỳ hè) ngay trước `term_code`: nơi một giả định what-if "diễn ra".
+
+    Giả định nói về môn sinh viên đang học dở hoặc chưa có điểm, nên lần học giả định thuộc học kỳ vừa
+    qua. v1 không gợi ý cho kỳ hè (ranking.md mục 3.2), nên kỳ hè bị bỏ qua."""
+    terms = repo.terms(university_code)
+    earlier = terms[(terms["term_code"] < term_code) & terms["term_no"].isin([1, 2])]["term_code"]
+    return str(earlier.max()) if not earlier.empty else str(term_code)
 
 
 def _strong_topics(repo, courses, attempts):
@@ -91,26 +102,30 @@ def _elective_progress(courses, student):
     return elective_credits_passed(courses, passed), open_courses
 
 
-def recommend(repo, student, k=5, weights=None, status=None, term_code=None):
-    """Học phần nên học ở học kỳ tới, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
+def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None):
+    """Học phần nên học ở học kỳ `term_code`, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
 
-    `k` là số phần tử tối đa. `weights` gửi một phần được: khóa thiếu lấy mặc định, khóa lạ hoặc
-    giá trị âm làm hàm raise `ValueError`. `status` nhận sẵn kết quả của `course_status` để không
-    phải tính lại; để `None` thì hàm tự tính.
+    `student` phải được đọc ở cùng học kỳ, tức `repo.student(uni, code, term_code)`: `year_of_study` và
+    các môn đã đạt đều tính theo mốc đó (mục 3.1). `term_code` để `None` là học kỳ cần gợi ý.
 
-    `student` phải được đọc ở cùng học kỳ với `term_code`, tức `repo.student(uni, code, term_code)`:
-    `year_of_study`, các môn đã đạt và lần học gần nhất đều tính theo mốc đó (mục 3.1). `term_code` để
-    `None` là học kỳ cần gợi ý.
+    `k` là số phần tử tối đa. `weights` gửi một phần được: khóa thiếu lấy mặc định. `assumptions` là các
+    giả định what-if, áp lên bản sao trong bộ nhớ, không ghi database. Khóa trọng số lạ, trọng số âm hay
+    giả định sai làm hàm raise `ValueError`, để tầng API trả `validation_error` (mục 5).
 
-    Trả về list[dict] đã sắp theo mục 3.3, mỗi dict có `rank`, `course_code`, `course_name`,
-    `credits`, `block_code`, `status`, `score`, `reasons`.
+    Trả về dict theo đúng thứ tự khóa của mục 6.6: `what_if`, `weights` (bảng đã ghép), `candidate_count`
+    (mọi học phần `retake` + `eligible`, kể cả phần vượt `k`), `items` (đã sắp theo mục 3.3, mỗi phần tử có
+    `rank`, `course_code`, `course_name`, `credits`, `block_code`, `status`, `score`, `reasons`).
+    `not_eligible` chưa có ở đây: nó cần `rules.course_status_details()` (#16).
     """
     weights = merge_weights(weights)
     curriculum_code = student["curriculum_code"]
     courses = repo.curriculum_courses(curriculum_code)
-    statuses = course_status(repo, student) if status is None else status
     grading = repo.curriculum(curriculum_code)
     term = repo.term(student["university_code"], term_code or repo.setting("target_term_code"))
+    if assumptions:
+        student = apply_assumptions(student, assumptions, set(courses["course_code"]), grading["max_score"],
+                                    _attempt_term(repo, student["university_code"], term["term_code"]))
+    statuses = course_status(repo, student)
     semester_no = target_semester(student["year_of_study"], term["term_no"])
     prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
     attempts = student["latest_attempts"]
@@ -147,4 +162,7 @@ def recommend(repo, student, k=5, weights=None, status=None, term_code=None):
     taken, open_courses = _elective_progress(courses, student)
     ranked = [(item, course.elective_block if isinstance(course.elective_block, str) else None)
               for item, course in candidates]
-    return pick_items(ranked, k, required, taken, open_courses)
+    return {"what_if": bool(assumptions),
+            "weights": weights,
+            "candidate_count": sum(state in RECOMMENDABLE_STATUSES for state in statuses.values()),
+            "items": pick_items(ranked, k, required, taken, open_courses)}

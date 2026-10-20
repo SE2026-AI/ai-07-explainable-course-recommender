@@ -176,6 +176,39 @@ Chọn đi từ trên xuống, không tìm tổ hợp tối ưu, để lời gi�
 một tổ hợp điểm thấp hơn tổ hợp tốt nhất, nhưng không bao giờ chọn một tổ hợp mà sinh viên không đi tiếp
 được.
 
+### 5.1 Phản hồi của `recommend()`
+
+`recommend()` trả về phần của phản hồi mục 6.6 do tầng xếp hạng quyết định, theo đúng thứ tự khóa ở đó:
+
+| Khóa | Nội dung |
+| --- | --- |
+| `what_if` | `true` khi có giả định khác rỗng |
+| `weights` | Bảng trọng số đã ghép với mặc định (mục 2) |
+| `candidate_count` | Mọi học phần `retake` + `eligible`, đếm **trước** luật khối tự chọn và trước khi cắt `k` |
+| `items` | Các phần tử đã chọn, sắp theo mục 5 |
+
+`not_eligible` chưa có ở đây vì nó cần chi tiết của từng trạng thái — nhóm tiên quyết còn thiếu, khối đã
+đủ — mà tầng luật chưa công bố (#16). Khi có, nó được dựng từ đúng các trạng thái mà `recommend()` đã dùng.
+
+Dòng sinh viên phải được đọc ở cùng học kỳ với `term_code`, tức `repo.student(uni, code, term_code)`. Lần
+học gần nhất của mỗi môn lấy từ cột `latest_attempts` của chính dòng đó, nên lý do `outstanding_retake`, các
+môn đã đạt và trạng thái học phần luôn nhìn cùng một mốc thời gian (mục 3.1 của hợp đồng).
+
+### 5.2 Giả định what-if
+
+`src/recommender/whatif.py` áp các giả định lên một **bản sao** của dòng sinh viên, không đọc và không ghi
+database. Mỗi giả định được coi là lần học mới nhất của môn đó:
+
+- diễn ra ở học kỳ chính ngay trước học kỳ đang gợi ý — kỳ hè bị bỏ qua, như mục 3.2;
+- là lần học thứ `n + 1` nếu môn đã từng học `n` lần;
+- `passed` đưa môn vào danh sách đã đạt và xóa khỏi danh sách đang nợ, `failed` làm ngược lại;
+- `score` có thể vắng mặt; khi đó môn không góp vào điểm trung bình của tiêu chí `strong_topic`.
+
+Bản sao chỉ đổi những cột mà tầng luật và tầng xếp hạng đọc. Tín chỉ tích lũy và GPA giữ nguyên, nên
+không dùng bản sao để dựng `profile`. Giả định sai — mã không thuộc khung, trạng thái lạ, điểm ngoài
+`[0, max_score]` của khung, một môn được giả định hai lần, khóa lạ — làm hàm raise `ValueError` với thông
+điệp mở đầu bằng đường dẫn tới trường sai, để tầng API đưa vào `details.fields`.
+
 ## 6. Những quyết định có thể bàn lại
 
 Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng thì phải tăng `ALGORITHM_VERSION`.
