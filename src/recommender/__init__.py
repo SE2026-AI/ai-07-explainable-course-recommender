@@ -27,7 +27,7 @@ from src.rules.status import course_status
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
 ALGORITHM = "rule_based_weighted"
-ALGORITHM_VERSION = "1.0.0"
+ALGORITHM_VERSION = "1.0.1"
 
 # Chỉ hai trạng thái này được vào danh sách gợi ý (mục 6.6, quy định 1).
 RECOMMENDABLE_STATUSES = ("retake", "eligible")

@@ -202,8 +202,13 @@ bảng. Muốn so các phương án cần một thước đo không dựng từ 
 | Hằng số | Giá trị |
 | --- | --- |
 | `ALGORITHM` | `rule_based_weighted` |
-| `ALGORITHM_VERSION` | `1.0.0` |
+| `ALGORITHM_VERSION` | `1.0.1` |
 
 Tăng `ALGORITHM_VERSION` mỗi khi **cách tính điểm hoặc cách dựng lời giải thích** thay đổi, kể cả khi chỉ
 đổi một mốc đạt trần hay sửa câu chữ của `text`. Đổi trọng số mặc định cũng là đổi cách tính điểm. Thêm
 trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, phải sửa mục 4.4 và mục 6.6 cùng lúc.
+
+| Phiên bản | Thay đổi |
+| --- | --- |
+| 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
+| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5) |
