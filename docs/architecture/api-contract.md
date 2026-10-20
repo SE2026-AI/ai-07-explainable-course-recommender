@@ -213,9 +213,15 @@ Yêu cầu này áp dụng cả cho lỗi do tầng validate của web framework
 | 404 | `curriculum_not_found` | Mã khung không tồn tại |
 | 404 | `course_not_found` | Mã học phần không tồn tại |
 | 404 | `term_not_found` | Mã học kỳ không có trong lịch của trường đó |
+| 404 | `route_not_found` | Đường dẫn không tồn tại; `details.path` là đường dẫn đã gọi |
+| 405 | `method_not_allowed` | Đường dẫn có thật nhưng không nhận phương thức đó; `details` có `method` và `path` |
 | 409 | `no_primary_program` | Sinh viên không có CTĐT chính đang hoạt động |
 | 422 | `validation_error` | Tham số hoặc body sai kiểu, ngoài khoảng, chứa khóa lạ; `details.fields` liệt kê từng lỗi |
 | 500 | `internal_error` | Lỗi không lường trước; `message` không chứa thông tin nội bộ |
+| khác | `http_error` | Lỗi HTTP khác do web framework sinh ra, khi không khớp dòng nào ở trên |
+
+`route_not_found`, `method_not_allowed` và `http_error` phát sinh ở tầng định tuyến, không phải lỗi dữ liệu:
+client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức, không phải do dữ liệu của sinh viên.
 
 ---
 
