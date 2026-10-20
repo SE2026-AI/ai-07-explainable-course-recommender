@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Phiên bản hợp đồng | 1.0.0 |
-| Cập nhật | 2026-10-11 |
+| Cập nhật | 2026-10-20 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -100,6 +100,8 @@ v1 chưa mô hình hóa việc học phần nào được mở ở học kỳ n�
 | Gợi ý (`items`) | `score` giảm dần, rồi `recommended_semester` tăng, rồi `course_code` tăng |
 | Lý do (`reasons`) | `contribution` giảm dần, rồi `code` tăng |
 | Học kỳ | `code` tăng dần |
+| Nút của sơ đồ tiên quyết (`nodes`) | `sort_no` tăng dần, như học phần của khung |
+| Cạnh của sơ đồ tiên quyết (`edges`) | `course_code` tăng, rồi `group_no` tăng, rồi `required_course_code` tăng |
 
 ---
 
@@ -175,6 +177,9 @@ KHÔNG ĐƯỢC trả về với `contribution = 0`.
 
 `strong_topic` tính từ điểm các môn sinh viên đã học, `interest` lấy từ `student_interests`. Kết quả học
 tập là tín hiệu chính, khai báo sở thích là tín hiệu phụ; trọng số mặc định phản ánh thứ tự này.
+
+Công thức tính `contribution` của từng tiêu chí thuộc tầng xếp hạng, hợp đồng này không quy định; đặc tả
+nằm ở `docs/architecture/ranking.md`. Đổi công thức thì tăng `algorithm_version` (mục 6.1).
 
 ### 4.5 Mã vi phạm kế hoạch học kỳ
 
@@ -295,8 +300,14 @@ thị giá trị này ở đâu đó trong giao diện để truy được nguy�
 
 `blocks` là một cây, trả về dạng phẳng kèm `parent_block_code`.
 
-`selection_rule` nhận ba giá trị: `all` (học hết các môn trong khối), `choose_credits` (chọn đủ
-`required_credits`), `container` (khối cha, chỉ dùng để nhóm, không chứa học phần trực tiếp).
+`selection_rule` nhận ba giá trị: `all` (học hết các môn trong khối), `choose_credits` (chọn **đúng**
+`required_credits`, không thiếu và không vượt), `container` (khối cha, chỉ dùng để nhóm, không chứa học
+phần trực tiếp).
+
+Với `choose_credits`, `required_credits` là số tín chỉ phải chọn, không phải mức tối thiểu: văn bản ghi
+"Chọn 5 trong 13 tín chỉ", và dữ liệu bảo đảm mỗi khối luôn có tổ hợp học phần cộng **đúng bằng** số này.
+Vì vậy một lựa chọn chưa vượt nhưng không còn đường hoàn thành đúng số tín chỉ cũng là lựa chọn sai: khối
+cần 5 tín chỉ gồm môn 2 và 3 tín chỉ, chọn hai môn 2 tín chỉ thì còn thiếu 1 mà không môn nào đủ nhỏ.
 
 `counts_toward_total = false` nghĩa là khối không tính vào tổng tín chỉ tốt nghiệp. Client PHẢI tôn trọng
 cờ này khi tính và hiển thị tiến độ.
@@ -575,6 +586,49 @@ Body:
 
 `status` nhận `open`, `resolved_in_data`, `closed`.
 
+### 6.9 `GET /v1/universities/{uni}/curricula/{curriculum_code}/prerequisite-graph`
+
+Sơ đồ "môn nào mở khóa môn nào" của một khung. Phản hồi rút gọn còn năm học phần:
+
+```json
+{
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "nodes": [
+    {"course_code": "MAT2502", "course_name": "Giải tích 2", "credits": 4,
+     "block_code": "IV", "recommended_semester": 2},
+    {"course_code": "MAT2323", "course_name": "Xác suất - Thống kê", "credits": 4,
+     "block_code": "IV", "recommended_semester": 3},
+    {"course_code": "MAT3507", "course_name": "Cơ sở dữ liệu", "credits": 4,
+     "block_code": "V.1", "recommended_semester": 4},
+    {"course_code": "MAT3533", "course_name": "Học máy", "credits": 3,
+     "block_code": "V.1", "recommended_semester": 5},
+    {"course_code": "MAT3534", "course_name": "Khai phá dữ liệu", "credits": 3,
+     "block_code": "V.2.2", "recommended_semester": 7}
+  ],
+  "edges": [
+    {"course_code": "MAT2323", "group_no": 1, "required_course_code": "MAT2502"},
+    {"course_code": "MAT3533", "group_no": 1, "required_course_code": "MAT2323"},
+    {"course_code": "MAT3534", "group_no": 1, "required_course_code": "MAT3507"},
+    {"course_code": "MAT3534", "group_no": 2, "required_course_code": "MAT2323"}
+  ]
+}
+```
+
+- `nodes` gồm **mọi** học phần của khung, kể cả môn không nối với môn nào, để client tô được trạng thái của
+  sinh viên lên toàn bộ khung. Các trường của một nút trùng tên và trùng nghĩa với mục 6.3.
+- Mỗi cạnh là một dòng của bảng `prerequisites`, tên trường trùng tên cột: `required_course_code` phải đạt
+  trước thì mới học được `course_code`. Hướng mở khóa là từ `required_course_code` tới `course_code`.
+- `group_no` giữ quan hệ VÀ/HOẶC của mục 4.2: các cạnh cùng `course_code` và **cùng** `group_no` nối với
+  nhau bằng HOẶC, các nhóm **khác** `group_no` nối với nhau bằng VÀ. Trong ví dụ, `MAT3534` cần `MAT3507`
+  **và** `MAT2323`. Client KHÔNG ĐƯỢC vẽ mọi cạnh như nhau, vì làm vậy biến HOẶC thành VÀ.
+- Gom các cạnh theo `course_code` rồi theo `group_no` phải ra đúng `prerequisite_groups` của mục 6.3. Hai
+  endpoint đọc cùng một dữ liệu, nên không bao giờ được lệch nhau.
+- Mã không thuộc khung không xuất hiện trong `edges` (mục 4.3). Văn bản gốc của `MAT3533` ghi `MAT2406`
+  **hoặc** `MAT2323`, nhưng `MAT2406` không thuộc khung, nên chỉ còn một cạnh. Mọi đầu mút của mọi cạnh
+  đều có trong `nodes`.
+- Số môn mà một học phần mở khóa là số `course_code` khác nhau trong các cạnh có `required_course_code`
+  bằng mã đó, trùng `data.count` của lý do `unlocks` (mục 4.4).
+
 ---
 
 ## 7. Bất biến
@@ -622,9 +676,6 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 
 ## 10. Việc còn mở
 
-- Công thức tính `contribution` của từng tiêu chí thuộc tầng xếp hạng, không bị hợp đồng này quy định.
-  Đổi công thức thì tăng `algorithm_version`. Sẽ đặc tả ở `docs/architecture/ranking.md`.
 - Ngưỡng precision@k tối thiểu cho bất biến "Có ích", chốt sau khi có số đo đầu tiên.
 - Danh sách học phần được mở theo từng học kỳ. Khi có dữ liệu này, `term` sẽ lọc thêm theo khả năng mở lớp,
   và `course-status` có thêm một trạng thái cho học phần đủ điều kiện nhưng kỳ đó không mở.
-- Dạng dữ liệu của `GET /v1/universities/{uni}/curricula/{curriculum_code}/prerequisite-graph`: `nodes` và `edges`
