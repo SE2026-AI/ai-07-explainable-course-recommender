@@ -181,9 +181,18 @@ Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng 
 | Mốc đạt trần | 10 học phần, 2 học kỳ | Chuẩn hóa theo giá trị lớn nhất trong chính khung |
 | Khối tự chọn | Tham lam từ trên xuống, giữ khối hoàn thành đúng được | Tối ưu tổ hợp theo tổng điểm |
 
-Chưa có mốc nào trong bảng này được chọn bằng số đo, vì bất biến "Có ích" (precision@k so với
-`data/synthetic/course_registrations.csv`) chưa có ngưỡng — mục 10 của hợp đồng còn để mở. Khi có số đo
-đầu tiên, đây là bốn chỗ nên thử trước.
+Chưa có mốc nào trong bảng này được chọn bằng số đo. Bất biến "Có ích" (mục 7 của hợp đồng) giờ đã có
+ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic`:
+
+| Phiên bản | precision@5 | precision@10 |
+| --- | --- | --- |
+| 1.0.0 | 0,8720 | 0,5575 |
+| 1.0.1 | 0,8720 | 0,5580 |
+
+precision@10 thấp vì mỗi sinh viên chỉ đăng ký trung bình 6,2 môn, nên trần của nó khoảng 0,62. Đăng ký dự
+kiến được sinh theo lộ trình chuẩn của khung — môn nợ trước, rồi môn đúng hoặc trễ kỳ — trùng ba tiêu chí
+nặng nhất ở mục 2, nên con số này chỉ dùng để chống thụt lùi, chưa đủ để chọn giữa các phương án trong
+bảng. Muốn so các phương án cần một thước đo không dựng từ chính các tiêu chí đó.
 
 ## 7. Phiên bản
 
