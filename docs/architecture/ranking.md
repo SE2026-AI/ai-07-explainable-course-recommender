@@ -216,4 +216,4 @@ trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, ph
 | Phiên bản | Thay đổi |
 | --- | --- |
 | 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
-| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5) |
+| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3 |

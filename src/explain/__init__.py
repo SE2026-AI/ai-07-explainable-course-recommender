@@ -11,6 +11,7 @@ huống luôn đi qua cùng một hàm. Đổi câu chữ ở đây là đổi c
 """
 import math
 from collections.abc import Mapping, Sequence
+from decimal import ROUND_HALF_UP, Decimal
 
 STATUSES = ("passed", "block_complete", "missing_prerequisite", "retake", "eligible")
 VIOLATIONS = ("credit_limit_exceeded", "missing_prerequisite", "already_passed",
@@ -18,8 +19,12 @@ VIOLATIONS = ("credit_limit_exceeded", "missing_prerequisite", "already_passed",
 
 
 def format_decimal(value: float, digits: int = 1) -> str:
-    """Số thập phân viết kiểu Việt Nam: 3.0 thành "3,0"."""
-    return f"{float(value):.{digits}f}".replace(".", ",")
+    """Số thập phân viết kiểu Việt Nam, làm tròn nửa lên như khi đọc điểm: 3.0 thành "3,0", 5.25 thành "5,3".
+
+    Không dùng `f"{value:.1f}"`: Python làm tròn nửa về số chẵn trên giá trị nhị phân, nên 5,25 thành "5,2"
+    còn 2,45 lại thành "2,5" — cùng là một nửa mà người đọc không đoán được chiều làm tròn."""
+    exact = Decimal(str(float(value)))
+    return str(exact.quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)).replace(".", ",")
 
 
 def _missing(value) -> bool:

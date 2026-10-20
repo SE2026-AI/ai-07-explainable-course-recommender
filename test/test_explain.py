@@ -156,3 +156,9 @@ def test_format_decimal_uses_a_comma_and_rounds():
     assert format_decimal(3) == "3,0"
     assert format_decimal(7.25, 2) == "7,25"
     assert format_decimal(8.96) == "9,0"
+
+
+@pytest.mark.parametrize(("value", "expected"), [(5.25, "5,3"), (7.25, "7,3"), (2.45, "2,5"), (5.249, "5,2")])
+def test_format_decimal_always_rounds_a_half_up(value, expected):
+    """Python làm tròn 5,25 thành "5,2" nhưng 2,45 thành "2,5"; người đọc điểm chờ cả hai lên."""
+    assert format_decimal(value) == expected
