@@ -23,6 +23,68 @@ def _as_list(value):
     return value if isinstance(value, list) else []
 
 
+# Lần học gần nhất của mỗi môn, chỉ tính các học kỳ TRƯỚC :t (hợp đồng mục 3.1). Cùng thứ tự với view
+# v_course_results: học kỳ mới nhất trước, rồi lần học sau cùng.
+_LATEST_BEFORE_TERM = """
+    SELECT student_id, course_id, course_code, term_code, attempt_no, score, letter_grade, grade_point, status
+    FROM (SELECT r.student_id, r.course_id, c.code AS course_code, t.code AS term_code, r.attempt_no, r.score,
+                 r.letter_grade, r.grade_point, r.status,
+                 ROW_NUMBER() OVER (PARTITION BY r.student_id, r.course_id
+                                    ORDER BY t.code DESC, r.attempt_no DESC) AS recency
+          FROM course_results r JOIN courses c ON c.id = r.course_id JOIN terms t ON t.id = r.term_id
+          WHERE r.student_id = :s AND t.code < :t) ranked
+    WHERE recency = 1"""
+
+# Tín chỉ và GPA của CTĐT chính: CÙNG công thức với view v_student_progress, nhưng chỉ tính các học kỳ
+# TRƯỚC :t. View không nhận tham số nên phải chép; test_repository kiểm hai bản cho cùng kết quả.
+_PROGRESS_BEFORE_TERM = f"""
+    WITH latest AS ({_LATEST_BEFORE_TERM})
+    SELECT sp.student_id,
+           COALESCE(SUM(c.credits) FILTER (WHERE l.status IN ('passed', 'exempted') AND b.counts_toward_total), 0)
+               AS credits_earned,
+           COALESCE(SUM(c.credits) FILTER (WHERE l.status = 'failed' AND b.counts_toward_total), 0)
+               AS credits_outstanding,
+           ROUND(SUM(l.grade_point * c.credits) FILTER (WHERE l.status IN ('passed', 'failed') AND b.counts_toward_total)
+                 / NULLIF(SUM(c.credits) FILTER (WHERE l.status IN ('passed', 'failed') AND b.counts_toward_total), 0), 2)
+               AS gpa
+    FROM student_programs sp
+    LEFT JOIN latest l ON l.student_id = sp.student_id
+    LEFT JOIN courses c ON c.id = l.course_id
+    LEFT JOIN curriculum_courses cc ON cc.curriculum_id = sp.curriculum_id AND cc.course_id = l.course_id
+    LEFT JOIN curriculum_blocks b ON b.id = cc.block_id
+    WHERE sp.student_id = :s AND sp.is_primary
+    GROUP BY sp.student_id"""
+
+
+def _attempt(row):
+    """Một lần học, đúng dạng `last_attempt` của hợp đồng mục 6.5, thêm `status` của lần học đó."""
+    return {"term_code": str(row.term_code), "attempt_no": int(row.attempt_no),
+            "score": None if pd.isna(row.score) else float(row.score),
+            "letter_grade": None if pd.isna(row.letter_grade) else str(row.letter_grade),
+            "status": str(row.status)}
+
+
+def _add_result_columns(students, latest):
+    """Thêm `passed_courses`, `outstanding_courses`, `latest_scores`, `latest_attempts` từ `latest` — lần học
+    gần nhất của mỗi cặp sinh viên, môn.
+
+    Dùng chung cho `students()` và `student()`, nên hai hàm không thể tính lệch nhau. Danh sách sắp theo mã
+    môn để phản hồi tất định (hợp đồng mục 1, nguyên tắc 7)."""
+    latest = latest.sort_values(["student_id", "course_code"])
+    passed = latest[latest["status"].isin(["passed", "exempted"])]
+    failed = latest[latest["status"] == "failed"]
+    students["passed_courses"] = students["student_id"].map(_lists(passed, "student_id", "course_code")).apply(_as_list)
+    students["outstanding_courses"] = students["student_id"].map(_lists(failed, "student_id", "course_code")).apply(_as_list)
+    scores, attempts = {}, {}
+    for row in latest.itertuples():
+        attempts.setdefault(row.student_id, {})[row.course_code] = _attempt(row)
+        if not pd.isna(row.score):
+            scores.setdefault(row.student_id, {})[row.course_code] = float(row.score)
+    students["latest_scores"] = students["student_id"].map(lambda sid: scores.get(sid, {}))
+    students["latest_attempts"] = students["student_id"].map(lambda sid: attempts.get(sid, {}))
+    return students
+
+
 class Repository:
     def __init__(self, url=None, engine=None):
         self.engine = engine or get_engine(url)
@@ -49,16 +111,22 @@ class Repository:
                           JOIN academic_years a ON a.id = t.academic_year_id
                           WHERE u.code = :u ORDER BY t.code""", u=university_code)
 
-    def target_term(self, university_code):
-        """Học kỳ cần gợi ý (app_settings.target_term_code) trong lịch của chính trường đó."""
-        code = self.setting("target_term_code")
+    def term(self, university_code, term_code):
+        """Một học kỳ trong lịch của chính trường đó; `KeyError` khi trường không có học kỳ này.
+
+        Mỗi trường có lịch riêng, nên một mã hợp lệ ở trường này có thể không tồn tại ở trường khác
+        (hợp đồng mục 3.1). Tầng API dùng hàm này để trả `term_not_found`."""
         df = self._q("""SELECT t.id AS term_id, t.code AS term_code, t.term_no, a.start_year, t.name
                           FROM terms t JOIN universities u ON u.id = t.university_id
                           JOIN academic_years a ON a.id = t.academic_year_id
-                          WHERE u.code = :u AND t.code = :c""", u=university_code, c=code)
+                          WHERE u.code = :u AND t.code = :c""", u=university_code, c=str(term_code))
         if df.empty:
-            raise KeyError(f"Trường {university_code} chưa có học kỳ {code} trong bảng terms")
+            raise KeyError(f"Trường {university_code} chưa có học kỳ {term_code} trong bảng terms")
         return df.iloc[0]
+
+    def target_term(self, university_code):
+        """Học kỳ cần gợi ý (app_settings.target_term_code) trong lịch của chính trường đó."""
+        return self.term(university_code, self.setting("target_term_code"))
 
     # ---------------- Chương trình đào tạo ----------------
     def curricula(self):
@@ -126,7 +194,10 @@ class Repository:
         """Mỗi dòng một sinh viên (CTĐT chính). KHÔNG chứa thuộc tính nhạy cảm.
         Cột tính sẵn: year_of_study, credits_earned, credits_outstanding, gpa (thang 4, NaN nếu chưa có điểm),
         passed_courses (list, gồm cả miễn), outstanding_courses (list môn trượt chưa học lại đạt),
-        latest_scores (dict mã môn -> điểm lần gần nhất), interests (list chủ đề tự khai, mạnh nhất trước – tín hiệu phụ)."""
+        latest_scores (dict mã môn -> điểm lần gần nhất), latest_attempts (dict mã môn -> lần học gần nhất),
+        interests (list chủ đề tự khai, mạnh nhất trước – tín hiệu phụ).
+
+        Đọc cả trường mỗi lần gọi: endpoint của MỘT sinh viên dùng `student()`."""
         sv = self._q("SELECT * FROM v_student_programs" + (" WHERE is_primary" if only_primary else ""))
         if sv.empty:
             return sv
@@ -138,22 +209,50 @@ class Repository:
         it = self._q("""SELECT i.student_id, t.code FROM student_interests i JOIN topics t ON t.id = i.topic_id
                         ORDER BY i.student_id, i.weight DESC, t.code""")
         sv["interests"] = sv["student_id"].map(_lists(it, "student_id", "code")).apply(_as_list)
-        kq = self._q("SELECT * FROM v_course_results WHERE recency = 1")
-        dat = kq[kq["status"].isin(["passed", "exempted"])]
-        no = kq[kq["status"] == "failed"]
-        sv["passed_courses"] = sv["student_id"].map(_lists(dat, "student_id", "course_code")).apply(_as_list)
-        sv["outstanding_courses"] = sv["student_id"].map(_lists(no, "student_id", "course_code")).apply(_as_list)
-        diem = kq.dropna(subset=["score"]).groupby("student_id").apply(
-            lambda g: dict(zip(g["course_code"], g["score"].astype(float), strict=True)), include_groups=False)
-        sv["latest_scores"] = sv["student_id"].map(diem).apply(lambda x: x if isinstance(x, dict) else {})
-        return sv
+        return _add_result_columns(sv, self._q("SELECT * FROM v_course_results WHERE recency = 1"))
 
-    def block_progress(self, student_id):
+    def student(self, university_code, student_code, term_code=None):
+        """Một sinh viên theo CTĐT chính, nhìn từ đầu học kỳ `term_code` (mặc định: học kỳ cần gợi ý).
+
+        Cùng tập cột với một dòng của `students()`, nhưng mọi thứ suy ra từ kết quả học tập — môn đã đạt,
+        môn đang nợ, điểm, lần học gần nhất, tín chỉ, GPA — chỉ tính trên các học kỳ TRƯỚC `term_code`, và
+        `year_of_study` tính theo năm học của chính học kỳ đó (hợp đồng mục 3.1). Ở học kỳ cần gợi ý, kết quả
+        trùng `students()`.
+
+        `None` khi trường không có sinh viên này với một CTĐT chính; `student_programs()` cho biết sinh viên
+        có tồn tại hay không. Học kỳ không có trong lịch của trường thì `KeyError`, như `term()`."""
+        term = self.term(university_code, term_code or self.setting("target_term_code"))
+        row = self._q("""SELECT * FROM v_student_programs
+                         WHERE university_code = :u AND student_code = :s AND is_primary""",
+                      u=university_code, s=str(student_code))
+        if row.empty:
+            return None
+        sid, code = int(row.iloc[0]["student_id"]), str(term["term_code"])
+        row["year_of_study"] = int(term["start_year"]) - row["cohort_year"] + 1
+        row = row.merge(self._q(_PROGRESS_BEFORE_TERM, s=sid, t=code), on="student_id", how="left")
+        row["gpa"] = row["gpa"].astype(float)
+        interests = self._q("""SELECT i.student_id, t.code FROM student_interests i JOIN topics t ON t.id = i.topic_id
+                               WHERE i.student_id = :s ORDER BY i.weight DESC, t.code""", s=sid)
+        row["interests"] = row["student_id"].map(_lists(interests, "student_id", "code")).apply(_as_list)
+        return _add_result_columns(row, self._q(_LATEST_BEFORE_TERM, s=sid, t=code)).iloc[0]
+
+    def student_programs(self, university_code, student_code):
+        """Mọi CTĐT của một sinh viên, kể cả CTĐT phụ; rỗng khi trường không có sinh viên này.
+
+        Cho tầng API phân biệt hai lỗi của mục 5: rỗng là `student_not_found`; có dòng nhưng không dòng nào
+        vừa `is_primary` vừa `status = 'active'` là `no_primary_program`."""
+        return self._q("""SELECT student_code, curriculum_code, cohort_year, status, is_primary
+                          FROM v_student_programs WHERE university_code = :u AND student_code = :s
+                          ORDER BY is_primary DESC, curriculum_code""", u=university_code, s=str(student_code))
+
+    def block_progress(self, student_id, term_code=None):
         """Tiến độ theo từng khối của CTĐT chính: cần bao nhiêu tín chỉ, đã đạt bao nhiêu.
 
-        Tính trên lần học gần nhất của mỗi môn; môn được miễn tính là đạt. Khối `container`
-        luôn có earned_credits = 0 vì không chứa học phần trực tiếp."""
-        return self._q("""SELECT b.code AS block_code, b.name AS block_name, b.selection_rule,
+        Tính trên lần học gần nhất của mỗi môn, chỉ các học kỳ TRƯỚC `term_code` (mặc định: học kỳ cần gợi
+        ý), cùng mốc với `student()`; môn được miễn tính là đạt. Khối `container` luôn có earned_credits = 0
+        vì không chứa học phần trực tiếp."""
+        return self._q(f"""WITH latest AS ({_LATEST_BEFORE_TERM})
+                          SELECT b.code AS block_code, b.name AS block_name, b.selection_rule,
                                  b.required_credits,
                                  CASE WHEN b.counts_toward_total THEN 1 ELSE 0 END AS counts_toward_total,
                                  COALESCE(SUM(c.credits) FILTER (
@@ -162,12 +261,12 @@ class Repository:
                           JOIN curriculum_blocks b ON b.curriculum_id = sp.curriculum_id
                           LEFT JOIN curriculum_courses cc ON cc.block_id = b.id
                           LEFT JOIN courses c ON c.id = cc.course_id
-                          LEFT JOIN v_course_results r ON r.course_id = cc.course_id
-                               AND r.student_id = sp.student_id AND r.recency = 1
+                          LEFT JOIN latest r ON r.course_id = cc.course_id
                           WHERE sp.student_id = :s AND sp.is_primary
                           GROUP BY b.id, b.code, b.name, b.selection_rule, b.required_credits,
                                    b.counts_toward_total, b.sort_order
-                          ORDER BY b.sort_order""", s=student_id)
+                          ORDER BY b.sort_order""",
+                       s=student_id, t=str(term_code or self.setting("target_term_code")))
 
     def student_interests(self, student_id=None):
         """Chủ đề sinh viên tự khai, mạnh nhất trước, kèm tên chủ đề và trọng số (0 < weight <= 1).

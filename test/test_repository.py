@@ -71,3 +71,64 @@ def test_block_progress_sums_to_credits_earned(repo):
         assert counted == student["credits_earned"], f"sinh viên {student['student_code']}"
         assert (progress[progress["selection_rule"] == "container"]["earned_credits"] == 0).all()
         assert len(progress) == len(repo.blocks(student["curriculum_code"])), "thiếu khối chưa học môn nào"
+
+
+def _same(a, b):
+    """So hai giá trị của một ô, coi NaN bằng NaN."""
+    if isinstance(a, float) and isinstance(b, float) and pd.isna(a) and pd.isna(b):
+        return True
+    return a == b
+
+
+def test_student_matches_its_row_in_students_for_every_student(repo_all):
+    """`student()` lọc kết quả theo học kỳ bằng SQL riêng, vì view `v_student_progress` không nhận tham số.
+    Ở học kỳ cần gợi ý, hai đường phải cho cùng giá trị ở MỌI cột — đây là chốt chặn hai bản công thức
+    tín chỉ và GPA lệch nhau."""
+    students = repo_all.students()
+    assert not students.empty
+    for _, expected in students.iterrows():
+        actual = repo_all.student(expected["university_code"], expected["student_code"])
+        assert list(actual.index) == list(expected.index)
+        diff = [col for col in expected.index if not _same(actual[col], expected[col])]
+        assert not diff, f"{expected['university_code']}/{expected['student_code']}: lệch ở {diff}"
+
+
+def test_student_sees_only_results_from_terms_before_the_requested_one(repo_all):
+    """Hợp đồng mục 3.1: T04 trượt MAT2505 ở kỳ 20242, học lại đạt ở kỳ 20251. Nhìn từ đầu kỳ 20251 thì
+    môn đó vẫn đang nợ, và T04 mới học năm thứ hai."""
+    before = repo_all.student("HUS", "T04", "20251")
+    assert "MAT2505" in before["outstanding_courses"] and "MAT2505" not in before["passed_courses"]
+    assert before["latest_attempts"]["MAT2505"] == {"term_code": "20242", "attempt_no": 1, "score": 3.5,
+                                                     "letter_grade": "F", "status": "failed"}
+    assert before["year_of_study"] == 2
+    now = repo_all.student("HUS", "T04")
+    assert "MAT2505" in now["passed_courses"] and "MAT2505" not in now["outstanding_courses"]
+    assert now["latest_attempts"]["MAT2505"]["term_code"] == "20251"
+    assert now["year_of_study"] == 3
+    assert before["credits_earned"] < now["credits_earned"]
+
+
+def test_block_progress_uses_the_same_term_as_student(repo_all):
+    for term in ("20251", None):
+        student = repo_all.student("HUS", "T04", term)
+        progress = repo_all.block_progress(student["student_id"], term)
+        assert progress[progress["counts_toward_total"] == 1]["earned_credits"].sum() == student["credits_earned"]
+
+
+def test_student_is_none_when_unknown_and_rejects_a_term_outside_the_calendar(repo_all):
+    assert repo_all.student("HUS", "KHONG-CO") is None
+    assert repo_all.student("DEMO", "26000001") is None, "mã sinh viên chỉ duy nhất trong một trường"
+    with pytest.raises(KeyError):
+        repo_all.student("HUS", "T04", "19991")
+
+
+def test_student_programs_tell_a_missing_student_from_a_known_one(repo_all):
+    assert repo_all.student_programs("HUS", "KHONG-CO").empty
+    programs = repo_all.student_programs("HUS", "T04")
+    assert len(programs) == 1 and bool(programs.iloc[0]["is_primary"]) and programs.iloc[0]["status"] == "active"
+
+
+def test_term_looks_up_the_calendar_of_that_university_only(repo_all):
+    assert repo_all.term("HUS", "20251")["term_no"] == 1
+    with pytest.raises(KeyError):
+        repo_all.term("KHONG-CO-TRUONG-NAY", "20251")
