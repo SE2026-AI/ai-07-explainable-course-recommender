@@ -132,3 +132,39 @@ def test_term_looks_up_the_calendar_of_that_university_only(repo_all):
     assert repo_all.term("HUS", "20251")["term_no"] == 1
     with pytest.raises(KeyError):
         repo_all.term("KHONG-CO-TRUONG-NAY", "20251")
+
+
+@pytest.mark.parametrize("curriculum", CURRICULA)
+def test_prerequisite_graph_rebuilds_the_groups_of_curriculum_courses(repo_all, curriculum):
+    """Hợp đồng mục 6.9: gom cạnh theo môn rồi theo `group_no` phải ra đúng `prerequisite_groups` của
+    mục 6.3, mọi đầu mút đều là một nút, và thứ tự tất định theo mục 3.3."""
+    nodes, edges = repo_all.prerequisite_graph(curriculum)
+    courses = repo_all.curriculum_courses(curriculum)
+    assert list(nodes["course_code"]) == list(courses["course_code"]), "nút phải theo sort_no như học phần của khung"
+    assert set(edges["course_code"]) | set(edges["required_course_code"]) <= set(nodes["course_code"])
+    order = ["course_code", "group_no", "required_course_code"]
+    assert edges[order].values.tolist() == edges.sort_values(order)[order].values.tolist()
+    rebuilt = {code: [list(g["required_course_code"]) for _, g in rows.groupby("group_no")]
+               for code, rows in edges.groupby("course_code")}
+    for row in courses.itertuples():
+        assert rebuilt.get(row.course_code, []) == row.prerequisite_groups, row.course_code
+
+
+def test_prerequisite_graph_keeps_an_or_group_on_one_group_number(repo_all):
+    """DEMO: CS202 cần CS101 HOẶC MAT2505 — hai cạnh, cùng một `group_no`."""
+    _, edges = repo_all.prerequisite_graph("DEMO-7480201-2024")
+    cs202 = edges[edges["course_code"] == "CS202"]
+    assert sorted(cs202["required_course_code"]) == ["CS101", "MAT2505"]
+    assert cs202["group_no"].nunique() == 1
+
+
+@pytest.mark.parametrize("curriculum", CURRICULA)
+def test_curriculum_course_lists_are_deterministic(repo_all, curriculum):
+    """Hợp đồng mục 1, nguyên tắc 7: thứ tự không được phụ thuộc thứ tự dòng của database."""
+    for row in repo_all.curriculum_courses(curriculum).itertuples():
+        assert row.skills == sorted(row.skills), row.course_code
+        assert row.topics[1:] == sorted(row.topics[1:]), row.course_code
+        if isinstance(row.primary_topic, str):
+            assert row.topics[0] == row.primary_topic, row.course_code
+        for group in row.prerequisite_groups:
+            assert group == sorted(group), row.course_code

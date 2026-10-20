@@ -23,6 +23,12 @@ def _as_list(value):
     return value if isinstance(value, list) else []
 
 
+# Điều kiện tiên quyết của một khung, chỉ giữ mã THUỘC khung (hợp đồng mục 4.3). Dùng chung cho
+# `curriculum_courses()` và `prerequisite_graph()` để hai endpoint không bao giờ lệch nhau (mục 6.9).
+_PREREQUISITES = """SELECT p.course_code, p.group_no, p.required_course_code FROM v_prerequisites p
+                    JOIN curricula c ON c.id = p.curriculum_id
+                    WHERE c.code = :c AND p.in_curriculum = 1"""
+
 # Lần học gần nhất của mỗi môn, chỉ tính các học kỳ TRƯỚC :t (hợp đồng mục 3.1). Cùng thứ tự với view
 # v_course_results: học kỳ mới nhất trước, rồi lần học sau cùng.
 _LATEST_BEFORE_TERM = """
@@ -145,13 +151,16 @@ class Repository:
         """Mỗi dòng một học phần của khung. Cột list: skills, topics, prerequisite_groups.
         prerequisite_groups chỉ chứa mã THUỘC khung (mã ngành khác đã bỏ)."""
         df = self._q("SELECT * FROM v_curriculum_courses WHERE curriculum_code = :c ORDER BY sort_no", c=curriculum_code)
-        ids = tuple(df["course_id"])
-        sk = self._q("""SELECT cs.course_id, s.code FROM course_skills cs JOIN skills s ON s.id = cs.skill_id""")
-        tp = self._q("""SELECT ct.course_id, t.code, ct.is_primary FROM course_topics ct JOIN topics t ON t.id = ct.topic_id""")
-        pr = self._q("""SELECT course_code, group_no, required_course_code FROM v_prerequisites p
-                        JOIN curricula c ON c.id = p.curriculum_id
-                        WHERE c.code = :c AND in_curriculum = 1 ORDER BY group_no""", c=curriculum_code)
-        sk, tp = sk[sk["course_id"].isin(ids)], tp[tp["course_id"].isin(ids)]
+        # Lọc theo khung ngay trong SQL thay vì đọc cả bảng rồi lọc bằng pandas; sắp theo mã để tất định.
+        sk = self._q("""SELECT cs.course_id, s.code FROM course_skills cs JOIN skills s ON s.id = cs.skill_id
+                        JOIN curriculum_courses cc ON cc.course_id = cs.course_id
+                        JOIN curricula c ON c.id = cc.curriculum_id
+                        WHERE c.code = :c ORDER BY cs.course_id, s.code""", c=curriculum_code)
+        tp = self._q("""SELECT ct.course_id, t.code, ct.is_primary FROM course_topics ct JOIN topics t ON t.id = ct.topic_id
+                        JOIN curriculum_courses cc ON cc.course_id = ct.course_id
+                        JOIN curricula c ON c.id = cc.curriculum_id
+                        WHERE c.code = :c ORDER BY ct.course_id, ct.is_primary DESC, t.code""", c=curriculum_code)
+        pr = self._q(_PREREQUISITES + " ORDER BY group_no, required_course_code", c=curriculum_code)
         df["skills"] = df["course_id"].map(_lists(sk, "course_id", "code")).apply(_as_list)
         df["topics"] = df["course_id"].map(_lists(tp, "course_id", "code")).apply(_as_list)
         chinh = tp[tp["is_primary"].astype(bool)].set_index("course_id")["code"]
@@ -161,6 +170,18 @@ class Repository:
         df["prerequisite_groups"] = df["course_code"].map(groups).apply(_as_list)
         df["elective_block"] = df["block_code"].where(df["selection_rule"] == "choose_credits")
         return df
+
+    def prerequisite_graph(self, curriculum_code):
+        """Sơ đồ tiên quyết của khung (hợp đồng mục 6.9): `(nodes, edges)`.
+
+        `nodes`: mọi học phần của khung theo `sort_no`, kể cả môn không nối với môn nào. `edges`: mỗi dòng
+        một điều kiện, `required_course_code` phải đạt trước `course_code`; các cạnh cùng `course_code` và
+        cùng `group_no` nối nhau bằng HOẶC. Cùng nguồn và cùng bộ lọc với cột `prerequisite_groups` của
+        `curriculum_courses()`, nên gom cạnh theo nhóm luôn ra đúng cột đó."""
+        nodes = self._q("""SELECT course_code, course_name, credits, block_code, recommended_semester
+                           FROM v_curriculum_courses WHERE curriculum_code = :c ORDER BY sort_no""", c=curriculum_code)
+        edges = self._q(_PREREQUISITES + " ORDER BY course_code, group_no, required_course_code", c=curriculum_code)
+        return nodes, edges
 
     def blocks(self, curriculum_code):
         """MỌI khối kiến thức của khung, dạng cây trả về phẳng kèm parent_block_code (None ở gốc).
