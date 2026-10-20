@@ -279,7 +279,7 @@ thị giá trị này ở đâu đó trong giao diện để truy được nguy�
   "effective_to_cohort": null,
   "total_credits": 129,
   "standard_semesters": 8,
-  "max_credits_per_term": 21,
+  "max_credits_per_term": 40,
   "pass_score": 4.0,
   "max_score": 10.0,
   "status": "active",
@@ -365,7 +365,7 @@ Tham số: `term`.
   "credits_outstanding": 3,
   "total_credits": 129,
   "gpa": 2.76,
-  "max_credits_per_term": 21,
+  "max_credits_per_term": 40,
   "interests": ["phan_mem"],
   "outstanding_courses": ["MAT2505"],
   "blocks": [
@@ -547,7 +547,7 @@ Body:
 ```json
 {
   "university_code": "HUS", "student_code": "T03", "term": "20261",
-  "total_credits": 18, "max_credits_per_term": 21, "valid": false,
+  "total_credits": 18, "max_credits_per_term": 40, "valid": false,
   "violations": [
     {
       "code": "missing_prerequisite", "course_code": "MAT3533",
@@ -649,8 +649,8 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 | Lỗi đúng định dạng | Mọi phản hồi từ 400 trở lên khớp lược đồ ở mục 5 |
 
 Ngưỡng 0,85 của bất biến "Có ích" là **mốc chống thụt lùi, không phải mục tiêu chất lượng**. Lần đo đầu
-tiên (2026-10-20, 200 sinh viên của `data/synthetic`, học kỳ `20261`) cho precision@5 = 0,872; ngưỡng là
-số đó làm tròn xuống bội 0,05. Không nên đọc 0,872 thành "gợi ý đúng 87%": file đăng ký được sinh theo giả
+tiên (2026-10-20, 200 sinh viên của `data/synthetic`, học kỳ `20261`) cho precision@5 = 0,889; ngưỡng là
+số đó làm tròn xuống bội 0,05. Không nên đọc 0,889 thành "gợi ý đúng 89%": file đăng ký được sinh theo giả
 định sinh viên học đúng kế hoạch — môn đang nợ trước, rồi môn đúng hoặc trễ kỳ — trùng với ba tiêu chí
 nặng nhất của tầng xếp hạng. Con số đo mức khớp với lộ trình chuẩn của khung, không đo hành vi của sinh
 viên thật. Đổi ngưỡng là thay đổi hợp đồng.
