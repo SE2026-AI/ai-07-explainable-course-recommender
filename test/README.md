@@ -70,7 +70,11 @@ Hai fixture dựng sẵn trong `conftest.py`:
 | `test_reference_data.py` | Dữ liệu chương trình đào tạo đúng văn bản và tự nhất quán |
 | `test_student_data.py` | Dữ liệu sinh viên hợp lệ theo quy chế |
 | `test_fixtures.py` | Tầng truy cập dữ liệu trả đúng tình trạng học tập của sinh viên kiểm thử |
+| `test_repository.py` | `Repository` trả đúng số liệu mà tầng nghiệp vụ và tầng API sẽ dùng |
+| `test_rules_status.py` | Trạng thái học phần khớp toàn bộ `expected_course_status.csv` |
+| `test_scoring.py` | Công thức sáu tiêu chí xếp hạng; **không cần database** |
 | `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý; tự bỏ qua khi `src/recommender` chưa có hàm `recommend` |
+| `test_api.py` | Tám endpoint API v1 và định dạng lỗi theo hợp đồng |
 
 Các bài trong `test_reference_data.py` và `test_student_data.py` chạy cho **mọi** chương trình đào tạo có
 trong dữ liệu, nên thêm một khung mới là tự động được kiểm.

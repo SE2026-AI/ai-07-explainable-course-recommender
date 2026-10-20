@@ -5,7 +5,8 @@ Thuật toán cần có hàm (xuất ra ở src/recommender/__init__.py):
 trong đó `student` là một dòng của repo.students().
 
 Gợi ý dựa trên DỮ LIỆU HỌC TẬP của sinh viên (môn đã đạt/trượt, điểm, tiến độ, tiên quyết);
-sở thích tự khai chỉ là tín hiệu phụ. Các test đánh dấu xfail là luật app CHƯA làm; làm xong thì bỏ dấu xfail.
+sở thích tự khai chỉ là tín hiệu phụ. Thuật toán nằm ở src/recommender, công thức của từng
+tiêu chí ở docs/architecture/ranking.md.
 """
 import pandas as pd
 import pytest
@@ -18,10 +19,10 @@ STATUS = {(r.university_code, r.student_code, r.course_code): r.expected_status 
 CASES = [tuple(x) for x in EXP[["university_code", "student_code"]].drop_duplicates().values]
 
 
-def _run(repo, uni, code):
+def _run(repo, uni, code, k=5):
     sv = repo.students()
     s = sv[(sv["university_code"] == uni) & (sv["student_code"] == code)].iloc[0]
-    return s, [x["course_code"] for x in rec.recommend(repo, s)]
+    return s, [x["course_code"] for x in rec.recommend(repo, s, k=k)]
 
 
 @pytest.mark.parametrize("uni,code", CASES)
@@ -32,7 +33,6 @@ def test_chi_goi_y_mon_hoc_duoc_trong_khung(repo_all, uni, code):
     assert not sai, sai
 
 
-@pytest.mark.xfail(reason="Chưa làm: ưu tiên môn cần học lại", strict=False)
 @pytest.mark.parametrize("uni,code", [c for c in CASES if any(STATUS.get((*c, m)) == "retake"
                                                              for m in EXP["course_code"])])
 def test_goi_y_mon_can_hoc_lai(repo_all, uni, code):
@@ -41,7 +41,6 @@ def test_goi_y_mon_can_hoc_lai(repo_all, uni, code):
     assert can <= set(ds)
 
 
-@pytest.mark.xfail(reason="Chưa làm: không gợi ý vượt số tín chỉ khối tự chọn", strict=False)
 def test_khong_vuot_khoi_tu_chon_tren_toan_bo_sinh_vien(repo):
     loi = []
     for cur, d in repo.students().groupby("curriculum_code"):
@@ -59,13 +58,16 @@ def test_khong_vuot_khoi_tu_chon_tren_toan_bo_sinh_vien(repo):
     assert not loi, f"{len(loi)} lỗi, ví dụ {loi[:5]}"
 
 
-@pytest.mark.xfail(reason="Chưa làm: ưu tiên môn tự chọn thuộc chủ đề sinh viên học giỏi", strict=False)
 def test_goi_y_tu_chon_theo_diem_manh(repo_all):
     """T16 giỏi chủ đề Dữ liệu, T17 giỏi Toán, còn lại như nhau và không khai sở thích.
     Trong các môn tự chọn được gợi ý, tỷ lệ môn thuộc chủ đề mạnh phải cao hơn tỷ lệ đó trong
-    tất cả môn tự chọn sinh viên học được."""
+    tất cả môn tự chọn sinh viên học được.
+
+    Xét cả danh sách (k = 20, trần của mục 6.6) chứ không riêng năm phần tử đầu: hai sinh viên này
+    đang ở kỳ 5, mà mọi môn tự chọn của khung đều dự kiến từ kỳ 6 trở đi, nên đầu danh sách luôn
+    là môn bắt buộc đúng kỳ. Đúng thứ tự ưu tiên, nhưng không nói gì về chủ đề."""
     for code, manh in [("T16", "du_lieu"), ("T17", "toan")]:
-        s, ds = _run(repo_all, "HUS", code)
+        s, ds = _run(repo_all, "HUS", code, k=20)
         c = repo_all.curriculum_courses(s["curriculum_code"]).set_index("course_code")
         tu_chon = [m for m in c.index if isinstance(c.loc[m, "elective_block"], str)]
         hoc_duoc = [m for m in tu_chon if STATUS.get(("HUS", code, m)) == "eligible"]
