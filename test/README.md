@@ -73,7 +73,8 @@ Hai fixture dựng sẵn trong `conftest.py`:
 | `test_repository.py` | `Repository` trả đúng số liệu mà tầng nghiệp vụ và tầng API sẽ dùng |
 | `test_rules_status.py` | Trạng thái học phần khớp toàn bộ `expected_course_status.csv` |
 | `test_scoring.py` | Công thức sáu tiêu chí xếp hạng; **không cần database** |
-| `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý; tự bỏ qua khi `src/recommender` chưa có hàm `recommend` |
+| `test_selection.py` | Luật khối tự chọn khi chọn `k` môn; **không cần database** |
+| `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý trên toàn bộ sinh viên |
 | `test_api.py` | Tám endpoint API v1 và định dạng lỗi theo hợp đồng |
 
 Các bài trong `test_reference_data.py` và `test_student_data.py` chạy cho **mọi** chương trình đào tạo có

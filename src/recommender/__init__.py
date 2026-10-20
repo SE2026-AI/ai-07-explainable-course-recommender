@@ -22,6 +22,7 @@ from src.recommender.scoring import (
     total_score,
     unlocks,
 )
+from src.recommender.selection import pick_items
 from src.rules.status import course_status
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
@@ -92,15 +93,22 @@ def _declared_topics(repo, student):
             for row in declared.itertuples()}
 
 
-def _elective_credits_passed(courses, student):
-    """Tín chỉ đã đạt trong từng khối tự chọn, cùng cách tính với `src/rules/status.py`."""
+def _elective_progress(courses, student):
+    """Tín chỉ đã đạt và các môn chưa đạt của từng khối tự chọn: `(taken, open_courses)` cho `pick_items`.
+
+    Tín chỉ đã đạt tính cùng cách với `src/rules/status.py` (môn được miễn tính là đạt). Hai bản tính này
+    gộp làm một khi tầng luật công bố `elective_credits_passed()` (#16)."""
     passed = set(student["passed_courses"])
-    earned = {}
+    taken, open_courses = {}, {}
     for course in courses.itertuples():
         block = course.elective_block
-        if isinstance(block, str) and course.course_code in passed:
-            earned[block] = earned.get(block, 0) + int(course.credits)
-    return earned
+        if not isinstance(block, str):
+            continue
+        if course.course_code in passed:
+            taken[block] = taken.get(block, 0) + int(course.credits)
+        else:
+            open_courses.setdefault(block, {})[course.course_code] = int(course.credits)
+    return taken, open_courses
 
 
 def recommend(repo, student, k=5, weights=None, status=None):
@@ -152,17 +160,7 @@ def recommend(repo, student, k=5, weights=None, status=None):
                                       pair[0]["course_code"]))
 
     required = repo.elective_blocks(curriculum_code).set_index("block_code")["required_credits"].to_dict()
-    taken = _elective_credits_passed(courses, student)
-    items = []
-    for item, course in candidates:
-        if len(items) >= k:
-            break
-        block = course.elective_block if isinstance(course.elective_block, str) else None
-        if block is not None and block in required:
-            # Trần tín chỉ của khối tự chọn là ràng buộc cứng: không trọng số nào vượt được (mục 6.6).
-            if taken.get(block, 0) >= int(required[block]):
-                continue
-            taken[block] = taken.get(block, 0) + item["credits"]
-        item["rank"] = len(items) + 1
-        items.append(item)
-    return items
+    taken, open_courses = _elective_progress(courses, student)
+    ranked = [(item, course.elective_block if isinstance(course.elective_block, str) else None)
+              for item, course in candidates]
+    return pick_items(ranked, k, required, taken, open_courses)

@@ -1,13 +1,15 @@
 # Xếp hạng và giải thích
 
-Mục 10 của `api-contract.md` ghi: **công thức tính `contribution` của từng tiêu chí thuộc tầng xếp
+Mục 4.4 của `api-contract.md` ghi: **công thức tính `contribution` của từng tiêu chí thuộc tầng xếp
 hạng, hợp đồng không quy định**. Tài liệu này là đặc tả của phần đó.
 
 | Nơi | Nội dung |
 | --- | --- |
 | `src/recommender/scoring.py` | Sáu tiêu chí, mỗi tiêu chí một hàm thuần, không đọc database |
+| `src/recommender/selection.py` | Chọn `k` phần tử, giữ đúng luật khối tự chọn; hàm thuần, không đọc database |
 | `src/recommender/__init__.py` | `recommend()`: lấy dữ liệu, gọi sáu tiêu chí, sắp và chọn |
 | `test/test_scoring.py` | Công thức từng tiêu chí và hai ví dụ của hợp đồng; không cần database |
+| `test/test_selection.py` | Luật khối tự chọn trên các khối thật của khung; không cần database |
 | `test/test_recommender_contract.py` | Bất biến của mục 7 trên toàn bộ sinh viên kiểm thử |
 
 ---
@@ -24,9 +26,10 @@ Mọi `contribution` có dạng **trọng số × mức độ**, trong đó mứ
 một tiêu chí. `on_time` và `overdue` loại trừ nhau nên điểm tối đa trên thực tế là
 `3,0 + 2,0 + 1,5 + 1,0 + 0,5 = 8,0`.
 
-Chỉ học phần có trạng thái `retake` hoặc `eligible` được xếp hạng. Điều kiện tiên quyết và trần tín chỉ
-của khối tự chọn là **ràng buộc cứng**: chúng được `src/rules/status.py` xử lý trước khi tầng này chạy,
-nên không giá trị trọng số nào đưa được một học phần vi phạm vào danh sách (mục 6.6, quy định 1).
+Chỉ học phần có trạng thái `retake` hoặc `eligible` được xếp hạng. Điều kiện tiên quyết và luật khối tự
+chọn là **ràng buộc cứng**: `src/rules/status.py` loại môn chưa đủ tiên quyết và khối đã đủ tín chỉ trước
+khi tầng này chạy, rồi `src/recommender/selection.py` giữ cho các môn được chọn không làm hỏng khối (mục 5).
+Không giá trị trọng số nào đưa được một học phần vi phạm vào danh sách (mục 6.6, quy định 1).
 
 ## 2. Bảng trọng số mặc định
 
@@ -146,14 +149,26 @@ Mục 6.6 có hai học phần kèm điểm. Công thức ở trên tái tạo �
 sau cùng trong nhóm bằng điểm. Ba mốc so sánh này đủ để không còn chỗ nào phụ thuộc thứ tự dòng của
 database, nên hai lần gọi cùng tham số cho phản hồi giống nhau từng byte.
 
-Sau khi sắp, `recommend()` đi từ trên xuống và **bỏ qua** học phần thuộc khối tự chọn đã đủ tín chỉ, tính
-cả tín chỉ của những học phần cùng khối vừa được chọn ở trên. `src/rules/status.py` đã loại khối đã đủ
-tín chỉ từ trước, nên bước này chỉ xử lý phần còn lại: một khối cần 12 tín chỉ mà sinh viên chưa học môn
-nào thì nhận nhiều nhất 4 môn 3 tín chỉ, không nhận môn thứ năm, dù môn đó điểm cao.
+Sau khi sắp, `recommend()` đi từ trên xuống và **nhận** một học phần thuộc khối tự chọn chỉ khi cả hai điều
+sau cùng đúng, tính cả tín chỉ đã đạt và tín chỉ của những môn cùng khối vừa được chọn ở trên:
 
-Chọn đi từ trên xuống, không tìm tổ hợp tối ưu. Với trần của một khối và `k ≤ 20` thì cách tham lam này
-cho kết quả giống hệt cách tối ưu trong gần như mọi trường hợp, và nó giải thích được: "môn này không
-được gợi ý vì khối tự chọn đã đủ tín chỉ từ các môn trên nó trong danh sách".
+1. khối không vượt `required_credits`;
+2. phần còn thiếu vẫn ghép được **đúng** bằng các môn chưa đạt, chưa được chọn của khối — kể cả môn chưa
+   đủ tiên quyết, vì khối có thể hoàn thành bằng chúng ở các kỳ sau.
+
+Lý do của điều 2: khối `choose_credits` phải chọn đúng `required_credits` chứ không phải tối thiểu (mục
+6.2 của hợp đồng). Khối `II` cần 5 tín chỉ gồm môn 2 và 3 tín chỉ. Nhận một môn 2 rồi thêm một môn 2 nữa
+thì chưa vượt, nhưng còn thiếu 1 mà không môn nào đủ nhỏ, nên khối không bao giờ hoàn thành đúng được. Bản
+1.0.0 chỉ dừng khi khối đã đủ, nên đã gợi ý 2 + 2 + 3 = 7/5 tín chỉ cho 54/200 sinh viên của
+`data/synthetic`; bản 1.0.1 gợi ý 2 + 3.
+
+Môn học lại (`retake`) cũng theo luật này: trượt một môn tự chọn không buộc phải học lại đúng môn đó, nếu
+môn khác trong khối hoàn thành khối đúng hơn. Môn đó vẫn mang trạng thái `retake` trong `course-status`.
+
+Chọn đi từ trên xuống, không tìm tổ hợp tối ưu, để lời giải thích luôn nói được: "môn này không được gợi
+ý vì các môn xếp trên nó đã chiếm chỗ trong khối". Điều 2 làm việc này an toàn: cách tham lam có thể chọn
+một tổ hợp điểm thấp hơn tổ hợp tốt nhất, nhưng không bao giờ chọn một tổ hợp mà sinh viên không đi tiếp
+được.
 
 ## 6. Những quyết định có thể bàn lại
 
@@ -164,7 +179,7 @@ Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng 
 | `unlocks` | Đếm trên khung | Chỉ đếm môn sinh viên chưa đạt — sát với "mở khóa cho tôi" hơn, nhưng con số đổi theo từng sinh viên |
 | `strong_topic`, `interest` | Chỉ xét chủ đề chính | Xét cả chủ đề phụ, lấy chủ đề có trọng số cao nhất |
 | Mốc đạt trần | 10 học phần, 2 học kỳ | Chuẩn hóa theo giá trị lớn nhất trong chính khung |
-| Trần khối tự chọn | Chọn tham lam từ trên xuống | Tối ưu tổ hợp theo tổng điểm |
+| Khối tự chọn | Tham lam từ trên xuống, giữ khối hoàn thành đúng được | Tối ưu tổ hợp theo tổng điểm |
 
 Chưa có mốc nào trong bảng này được chọn bằng số đo, vì bất biến "Có ích" (precision@k so với
 `data/synthetic/course_registrations.csv`) chưa có ngưỡng — mục 10 của hợp đồng còn để mở. Khi có số đo

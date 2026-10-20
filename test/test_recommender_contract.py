@@ -7,6 +7,8 @@
 Import thẳng, không `importorskip`: module này đã có trên main, nên nếu nó vỡ thì bộ test này phải đỏ
 chứ không được lặng lẽ bỏ qua.
 """
+from itertools import combinations
+
 import pandas as pd
 import pytest
 
@@ -39,21 +41,35 @@ def test_goi_y_mon_can_hoc_lai(repo_all, uni, code):
     assert can <= set(ds)
 
 
-def test_khong_vuot_khoi_tu_chon_tren_toan_bo_sinh_vien(repo):
-    loi = []
-    for cur, d in repo.students().groupby("curriculum_code"):
-        c = repo.curriculum_courses(cur).set_index("course_code")
-        need = repo.elective_blocks(cur).set_index("block_code")["required_credits"]
-        for _, s in d.iterrows():
-            ds = [x["course_code"] for x in rec.recommend(repo, s)]
-            done = {}
-            for m in list(s["passed_courses"]) + ds:
-                b = c.loc[m, "elective_block"]
-                if isinstance(b, str):
-                    if m in ds and done.get(b, 0) >= need[b]:
-                        loi.append((s["student_code"], m, b))
-                    done[b] = done.get(b, 0) + c.loc[m, "credits"]
-    assert not loi, f"{len(loi)} lỗi, ví dụ {loi[:5]}"
+def _can_fill_exactly(gap, credits):
+    """Ghép được đúng `gap` tín chỉ từ `credits`, mỗi môn dùng một lần. Viết độc lập với
+    `src/recommender/selection.py` để test không lặp lại chính code nó kiểm."""
+    return any(sum(chosen) == gap for size in range(len(credits) + 1) for chosen in combinations(credits, size))
+
+
+@pytest.mark.parametrize("dataset", ["repo", "repo_all"])
+def test_elective_blocks_stay_exactly_completable_for_every_student(request, dataset):
+    """Khối `choose_credits` phải chọn ĐÚNG `required_credits` (hợp đồng mục 6.2). Với mọi sinh viên, tín
+    chỉ đã đạt cộng tín chỉ được gợi ý trong mỗi khối không vượt `required_credits`, và phần còn thiếu
+    vẫn ghép đúng được từ các môn chưa đạt, chưa được gợi ý của khối.
+
+    Kiểm tổng sau cùng chứ không kiểm từng bước chọn. Bản trước kiểm "khối đã đủ thì bỏ" — đúng như code
+    đã viết — nên không bắt được việc gợi ý 2 + 2 + 3 tín chỉ cho khối cần 5 (54/200 sinh viên)."""
+    repo = request.getfixturevalue(dataset)
+    errors = []
+    for curriculum, group in repo.students().groupby("curriculum_code"):
+        courses = repo.curriculum_courses(curriculum).set_index("course_code")
+        required = repo.elective_blocks(curriculum).set_index("block_code")["required_credits"]
+        for _, student in group.iterrows():
+            passed = set(student["passed_courses"])
+            picked = {item["course_code"] for item in rec.recommend(repo, student, k=20)}
+            for block, need in required.items():
+                members = courses[courses["elective_block"] == block]["credits"]
+                total = int(members[members.index.isin(passed | picked)].sum())
+                rest = [int(c) for code, c in members.items() if code not in passed | picked]
+                if total > need or not _can_fill_exactly(int(need) - total, rest):
+                    errors.append((student["student_code"], block, f"{total}/{need}"))
+    assert not errors, f"{len(errors)} lỗi, ví dụ {errors[:5]}"
 
 
 def test_goi_y_tu_chon_theo_diem_manh(repo_all):
