@@ -645,8 +645,15 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 | Không phụ thuộc nhóm công bằng | Hai sinh viên giống nhau mọi mặt trừ `fairness_group` nhận cùng danh sách gợi ý |
 | Không lộ dữ liệu nhạy cảm | Không phản hồi nào chứa khóa `fairness_group` hoặc `gender` |
 | Tất định | Hai lần gọi cùng tham số cho phản hồi giống nhau từng byte |
-| Có ích | So `items` với `data/synthetic/course_registrations.csv` của học kỳ tương ứng, đo precision@k |
+| Có ích | precision@5 của `items` so với `data/synthetic/course_registrations.csv` của học kỳ tương ứng, trung bình trên mọi sinh viên, không thấp hơn **0,85** |
 | Lỗi đúng định dạng | Mọi phản hồi từ 400 trở lên khớp lược đồ ở mục 5 |
+
+Ngưỡng 0,85 của bất biến "Có ích" là **mốc chống thụt lùi, không phải mục tiêu chất lượng**. Lần đo đầu
+tiên (2026-10-20, 200 sinh viên của `data/synthetic`, học kỳ `20261`) cho precision@5 = 0,872; ngưỡng là
+số đó làm tròn xuống bội 0,05. Không nên đọc 0,872 thành "gợi ý đúng 87%": file đăng ký được sinh theo giả
+định sinh viên học đúng kế hoạch — môn đang nợ trước, rồi môn đúng hoặc trễ kỳ — trùng với ba tiêu chí
+nặng nhất của tầng xếp hạng. Con số đo mức khớp với lộ trình chuẩn của khung, không đo hành vi của sinh
+viên thật. Đổi ngưỡng là thay đổi hợp đồng.
 
 ---
 
@@ -676,6 +683,5 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 
 ## 10. Việc còn mở
 
-- Ngưỡng precision@k tối thiểu cho bất biến "Có ích", chốt sau khi có số đo đầu tiên.
 - Danh sách học phần được mở theo từng học kỳ. Khi có dữ liệu này, `term` sẽ lọc thêm theo khả năng mở lớp,
   và `course-status` có thêm một trạng thái cho học phần đủ điều kiện nhưng kỳ đó không mở.
