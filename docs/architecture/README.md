@@ -4,6 +4,7 @@
 | --- | --- |
 | `api-contract.md` | Hợp đồng API v1 giữa backend và các ứng dụng web, di động |
 | `data-model.md` | Lược đồ dữ liệu, khóa nghiệp vụ, quy ước đặt tên, cách đọc qua `Repository` |
+| `ranking.md` | Công thức sáu tiêu chí xếp hạng và cách dựng lời giải thích |
 
 Tổng quan hệ thống, phạm vi và lộ trình: `README.md` ở thư mục gốc.
 

@@ -110,6 +110,12 @@ class Repository:
                           WHERE c.code = :c AND b.selection_rule = 'choose_credits' ORDER BY b.sort_order""",
                        c=curriculum_code)
 
+    def topics(self):
+        """Danh sách chủ đề học phần: `topic_code` và `topic_name`.
+
+        `curriculum_courses()` chỉ trả về mã chủ đề; hàm này cho tên để hiện cho người dùng."""
+        return self._q("SELECT code AS topic_code, name AS topic_name FROM topics ORDER BY code")
+
     # ---------------- Sinh viên ----------------
     def students(self, only_primary=True):
         """Mỗi dòng một sinh viên (CTĐT chính). KHÔNG chứa thuộc tính nhạy cảm.
@@ -157,6 +163,18 @@ class Repository:
                           GROUP BY b.id, b.code, b.name, b.selection_rule, b.required_credits,
                                    b.counts_toward_total, b.sort_order
                           ORDER BY b.sort_order""", s=student_id)
+
+    def student_interests(self, student_id=None):
+        """Chủ đề sinh viên tự khai, mạnh nhất trước, kèm tên chủ đề và trọng số (0 < weight <= 1).
+
+        Khác cột `interests` của `students()`: cột đó chỉ có mã chủ đề, hàm này có cả trọng số nên
+        tầng xếp hạng tính được `contribution` của tiêu chí `interest`. Đây là tín hiệu PHỤ."""
+        sql = """SELECT i.student_id, t.code AS topic_code, t.name AS topic_name, i.weight
+                 FROM student_interests i JOIN topics t ON t.id = i.topic_id"""
+        sql += " WHERE i.student_id = :s" if student_id else ""
+        df = self._q(sql + " ORDER BY i.student_id, i.weight DESC, t.code", s=student_id)
+        df["weight"] = df["weight"].astype(float)
+        return df
 
     def course_results(self, student_id=None):
         sql = "SELECT * FROM v_course_results" + (" WHERE student_id = :s" if student_id else "")
