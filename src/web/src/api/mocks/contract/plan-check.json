@@ -1,0 +1,22 @@
+{
+  "university_code": "HUS",
+  "student_code": "T03",
+  "term": "20261",
+  "total_credits": 18,
+  "max_credits_per_term": 21,
+  "valid": false,
+  "violations": [
+    {
+      "code": "missing_prerequisite",
+      "course_code": "MAT3533",
+      "text": "Học máy chưa học được: cần hoàn thành Xác suất - Thống kê (MAT2323) trước.",
+      "data": {
+        "missing_prerequisites": [
+          [
+            "MAT2323"
+          ]
+        ]
+      }
+    }
+  ]
+}
