@@ -2,7 +2,7 @@
 
 Hàm công bố cho tầng API (mục 6.6) và cho `test/test_recommender_contract.py`:
 
-    recommend(repo, student, k=5, weights=None, status=None) -> list[dict]
+    recommend(repo, student, k=5, weights=None, status=None, term_code=None) -> list[dict]
 
 `student` là một dòng của `repo.students()`. Trạng thái học phần do `src/rules/status.py` quyết định;
 tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức của sáu tiêu chí:
@@ -50,21 +50,6 @@ def _semester_key(course):
     return MISSING_SEMESTER if semester is None else semester
 
 
-def _latest_attempts(repo, student):
-    """Lần học gần nhất của mỗi học phần: mã môn → dict `term_code`, `score`, `attempt_no`."""
-    results = repo.course_results(student["student_id"])
-    if results.empty:
-        return {}
-    attempts = {}
-    for row in results[results["recency"] == 1].itertuples():
-        attempts[row.course_code] = {
-            "term_code": str(row.term_code),
-            "score": None if pd.isna(row.score) else float(row.score),
-            "attempt_no": int(row.attempt_no),
-        }
-    return attempts
-
-
 def _strong_topics(repo, courses, attempts):
     """Chủ đề sinh viên đang học tốt: mã chủ đề → dict sẵn sàng cho `scoring.strong_topic`.
 
@@ -106,12 +91,16 @@ def _elective_progress(courses, student):
     return elective_credits_passed(courses, passed), open_courses
 
 
-def recommend(repo, student, k=5, weights=None, status=None):
+def recommend(repo, student, k=5, weights=None, status=None, term_code=None):
     """Học phần nên học ở học kỳ tới, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
 
     `k` là số phần tử tối đa. `weights` gửi một phần được: khóa thiếu lấy mặc định, khóa lạ hoặc
     giá trị âm làm hàm raise `ValueError`. `status` nhận sẵn kết quả của `course_status` để không
     phải tính lại; để `None` thì hàm tự tính.
+
+    `student` phải được đọc ở cùng học kỳ với `term_code`, tức `repo.student(uni, code, term_code)`:
+    `year_of_study`, các môn đã đạt và lần học gần nhất đều tính theo mốc đó (mục 3.1). `term_code` để
+    `None` là học kỳ cần gợi ý.
 
     Trả về list[dict] đã sắp theo mục 3.3, mỗi dict có `rank`, `course_code`, `course_name`,
     `credits`, `block_code`, `status`, `score`, `reasons`.
@@ -121,10 +110,10 @@ def recommend(repo, student, k=5, weights=None, status=None):
     courses = repo.curriculum_courses(curriculum_code)
     statuses = course_status(repo, student) if status is None else status
     grading = repo.curriculum(curriculum_code)
-    semester_no = target_semester(student["year_of_study"],
-                                  repo.target_term(student["university_code"])["term_no"])
+    term = repo.term(student["university_code"], term_code or repo.setting("target_term_code"))
+    semester_no = target_semester(student["year_of_study"], term["term_no"])
     prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
-    attempts = _latest_attempts(repo, student)
+    attempts = student["latest_attempts"]
     strong = _strong_topics(repo, courses, attempts)
     declared = _declared_topics(repo, student)
 

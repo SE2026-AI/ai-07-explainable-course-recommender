@@ -135,3 +135,13 @@ def test_goi_y_tu_chon_theo_diem_manh(repo_all):
 
 def test_hai_sinh_vien_chi_khac_nhom_cong_bang_co_cung_goi_y(repo_all):
     assert _run(repo_all, "HUS", "T02")[1] == _run(repo_all, "HUS", "T08")[1]
+
+
+def test_a_student_read_at_an_earlier_term_is_ranked_as_of_that_term(repo_all):
+    """Mục 3.1: nhìn từ đầu kỳ 20251, T04 vẫn nợ MAT2505 từ kỳ 20242 — lý do phải lấy đúng lần học đó, không
+    lấy lần học lại đạt ở chính kỳ 20251."""
+    items = rec.recommend(repo_all, repo_all.student("HUS", "T04", "20251"), k=5, term_code="20251")
+    item = next(i for i in items if i["course_code"] == "MAT2505")
+    assert item["status"] == "retake"
+    reason = next(r for r in item["reasons"] if r["code"] == "outstanding_retake")
+    assert reason["data"] == {"term_code": "20242", "score": 3.5, "attempt_no": 1}
