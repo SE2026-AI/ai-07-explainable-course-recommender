@@ -76,7 +76,7 @@ def test_elective_blocks_stay_exactly_completable_for_every_student(request, dat
     vẫn ghép đúng được từ các môn chưa đạt, chưa được gợi ý của khối.
 
     Kiểm tổng sau cùng chứ không kiểm từng bước chọn. Bản trước kiểm "khối đã đủ thì bỏ" — đúng như code
-    đã viết — nên không bắt được việc gợi ý 2 + 2 + 3 tín chỉ cho khối cần 5 (54/200 sinh viên)."""
+    đã viết — nên không bắt được việc gợi ý 2 + 2 + 3 tín chỉ cho khối cần 5."""
     repo = request.getfixturevalue(dataset)
     curricula = {}
     errors = []

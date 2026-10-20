@@ -159,8 +159,9 @@ sau cùng đúng, tính cả tín chỉ đã đạt và tín chỉ của những
 Lý do của điều 2: khối `choose_credits` phải chọn đúng `required_credits` chứ không phải tối thiểu (mục
 6.2 của hợp đồng). Khối `II` cần 5 tín chỉ gồm môn 2 và 3 tín chỉ. Nhận một môn 2 rồi thêm một môn 2 nữa
 thì chưa vượt, nhưng còn thiếu 1 mà không môn nào đủ nhỏ, nên khối không bao giờ hoàn thành đúng được. Bản
-1.0.0 chỉ dừng khi khối đã đủ, nên đã gợi ý 2 + 2 + 3 = 7/5 tín chỉ cho 54/200 sinh viên của
-`data/synthetic`; bản 1.0.1 gợi ý 2 + 3.
+1.0.0 chỉ dừng khi khối đã đủ. Với `k = 20`, nó làm hỏng khối tự chọn của 52/200 sinh viên trong
+`data/synthetic`, trong đó 42 em nhận 2 + 2 + 3 = 7/5 tín chỉ ở khối `II`. Bản 1.0.1 gợi ý 2 + 3 và không
+làm hỏng khối nào.
 
 Môn học lại (`retake`) cũng theo luật này: trượt một môn tự chọn không buộc phải học lại đúng môn đó, nếu
 môn khác trong khối hoàn thành khối đúng hơn. Môn đó vẫn mang trạng thái `retake` trong `course-status`.
@@ -182,12 +183,12 @@ Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng 
 | Khối tự chọn | Tham lam từ trên xuống, giữ khối hoàn thành đúng được | Tối ưu tổ hợp theo tổng điểm |
 
 Chưa có mốc nào trong bảng này được chọn bằng số đo. Bất biến "Có ích" (mục 7 của hợp đồng) giờ đã có
-ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic`:
+ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic` sinh với trần 40 tín chỉ mỗi kỳ:
 
 | Phiên bản | precision@5 | precision@10 |
 | --- | --- | --- |
-| 1.0.0 | 0,8720 | 0,5575 |
-| 1.0.1 | 0,8720 | 0,5580 |
+| 1.0.0 | 0,8890 | 0,5620 |
+| 1.0.1 | 0,8900 | 0,5625 |
 
 precision@10 thấp vì mỗi sinh viên chỉ đăng ký trung bình 6,2 môn, nên trần của nó khoảng 0,62. Đăng ký dự
 kiến được sinh theo lộ trình chuẩn của khung — môn nợ trước, rồi môn đúng hoặc trễ kỳ — trùng ba tiêu chí

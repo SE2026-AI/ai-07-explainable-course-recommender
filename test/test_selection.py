@@ -39,7 +39,7 @@ def test_a_course_that_completes_the_block_exactly_fits():
 
 
 def test_the_regression_case_two_two_three_now_picks_two_three():
-    """Bản cũ nhận cả ba môn của khối II và lên 7/5 tín chỉ (sinh viên 26000001 trong `data/synthetic`)."""
+    """Bản 1.0.0 nhận cả ba môn của khối II và lên 7/5 tín chỉ — ca hay gặp nhất trong `data/synthetic`."""
     ranked = [(_item("HUS1022", 2), "II"), (_item("HUS1023", 2), "II"), (_item("HIS1056", 3), "II")]
     picked = pick_items(ranked, 5, {"II": 5}, {}, {"II": BLOCK_II})
     assert _codes(picked) == ["HUS1022", "HIS1056"]
