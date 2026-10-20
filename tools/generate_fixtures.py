@@ -52,7 +52,8 @@ CASES = [
       "exempt": ["FLF1107"], "desc": "Miễn FLF1107 nhờ chứng chỉ: miễn tính là đạt, nên đã học được MAT1205E"},
  {"u": "DEMO", "code": "T01", "cur": DEMO, "year": 2, "interests": ["lap_trinh"], "group": "A",
       "scores": {"CS101": [4.5]}, "retake": False,
-      "desc": "Trường DEMO, CÙNG mã T01 với sinh viên HUS; 4,5 là TRƯỢT vì DEMO đạt từ 5,0; đã học CS202 nhờ điều kiện HOẶC (MAT2505)"},
+      "desc": "Trường DEMO, CÙNG mã T01 với sinh viên HUS; 4,5 là TRƯỢT vì DEMO đạt từ 5,0; "
+              "đã học CS202 nhờ điều kiện HOẶC (MAT2505)"},
  {"u": "DEMO", "code": "T02", "cur": DEMO, "year": 2, "interests": ["du_lieu"], "group": "B",
       "desc": "Trường DEMO năm 2, đạt hết"},
  {"u": "HUS", "code": "T16", "cur": KHMT, "year": 3, "interests": [], "group": "A", "strong": "du_lieu",

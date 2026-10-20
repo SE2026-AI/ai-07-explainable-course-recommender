@@ -18,6 +18,11 @@ def _lists(df, key, col):
     return df.groupby(key)[col].apply(list).to_dict()
 
 
+def _as_list(value):
+    """Giá trị của cột list sau `map()`: khóa không có trong bảng tra cho NaN, đổi thành list rỗng."""
+    return value if isinstance(value, list) else []
+
+
 class Repository:
     def __init__(self, url=None, engine=None):
         self.engine = engine or get_engine(url)
@@ -79,13 +84,13 @@ class Repository:
                         JOIN curricula c ON c.id = p.curriculum_id
                         WHERE c.code = :c AND in_curriculum = 1 ORDER BY group_no""", c=curriculum_code)
         sk, tp = sk[sk["course_id"].isin(ids)], tp[tp["course_id"].isin(ids)]
-        df["skills"] = df["course_id"].map(_lists(sk, "course_id", "code")).apply(lambda x: x if isinstance(x, list) else [])
-        df["topics"] = df["course_id"].map(_lists(tp, "course_id", "code")).apply(lambda x: x if isinstance(x, list) else [])
+        df["skills"] = df["course_id"].map(_lists(sk, "course_id", "code")).apply(_as_list)
+        df["topics"] = df["course_id"].map(_lists(tp, "course_id", "code")).apply(_as_list)
         chinh = tp[tp["is_primary"].astype(bool)].set_index("course_id")["code"]
         df["primary_topic"] = df["course_id"].map(chinh)
         nhom = pr.groupby(["course_code", "group_no"])["required_course_code"].apply(list)
         groups = nhom.groupby(level=0).apply(list).to_dict()
-        df["prerequisite_groups"] = df["course_code"].map(groups).apply(lambda x: x if isinstance(x, list) else [])
+        df["prerequisite_groups"] = df["course_code"].map(groups).apply(_as_list)
         df["elective_block"] = df["block_code"].where(df["selection_rule"] == "choose_credits")
         return df
 
@@ -132,14 +137,14 @@ class Repository:
         sv["gpa"] = sv["gpa"].astype(float)
         it = self._q("""SELECT i.student_id, t.code FROM student_interests i JOIN topics t ON t.id = i.topic_id
                         ORDER BY i.student_id, i.weight DESC, t.code""")
-        sv["interests"] = sv["student_id"].map(_lists(it, "student_id", "code")).apply(lambda x: x if isinstance(x, list) else [])
+        sv["interests"] = sv["student_id"].map(_lists(it, "student_id", "code")).apply(_as_list)
         kq = self._q("SELECT * FROM v_course_results WHERE recency = 1")
         dat = kq[kq["status"].isin(["passed", "exempted"])]
         no = kq[kq["status"] == "failed"]
-        sv["passed_courses"] = sv["student_id"].map(_lists(dat, "student_id", "course_code")).apply(lambda x: x if isinstance(x, list) else [])
-        sv["outstanding_courses"] = sv["student_id"].map(_lists(no, "student_id", "course_code")).apply(lambda x: x if isinstance(x, list) else [])
+        sv["passed_courses"] = sv["student_id"].map(_lists(dat, "student_id", "course_code")).apply(_as_list)
+        sv["outstanding_courses"] = sv["student_id"].map(_lists(no, "student_id", "course_code")).apply(_as_list)
         diem = kq.dropna(subset=["score"]).groupby("student_id").apply(
-            lambda g: dict(zip(g["course_code"], g["score"].astype(float))), include_groups=False)
+            lambda g: dict(zip(g["course_code"], g["score"].astype(float), strict=True)), include_groups=False)
         sv["latest_scores"] = sv["student_id"].map(diem).apply(lambda x: x if isinstance(x, dict) else {})
         return sv
 
