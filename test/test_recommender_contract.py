@@ -1,19 +1,17 @@
-"""Hợp đồng cho thuật toán gợi ý – chạy khi package src/recommender có hàm `recommend`.
+"""Hợp đồng cho thuật toán gợi ý `src.recommender.recommend(repo, student, k)`.
 
-Thuật toán cần có hàm (xuất ra ở src/recommender/__init__.py):
-    recommend(repo, student, k=5) -> list[dict]   # mỗi dict có ít nhất "course_code"
-trong đó `student` là một dòng của repo.students().
+`student` là một dòng của repo.students(). Gợi ý dựa trên DỮ LIỆU HỌC TẬP của sinh viên (môn đã
+đạt/trượt, điểm, tiến độ, tiên quyết); sở thích tự khai chỉ là tín hiệu phụ. Công thức của từng tiêu chí
+ở docs/architecture/ranking.md.
 
-Gợi ý dựa trên DỮ LIỆU HỌC TẬP của sinh viên (môn đã đạt/trượt, điểm, tiến độ, tiên quyết);
-sở thích tự khai chỉ là tín hiệu phụ. Thuật toán nằm ở src/recommender, công thức của từng
-tiêu chí ở docs/architecture/ranking.md.
+Import thẳng, không `importorskip`: module này đã có trên main, nên nếu nó vỡ thì bộ test này phải đỏ
+chứ không được lặng lẽ bỏ qua.
 """
 import pandas as pd
 import pytest
 
-rec = pytest.importorskip("src.recommender")
-if not hasattr(rec, "recommend"):
-    pytest.skip("src/recommender chưa có hàm recommend()", allow_module_level=True)
+import src.recommender as rec
+
 EXP = pd.read_csv("test/fixtures/students/expected_course_status.csv", keep_default_na=False, dtype=str)
 STATUS = {(r.university_code, r.student_code, r.course_code): r.expected_status for r in EXP.itertuples()}
 CASES = [tuple(x) for x in EXP[["university_code", "student_code"]].drop_duplicates().values]
