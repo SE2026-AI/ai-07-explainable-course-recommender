@@ -74,6 +74,7 @@ Hai fixture dựng sẵn trong `conftest.py`:
 | `test_rules_status.py` | Trạng thái học phần khớp toàn bộ `expected_course_status.csv` |
 | `test_scoring.py` | Công thức sáu tiêu chí xếp hạng; **không cần database** |
 | `test_selection.py` | Luật khối tự chọn khi chọn `k` môn; **không cần database** |
+| `test_explain.py` | Câu chữ của trạng thái học phần và vi phạm kế hoạch; **không cần database** |
 | `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý trên toàn bộ sinh viên |
 | `test_api.py` | Tám endpoint API v1 và định dạng lỗi theo hợp đồng |
 
