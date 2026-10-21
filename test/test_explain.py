@@ -1,7 +1,9 @@
 """Câu chữ của tầng giải thích: khớp từng chữ với ví dụ của hợp đồng, giữ đúng VÀ/HOẶC, không lộ giá trị rỗng.
 
-Không cần database: tên học phần lấy nguyên từ ví dụ ở mục 6.5 và 6.7 của `api-contract.md`.
+Không cần database: tên học phần lấy nguyên từ ví dụ ở mục 6.5 và 6.7 của `api-contract.md`. Riêng test cuối
+chạy trên sinh viên kiểm thử thật nên cần PostgreSQL (fixture `repo_all`).
 """
+import pandas as pd
 import pytest
 
 from src.explain import (
@@ -12,6 +14,7 @@ from src.explain import (
     status_text,
     violation_text,
 )
+from src.rules.status import course_status_details
 
 NAMES = {"MAT2323": "Xác suất - Thống kê", "MAT2502": "Giải tích 2", "MAT3507": "Cơ sở dữ liệu",
          "MAT2505": "Lập trình cơ bản", "CS101": "Nhập môn lập trình", "HUS1011": "Tin học cơ sở"}
@@ -162,3 +165,29 @@ def test_format_decimal_uses_a_comma_and_rounds():
 def test_format_decimal_always_rounds_a_half_up(value, expected):
     """Python làm tròn 5,25 thành "5,2" nhưng 2,45 thành "2,5"; người đọc điểm chờ cả hai lên."""
     assert format_decimal(value) == expected
+
+
+def test_every_course_of_every_test_student_gets_a_clean_and_specific_sentence(repo_all):
+    """Mọi dòng của `expected_course_status.csv`, đi qua đúng `rules.course_status_details()` như tầng API sẽ
+    làm. Câu phải nêu tên môn thật, không lộ giá trị rỗng, và nêu đúng con số của đáp án viết tay: mọi mã
+    tiên quyết còn thiếu, điểm của môn cần học lại."""
+    expected = pd.read_csv("test/fixtures/students/expected_course_status.csv", dtype=str, keep_default_na=False)
+    students = repo_all.students()
+    errors, seen = [], set()
+    for (university_code, student_code), rows in expected.groupby(["university_code", "student_code"]):
+        student = students[(students["university_code"] == university_code)
+                           & (students["student_code"] == student_code)].iloc[0]
+        courses = {c["course_code"]: c for c in repo_all.curriculum_courses(student["curriculum_code"]).to_dict("records")}
+        names = {code: course["course_name"] for code, course in courses.items()}
+        details = course_status_details(repo_all, student)
+        for row in rows.itertuples():
+            course, detail = courses[row.course_code], details[row.course_code]
+            text = status_text(course, detail, names)
+            wanted = [course["course_name"], *filter(None, row.missing_prerequisites.split(";"))]
+            if row.last_score:
+                wanted.append(f"điểm {format_decimal(float(row.last_score))}")
+            if not _looks_clean(text) or not all(part in text for part in wanted):
+                errors.append((student_code, row.course_code, text))
+            seen.add(detail["status"])
+    assert seen == set(STATUSES), "sinh viên kiểm thử phải đi qua đủ năm trạng thái"
+    assert not errors, f"{len(errors)} câu sai, ví dụ {errors[:3]}"
