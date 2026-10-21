@@ -103,15 +103,18 @@ def generate(repo):
                                         date_of_birth="", email="", is_synthetic=1))
             out["programs"].append(dict(key, curriculum_code=cur.curriculum_code, cohort_year=cohort,
                                         admission_term_code=f"{cohort}1", status="active", is_primary=1))
-            by_year.setdefault(year, []).append((ability, key))
+            # Chia nhóm theo điểm THỰC TẾ — đúng đại lượng mà test_student_data đo. Năng lực ẩn chưa đủ:
+            # điểm còn cộng mạnh/yếu theo chủ đề và nhiễu. Năm nhất chưa có điểm thì dùng năng lực ẩn.
+            scores = [r["score"] for r in rows if r["score"] is not None]
+            by_year.setdefault(year, []).append((sum(scores) / len(scores) if scores else ability, key))
             out["interests"] += [dict(key, topic_code=t, weight=w)
                                  for t, w in sorted(interests.items(), key=lambda x: (-x[1], x[0]))]
             out["results"] += [dict(key, **r) for r in rows]
             out["registrations"] += [dict(key, course_code=m, term_code=target["term_code"], status="registered",
                                           source="simulated")
                                      for m in cu.next_term(plan, n_terms, passed, failed)]
-        # Nhóm công bằng: trong mỗi năm học, xếp theo năng lực rồi chia A/B xen kẽ kiểu ABBA,
-        # để hai nhóm có năng lực tương đương. Nhóm KHÔNG ảnh hưởng tới quá trình học.
+        # Nhóm công bằng: trong mỗi năm học, xếp theo điểm trung bình rồi chia A/B xen kẽ kiểu ABBA,
+        # để hai nhóm có kết quả học tập tương đương. Nhóm KHÔNG ảnh hưởng tới quá trình học.
         for k, (_, ds) in enumerate(sorted(by_year.items())):
             dau, sau = ("A", "B") if k % 2 == 0 else ("B", "A")     # đảo mẫu ở năm kế tiếp để tổng 50/50
             for j, (_, key) in enumerate(sorted(ds, key=lambda x: -x[0])):

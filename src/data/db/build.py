@@ -187,7 +187,10 @@ def _rows(ids, name, df):
                                           "sort_order": int(r.sort_order), "note": _opt(r.note)} for r in df.itertuples()]
     if name == "courses.csv":
         u = m("university")
-        num = lambda v: int(v) if _opt(v) is not None else None
+
+        def num(v):
+            return int(v) if _opt(v) is not None else None
+
         return "courses", [{"university_id": _need(u, r.university_code, "trường"), "code": r.code, "name": r.name,
                                 "name_en": _opt(r.name_en), "credits": int(r.credits), "lecture_hours": num(r.lecture_hours),
                                 "practice_hours": num(r.practice_hours), "self_study_hours": num(r.self_study_hours),
@@ -211,15 +214,17 @@ def _rows(ids, name, df):
             "requirement_type": r.requirement_type} for r in df.itertuples()]
     if name == "course_equivalences.csv":
         co, s = m("course"), m("data_source")
-        return "course_equivalences", [{"course_id": _need(co, (r.university_code, r.course_code), "học phần"),
-                                            "equivalent_course_id": _need(co, (r.university_code, r.equivalent_course_code), "học phần"),
-                                            "source_id": s.get(r.source_code), "note": _opt(r.note)} for r in df.itertuples()]
+        return "course_equivalences", [{
+            "course_id": _need(co, (r.university_code, r.course_code), "học phần"),
+            "equivalent_course_id": _need(co, (r.university_code, r.equivalent_course_code), "học phần"),
+            "source_id": s.get(r.source_code), "note": _opt(r.note)} for r in df.itertuples()]
     if name in ("skills.csv", "topics.csv"):
         return name[:-4], [{"code": r.code, "name": r.name} for r in df.itertuples()]
     if name == "course_skills.csv":
         co, sk = m("course"), m("skill")
         return "course_skills", [{"course_id": _need(co, (r.university_code, r.course_code), "học phần"),
-                                      "skill_id": _need(sk, r.skill_code, "kỹ năng"), "weight": r.weight} for r in df.itertuples()]
+                                      "skill_id": _need(sk, r.skill_code, "kỹ năng"), "weight": r.weight}
+                                 for r in df.itertuples()]
     if name == "course_topics.csv":
         co, tp = m("course"), m("topic")
         return "course_topics", [{"course_id": _need(co, (r.university_code, r.course_code), "học phần"),
@@ -243,7 +248,10 @@ def _rows(ids, name, df):
                                  "full_name": r.full_name, "date_of_birth": _date(r.date_of_birth), "email": _opt(r.email),
                                  "is_synthetic": bool(int(r.is_synthetic))} for r in df.itertuples()]
     st = m("student") if name.startswith(("student_", "course_r")) else None
-    sid = lambda r: _need(st, (r.university_code, str(r.student_code)), "sinh viên")
+
+    def sid(r):
+        return _need(st, (r.university_code, str(r.student_code)), "sinh viên")
+
     if name == "student_programs.csv":
         c, t, cu = m("curriculum"), m("term"), m("curriculum_university")
         return "student_programs", [{"student_id": sid(r), "curriculum_id": _need(c, r.curriculum_code, "CTĐT"),
@@ -259,8 +267,11 @@ def _rows(ids, name, df):
                                           "weight": r.weight} for r in df.itertuples()]
     if name in ("course_results.csv", "course_registrations.csv"):
         co, t = m("course"), m("term")
-        base = lambda r: {"student_id": sid(r), "course_id": _need(co, (r.university_code, r.course_code), "học phần"),
-                              "term_id": _term(t, ids, r.university_code, r.term_code), "status": r.status}
+
+        def base(r):
+            return {"student_id": sid(r), "course_id": _need(co, (r.university_code, r.course_code), "học phần"),
+                    "term_id": _term(t, ids, r.university_code, r.term_code), "status": r.status}
+
         if name == "course_results.csv":
             return "course_results", [dict(base(r), attempt_no=int(r.attempt_no), score=_opt(r.score),
                                            letter_grade=_opt(r.letter_grade), grade_point=_opt(r.grade_point))

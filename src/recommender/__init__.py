@@ -120,7 +120,7 @@ def recommend(repo, student, k=5, weights=None, status=None):
     grading = repo.curriculum(curriculum_code)
     semester_no = target_semester(student["year_of_study"],
                                   repo.target_term(student["university_code"])["term_no"])
-    prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"]))
+    prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
     attempts = _latest_attempts(repo, student)
     strong = _strong_topics(repo, courses, attempts)
     declared = _declared_topics(repo, student)
