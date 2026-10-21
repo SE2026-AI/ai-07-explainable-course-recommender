@@ -36,7 +36,7 @@ pytest -k tien_quyet                        # theo tên test
 pytest --cov=src --cov-report=term-missing  # kèm độ phủ
 ```
 
-Kiểm tra mã nguồn chạy riêng, CI cũng chạy lệnh này:
+Kiểm tra mã nguồn chạy riêng, cấu hình ở `pyproject.toml`. CI chạy lệnh này trước `pytest`:
 
 ```bash
 ruff check .

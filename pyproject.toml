@@ -1,0 +1,15 @@
+# Cấu hình công cụ kiểm tra mã nguồn. Thư viện vẫn khai trong requirements.txt.
+
+[tool.ruff]
+# Code hiện có viết theo cỡ này; 120 sẽ bắt xuống dòng hàng loạt câu SQL mà không làm chúng dễ đọc hơn.
+line-length = 130
+target-version = "py311"
+extend-exclude = ["src/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Lỗi có sẵn trong file của thành viên khác, để chủ file tự sửa (#15, #16). Sửa xong thì xóa dòng tương ứng.
+"test/test_api.py" = ["UP015"]
+"test/test_rules_status.py" = ["B905", "B007"]

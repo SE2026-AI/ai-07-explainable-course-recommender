@@ -26,6 +26,8 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Kiểm tra mã nguồn (cấu hình trong pyproject.toml)
+        run: ruff check .
       - name: Kiểm thử
         run: pytest
       - name: Dữ liệu tự tạo và lược đồ khớp với code (chạy lại phải ra y hệt)

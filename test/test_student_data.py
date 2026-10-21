@@ -100,7 +100,8 @@ def test_hoc_dung_thu_tu_va_khong_hoc_lai_mon_da_dat(r):
         cur = ls["curriculum_code"].iloc[0]
         c = cache.setdefault(cur, r.curriculum_courses(cur).set_index("course_code"))
         for _, row in ls.iterrows():
-            truoc = ls[(ls["term_code"] < row["term_code"]) | ((ls["term_code"] == row["term_code"]) & (ls["status"] == "exempted"))]
+            cung_ky_mien = (ls["term_code"] == row["term_code"]) & (ls["status"] == "exempted")
+            truoc = ls[(ls["term_code"] < row["term_code"]) | cung_ky_mien]
             dat = set(truoc[truoc["status"].isin(["passed", "exempted"])]["course_code"])
             if row["status"] != "exempted":
                 for g in c.loc[row["course_code"], "prerequisite_groups"]:
