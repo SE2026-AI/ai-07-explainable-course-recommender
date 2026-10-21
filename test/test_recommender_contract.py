@@ -1,19 +1,19 @@
-"""Hợp đồng cho thuật toán gợi ý – chạy khi package src/recommender có hàm `recommend`.
+"""Hợp đồng cho thuật toán gợi ý `src.recommender.recommend(repo, student, k)`.
 
-Thuật toán cần có hàm (xuất ra ở src/recommender/__init__.py):
-    recommend(repo, student, k=5) -> list[dict]   # mỗi dict có ít nhất "course_code"
-trong đó `student` là một dòng của repo.students().
+`student` là một dòng của repo.students(). Gợi ý dựa trên DỮ LIỆU HỌC TẬP của sinh viên (môn đã
+đạt/trượt, điểm, tiến độ, tiên quyết); sở thích tự khai chỉ là tín hiệu phụ. Công thức của từng tiêu chí
+ở docs/architecture/ranking.md.
 
-Gợi ý dựa trên DỮ LIỆU HỌC TẬP của sinh viên (môn đã đạt/trượt, điểm, tiến độ, tiên quyết);
-sở thích tự khai chỉ là tín hiệu phụ. Thuật toán nằm ở src/recommender, công thức của từng
-tiêu chí ở docs/architecture/ranking.md.
+Import thẳng, không `importorskip`: module này đã có trên main, nên nếu nó vỡ thì bộ test này phải đỏ
+chứ không được lặng lẽ bỏ qua.
 """
+from itertools import combinations
+
 import pandas as pd
 import pytest
 
-rec = pytest.importorskip("src.recommender")
-if not hasattr(rec, "recommend"):
-    pytest.skip("src/recommender chưa có hàm recommend()", allow_module_level=True)
+import src.recommender as rec
+
 EXP = pd.read_csv("test/fixtures/students/expected_course_status.csv", keep_default_na=False, dtype=str)
 STATUS = {(r.university_code, r.student_code, r.course_code): r.expected_status for r in EXP.itertuples()}
 CASES = [tuple(x) for x in EXP[["university_code", "student_code"]].drop_duplicates().values]
@@ -41,21 +41,77 @@ def test_goi_y_mon_can_hoc_lai(repo_all, uni, code):
     assert can <= set(ds)
 
 
-def test_khong_vuot_khoi_tu_chon_tren_toan_bo_sinh_vien(repo):
-    loi = []
-    for cur, d in repo.students().groupby("curriculum_code"):
-        c = repo.curriculum_courses(cur).set_index("course_code")
-        need = repo.elective_blocks(cur).set_index("block_code")["required_credits"]
-        for _, s in d.iterrows():
-            ds = [x["course_code"] for x in rec.recommend(repo, s)]
-            done = {}
-            for m in list(s["passed_courses"]) + ds:
-                b = c.loc[m, "elective_block"]
-                if isinstance(b, str):
-                    if m in ds and done.get(b, 0) >= need[b]:
-                        loi.append((s["student_code"], m, b))
-                    done[b] = done.get(b, 0) + c.loc[m, "credits"]
-    assert not loi, f"{len(loi)} lỗi, ví dụ {loi[:5]}"
+# Hợp đồng mục 7, bất biến "Có ích". Đổi số này là đổi hợp đồng.
+PRECISION_AT_5_FLOOR = 0.85
+
+
+def _recommend_everyone(repo):
+    """Gợi ý `k = 20` cho mọi sinh viên, tính một lần cho cả module.
+
+    Năm phần tử đầu của danh sách `k = 20` trùng với danh sách `k = 5`: `pick_items` chọn tham lam từ trên
+    xuống và chỉ dừng theo `k`. Nên một lần tính phục vụ được cả bài kiểm khối tự chọn lẫn precision@5."""
+    return [(student, rec.recommend(repo, student, k=20)) for _, student in repo.students().iterrows()]
+
+
+@pytest.fixture(scope="module")
+def recommended(repo):
+    return _recommend_everyone(repo)
+
+
+@pytest.fixture(scope="module")
+def recommended_all(repo_all):
+    return _recommend_everyone(repo_all)
+
+
+def _can_fill_exactly(gap, credits):
+    """Ghép được đúng `gap` tín chỉ từ `credits`, mỗi môn dùng một lần. Viết độc lập với
+    `src/recommender/selection.py` để test không lặp lại chính code nó kiểm."""
+    return any(sum(chosen) == gap for size in range(len(credits) + 1) for chosen in combinations(credits, size))
+
+
+@pytest.mark.parametrize(("dataset", "results"), [("repo", "recommended"), ("repo_all", "recommended_all")])
+def test_elective_blocks_stay_exactly_completable_for_every_student(request, dataset, results):
+    """Khối `choose_credits` phải chọn ĐÚNG `required_credits` (hợp đồng mục 6.2). Với mọi sinh viên, tín
+    chỉ đã đạt cộng tín chỉ được gợi ý trong mỗi khối không vượt `required_credits`, và phần còn thiếu
+    vẫn ghép đúng được từ các môn chưa đạt, chưa được gợi ý của khối.
+
+    Kiểm tổng sau cùng chứ không kiểm từng bước chọn. Bản trước kiểm "khối đã đủ thì bỏ" — đúng như code
+    đã viết — nên không bắt được việc gợi ý 2 + 2 + 3 tín chỉ cho khối cần 5."""
+    repo = request.getfixturevalue(dataset)
+    curricula = {}
+    errors = []
+    for student, items in request.getfixturevalue(results):
+        curriculum = student["curriculum_code"]
+        if curriculum not in curricula:
+            curricula[curriculum] = (repo.curriculum_courses(curriculum).set_index("course_code"),
+                                     repo.elective_blocks(curriculum).set_index("block_code")["required_credits"])
+        courses, required = curricula[curriculum]
+        passed = set(student["passed_courses"])
+        picked = {item["course_code"] for item in items}
+        for block, need in required.items():
+            members = courses[courses["elective_block"] == block]["credits"]
+            total = int(members[members.index.isin(passed | picked)].sum())
+            rest = [int(c) for code, c in members.items() if code not in passed | picked]
+            if total > need or not _can_fill_exactly(int(need) - total, rest):
+                errors.append((student["student_code"], block, f"{total}/{need}"))
+    assert not errors, f"{len(errors)} lỗi, ví dụ {errors[:5]}"
+
+
+def test_precision_at_5_meets_the_contract_floor(repo, recommended):
+    """Bất biến "Có ích" (hợp đồng mục 7): trung bình trên mọi sinh viên của `data/synthetic`, tỷ lệ môn
+    trong năm gợi ý đầu có mặt trong đăng ký dự kiến của học kỳ gợi ý không thấp hơn ngưỡng.
+
+    Đây là mốc chống thụt lùi: đăng ký dự kiến được sinh theo lộ trình chuẩn của khung, nên con số đo mức
+    khớp với lộ trình đó chứ không đo hành vi của sinh viên thật."""
+    term = repo.setting("target_term_code")
+    registrations = pd.read_csv("data/synthetic/course_registrations.csv", dtype=str)
+    registrations = registrations[registrations["term_code"] == term]
+    expected = registrations.groupby("student_code")["course_code"].apply(set).to_dict()
+    precision = [len({item["course_code"] for item in items[:5]} & expected.get(student["student_code"], set())) / 5
+                 for student, items in recommended]
+    mean = sum(precision) / len(precision)
+    assert precision, "không có sinh viên nào để đo"
+    assert mean >= PRECISION_AT_5_FLOOR, f"precision@5 = {mean:.4f} < {PRECISION_AT_5_FLOOR}"
 
 
 def test_goi_y_tu_chon_theo_diem_manh(repo_all):

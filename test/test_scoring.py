@@ -252,4 +252,4 @@ def test_the_second_contract_example_adds_up_to_2_75():
 def test_the_package_publishes_the_algorithm_constants_the_api_reads():
     """Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1)."""
     assert recommender.ALGORITHM == "rule_based_weighted"
-    assert recommender.ALGORITHM_VERSION == "1.0.0"
+    assert recommender.ALGORITHM_VERSION == "1.0.1"
