@@ -7,7 +7,9 @@
 Import thẳng, không `importorskip`: module này đã có trên main, nên nếu nó vỡ thì bộ test này phải đỏ
 chứ không được lặng lẽ bỏ qua.
 """
+import json
 from itertools import combinations
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -22,7 +24,7 @@ CASES = [tuple(x) for x in EXP[["university_code", "student_code"]].drop_duplica
 def _run(repo, uni, code, k=5):
     sv = repo.students()
     s = sv[(sv["university_code"] == uni) & (sv["student_code"] == code)].iloc[0]
-    return s, [x["course_code"] for x in rec.recommend(repo, s, k=k)]
+    return s, [x["course_code"] for x in rec.recommend(repo, s, k=k)["items"]]
 
 
 @pytest.mark.parametrize("uni,code", CASES)
@@ -50,7 +52,7 @@ def _recommend_everyone(repo):
 
     Năm phần tử đầu của danh sách `k = 20` trùng với danh sách `k = 5`: `pick_items` chọn tham lam từ trên
     xuống và chỉ dừng theo `k`. Nên một lần tính phục vụ được cả bài kiểm khối tự chọn lẫn precision@5."""
-    return [(student, rec.recommend(repo, student, k=20)) for _, student in repo.students().iterrows()]
+    return [(student, rec.recommend(repo, student, k=20)["items"]) for _, student in repo.students().iterrows()]
 
 
 @pytest.fixture(scope="module")
@@ -135,3 +137,143 @@ def test_goi_y_tu_chon_theo_diem_manh(repo_all):
 
 def test_hai_sinh_vien_chi_khac_nhom_cong_bang_co_cung_goi_y(repo_all):
     assert _run(repo_all, "HUS", "T02")[1] == _run(repo_all, "HUS", "T08")[1]
+
+
+def _t03(repo_all):
+    return repo_all.student("HUS", "T03")
+
+
+def test_every_item_score_is_the_sum_of_its_reasons_and_every_reason_has_a_weight(recommended):
+    """Bất biến "Lời giải thích khớp điểm" và "không có lý do lạ" (mục 7), trên mọi sinh viên."""
+    for student, items in recommended:
+        for item in items:
+            where = (student["student_code"], item["course_code"])
+            assert item["score"] == round(sum(r["contribution"] for r in item["reasons"]), 4), where
+            assert {r["code"] for r in item["reasons"]} <= set(rec.DEFAULT_WEIGHTS), where
+            assert all(r["contribution"] > 0 for r in item["reasons"]), ("mục 4.4 cấm contribution = 0", where)
+
+
+def test_the_response_echoes_the_merged_weights_and_counts_every_candidate(repo_all):
+    result = rec.recommend(repo_all, _t03(repo_all), k=3, weights={"interest": 0})
+    assert list(result) == ["what_if", "weights", "candidate_count", "items", "not_eligible"], "thứ tự khóa theo mục 6.6"
+    assert result["what_if"] is False
+    assert result["weights"] == {**rec.DEFAULT_WEIGHTS, "interest": 0.0}
+    expected = sum(st in ("eligible", "retake") for (u, c, _), st in STATUS.items() if (u, c) == ("HUS", "T03"))
+    assert result["candidate_count"] == expected, "đếm cả phần vượt k (mục 6.6, quy định 4)"
+    assert len(result["items"]) == 3 < result["candidate_count"]
+
+
+# Trường chi tiết đi kèm từng trạng thái trong một dòng `course-status` (mục 6.5).
+DETAIL_FIELDS = {"passed": "last_attempt", "block_complete": "block", "missing_prerequisite": "missing_prerequisites"}
+
+
+@pytest.mark.parametrize("uni,code", CASES)
+def test_not_eligible_holds_every_other_course_with_the_answer_key_status(repo_all, uni, code):
+    """Quy định 7 và 8 của mục 6.6: `not_eligible` là đúng phần còn lại của khung — mọi môn không phải
+    `retake` hay `eligible` — mang trạng thái của đáp án viết tay, mỗi dòng cùng dạng một dòng `course-status`."""
+    result = rec.recommend(repo_all, repo_all.student(uni, code), k=20)
+    expected = {course: status for (u, c, course), status in STATUS.items() if (u, c) == (uni, code)}
+    rows = result["not_eligible"]
+    assert {row["course_code"]: row["status"] for row in rows} == \
+        {course: status for course, status in expected.items() if status not in ("retake", "eligible")}
+    assert result["candidate_count"] + len(rows) == len(expected), "hai phần cộng lại là cả khung"
+    assert [row["course_code"] for row in rows] == sorted(row["course_code"] for row in rows), "mục 3.3"
+    for row in rows:
+        assert list(row) == ["course_code", "course_name", "credits", "block_code", "status",
+                             DETAIL_FIELDS[row["status"]], "text"], row
+        assert row["course_name"] in row["text"], row
+
+
+@pytest.mark.xfail(strict=True, reason="rules.course_status_details() đọc last_attempt từ database thay vì từ dòng "
+                                       "sinh viên nên chưa thấy giả định what-if; chờ tầng luật sửa (#16)")
+def test_an_assumed_pass_shows_the_assumed_attempt_in_not_eligible(repo_all):
+    """Tiêu chí "Trung thực" của README: giả định đạt MAT2505 với 8,0 thì dòng của môn đó phải nói 8,0, không
+    phải điểm 3,0 của lần trượt thật. Khi tầng luật sửa, test này qua và `strict` buộc xóa dấu `xfail`."""
+    result = rec.recommend(repo_all, _t03(repo_all), assumptions=[{"course_code": "MAT2505", "status": "passed",
+                                                                   "score": 8.0}])
+    row = next(row for row in result["not_eligible"] if row["course_code"] == "MAT2505")
+    assert row["last_attempt"] == {"term_code": "20252", "attempt_no": 2, "score": 8.0, "letter_grade": None}
+    assert row["text"] == "Đã đạt Lập trình cơ bản (điểm 8,0)."
+
+
+def test_two_identical_calls_give_byte_identical_results(repo_all):
+    """Bất biến "Tất định" (mục 7)."""
+    assumptions = [{"course_code": "MAT2505", "status": "passed", "score": 6.0}]
+    first = rec.recommend(repo_all, _t03(repo_all), k=20, assumptions=assumptions)
+    second = rec.recommend(repo_all, _t03(repo_all), k=20, assumptions=assumptions)
+    assert json.dumps(first, ensure_ascii=False) == json.dumps(second, ensure_ascii=False)
+
+
+def test_assuming_a_pass_clears_the_retake_and_unlocks_the_courses_that_need_it(repo_all):
+    student = _t03(repo_all)
+    groups = repo_all.curriculum_courses(student["curriculum_code"]).set_index("course_code")["prerequisite_groups"]
+    before = rec.recommend(repo_all, student, k=20)
+    after = rec.recommend(repo_all, student, k=20, assumptions=[{"course_code": "MAT2505", "status": "passed",
+                                                                 "score": 6.0}])
+    assert after["what_if"] is True
+    assert "MAT2505" in {i["course_code"] for i in before["items"]}
+    assert "MAT2505" not in {i["course_code"] for i in after["items"]}
+    assert after["candidate_count"] > before["candidate_count"]
+    assert any(any("MAT2505" in g for g in groups[i["course_code"]]) for i in after["items"])
+
+
+def test_assuming_a_failure_ranks_the_course_as_a_retake_from_the_previous_term(repo_all):
+    """T02 đạt hết. Giả định trượt MAT2502: môn đó thành `retake`, lần học giả định thuộc học kỳ chính ngay
+    trước kỳ gợi ý (20252, bỏ qua kỳ hè 20253), là lần học thứ hai."""
+    result = rec.recommend(repo_all, repo_all.student("HUS", "T02"), k=20,
+                           assumptions=[{"course_code": "MAT2502", "status": "failed", "score": 2.0}])
+    item = next(i for i in result["items"] if i["course_code"] == "MAT2502")
+    assert item["status"] == "retake"
+    reason = next(r for r in item["reasons"] if r["code"] == "outstanding_retake")
+    assert reason["data"] == {"term_code": "20252", "score": 2.0, "attempt_no": 2}
+
+
+def test_assumptions_never_reach_the_database(repo_all):
+    before = repo_all.student("HUS", "T03")
+    results_before = len(repo_all.course_results())
+    rec.recommend(repo_all, before, k=5, assumptions=[{"course_code": "MAT2505", "status": "passed", "score": 9.0}])
+    after = repo_all.student("HUS", "T03")
+    assert len(repo_all.course_results()) == results_before
+    assert after["passed_courses"] == before["passed_courses"]
+    assert after["outstanding_courses"] == before["outstanding_courses"] == ["MAT2505"]
+
+
+def test_a_student_read_at_an_earlier_term_is_ranked_as_of_that_term(repo_all):
+    """Mục 3.1: nhìn từ đầu kỳ 20251, T04 vẫn nợ MAT2505 từ kỳ 20242 — lý do phải lấy đúng lần học đó, không
+    lấy lần học lại đạt ở chính kỳ 20251."""
+    result = rec.recommend(repo_all, repo_all.student("HUS", "T04", "20251"), k=5, term_code="20251")
+    item = next(i for i in result["items"] if i["course_code"] == "MAT2505")
+    assert item["status"] == "retake"
+    reason = next(r for r in item["reasons"] if r["code"] == "outstanding_retake")
+    assert reason["data"] == {"term_code": "20242", "score": 3.5, "attempt_no": 1}
+
+
+@pytest.mark.parametrize(("kwargs", "message"), [
+    ({"weights": {"unlocks": -1}}, "unlocks"),
+    ({"weights": {"popularity": 1}}, "popularity"),
+    ({"assumptions": [{"course_code": "XYZ999", "status": "passed"}]}, r"assumptions\[0\]\.course_code"),
+])
+def test_invalid_weights_and_assumptions_raise_value_error(repo_all, kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        rec.recommend(repo_all, _t03(repo_all), **kwargs)
+
+
+def _contract_response_example(section, marker):
+    """Khối JSON ví dụ phản hồi đứng sau `marker` trong mục `section` của hợp đồng. Ví dụ là một phần của
+    đặc tả, nên test đọc thẳng từ tài liệu: sửa ví dụ mà không sửa code (hay ngược lại) sẽ làm test đỏ."""
+    text = Path("docs/architecture/api-contract.md").read_text(encoding="utf-8")
+    after = text[text.index(f"### {section} "):]
+    after = after[after.index(marker):]
+    start = after.index("```json") + len("```json")
+    return json.loads(after[start:after.index("```", start)])
+
+
+def test_the_recommendation_example_of_the_contract_is_what_t03_really_gets(repo_all):
+    example = _contract_response_example("6.6", "Phản hồi, rút gọn còn hai học phần:")
+    result = rec.recommend(repo_all, repo_all.student("HUS", "T03"), k=2)
+    assert result["items"] == example["items"]
+    assert all(row in result["not_eligible"] for row in example["not_eligible"]), "ví dụ rút gọn, nhưng phải có thật"
+    assert result["candidate_count"] == example["candidate_count"]
+    assert result["weights"] == example["weights"]
+    assert result["what_if"] == example["what_if"]
+    assert rec.ALGORITHM_VERSION == example["algorithm_version"]

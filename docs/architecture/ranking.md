@@ -129,18 +129,25 @@ nó không bao giờ được là tiêu chí quyết định.
 
 ## 4. Kiểm chứng với hai ví dụ của hợp đồng
 
-Mục 6.6 có hai học phần kèm điểm. Công thức ở trên tái tạo đúng cả hai, và
-`test/test_scoring.py` kiểm lại từng dòng dưới đây:
+Mục 6.6 có hai học phần kèm điểm, là hai phần tử đầu của gợi ý thật cho sinh viên kiểm thử `HUS/T03`.
+`test/test_scoring.py` kiểm lại từng dòng dưới đây bằng hàm thuần, và
+`test/test_recommender_contract.py` kiểm cả hai phần tử khớp nguyên văn ví dụ khi chạy `recommend()` trên
+dữ liệu kiểm thử:
 
 | Học phần | Lý do | Mức độ | `contribution` |
 | --- | --- | --- | --- |
 | MAT2505 | `outstanding_retake` | đang nợ từ kỳ 20252 | 3,0 |
 | | `unlocks` | `min(1, 12/10) = 1` | 1,5 |
 | | `overdue` | `min(1, 1/2) = 0,5` | 1,0 |
-| | **tổng** | | **5,5** |
+| | `strong_topic` | `(5,25 − 4) / (10 − 4) = 0,2083` | 0,2083 |
+| | **tổng** | | **5,7083** |
 | MAT2323 | `on_time` | kỳ 3, đúng kỳ | 2,0 |
 | | `unlocks` | `min(1, 5/10) = 0,5` | 0,75 |
-| | **tổng** | | **2,75** |
+| | `strong_topic` | `(7,5 − 4) / (10 − 4) = 0,5833` | 0,5833 |
+| | **tổng** | | **3,3333** |
+
+Bản trước của ví dụ thiếu hai dòng `strong_topic`, nên ghi tổng 5,5 và 2,75 — đúng số học, nhưng không
+phải điều hệ thống thật sự trả về cho T03.
 
 ## 5. Sắp xếp, trần khối tự chọn và chọn `k` phần tử
 
@@ -175,6 +182,45 @@ Chọn đi từ trên xuống, không tìm tổ hợp tối ưu, để lời gi�
 ý vì các môn xếp trên nó đã chiếm chỗ trong khối". Điều 2 làm việc này an toàn: cách tham lam có thể chọn
 một tổ hợp điểm thấp hơn tổ hợp tốt nhất, nhưng không bao giờ chọn một tổ hợp mà sinh viên không đi tiếp
 được.
+
+### 5.1 Phản hồi của `recommend()`
+
+`recommend()` trả về phần của phản hồi mục 6.6 do tầng xếp hạng quyết định, theo đúng thứ tự khóa ở đó:
+
+| Khóa | Nội dung |
+| --- | --- |
+| `what_if` | `true` khi có giả định khác rỗng |
+| `weights` | Bảng trọng số đã ghép với mặc định (mục 2) |
+| `candidate_count` | Mọi học phần `retake` + `eligible`, đếm **trước** luật khối tự chọn và trước khi cắt `k` |
+| `items` | Các phần tử đã chọn, sắp theo mục 5 |
+| `not_eligible` | Mọi học phần còn lại của khung (`passed`, `block_complete`, `missing_prerequisite`), cùng dạng một dòng `course-status`, sắp theo `course_code` |
+
+`not_eligible` dựng từ đúng kết quả `rules.course_status_details()` mà `recommend()` dùng để chọn ứng viên,
+cộng câu `text` của `src/explain/`. Tầng xếp hạng không tự tính lại trạng thái hay chi tiết nào, nên
+`candidate_count` cộng số phần tử của `not_eligible` luôn bằng số học phần của khung.
+
+Giới hạn hiện tại: tầng luật đọc `last_attempt` từ database chứ chưa từ dòng sinh viên. Với giả định what-if
+`passed`, dòng `not_eligible` của môn đó vẫn mang lần học thật, chưa mang lần học giả định.
+`test_an_assumed_pass_shows_the_assumed_attempt_in_not_eligible` đánh dấu `xfail` cho tới khi tầng luật sửa.
+
+Dòng sinh viên phải được đọc ở cùng học kỳ với `term_code`, tức `repo.student(uni, code, term_code)`. Lần
+học gần nhất của mỗi môn lấy từ cột `latest_attempts` của chính dòng đó, nên lý do `outstanding_retake`, các
+môn đã đạt và trạng thái học phần luôn nhìn cùng một mốc thời gian (mục 3.1 của hợp đồng).
+
+### 5.2 Giả định what-if
+
+`src/recommender/whatif.py` áp các giả định lên một **bản sao** của dòng sinh viên, không đọc và không ghi
+database. Mỗi giả định được coi là lần học mới nhất của môn đó:
+
+- diễn ra ở học kỳ chính ngay trước học kỳ đang gợi ý — kỳ hè bị bỏ qua, như mục 3.2;
+- là lần học thứ `n + 1` nếu môn đã từng học `n` lần;
+- `passed` đưa môn vào danh sách đã đạt và xóa khỏi danh sách đang nợ, `failed` làm ngược lại;
+- `score` có thể vắng mặt; khi đó môn không góp vào điểm trung bình của tiêu chí `strong_topic`.
+
+Bản sao chỉ đổi những cột mà tầng luật và tầng xếp hạng đọc. Tín chỉ tích lũy và GPA giữ nguyên, nên
+không dùng bản sao để dựng `profile`. Giả định sai — mã không thuộc khung, trạng thái lạ, điểm ngoài
+`[0, max_score]` của khung, một môn được giả định hai lần, khóa lạ — làm hàm raise `ValueError` với thông
+điệp mở đầu bằng đường dẫn tới trường sai, để tầng API đưa vào `details.fields`.
 
 ## 6. Những quyết định có thể bàn lại
 
@@ -216,4 +262,4 @@ trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, ph
 | Phiên bản | Thay đổi |
 | --- | --- |
 | 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
-| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3 |
+| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3; phản hồi có `not_eligible` kèm `text` cho mọi học phần không gợi ý được |
