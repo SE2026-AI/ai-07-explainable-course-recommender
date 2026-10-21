@@ -12,6 +12,8 @@ chạy được mà không cần PostgreSQL.
 """
 import math
 
+from src.explain import format_decimal
+
 # Bảng trọng số mặc định, lấy nguyên từ hợp đồng mục 6.6.
 DEFAULT_WEIGHTS = {
     "outstanding_retake": 3.0,
@@ -35,11 +37,6 @@ def _reason(code, contribution, text, data):
     if contribution <= 0:
         return None
     return {"code": code, "contribution": contribution, "text": text, "data": data}
-
-
-def _decimal(value, digits=1):
-    """Số thập phân viết theo kiểu Việt Nam cho `text`: 3.0 thành "3,0"."""
-    return f"{float(value):.{digits}f}".replace(".", ",")
 
 
 def merge_weights(weights=None):
@@ -78,7 +75,7 @@ def outstanding_retake(last_attempt, weights):
     if score is not None:
         data["score"] = float(score)
     data["attempt_no"] = int(last_attempt["attempt_no"])
-    detail = f" (điểm {_decimal(score)})" if score is not None else ""
+    detail = f" (điểm {format_decimal(score)})" if score is not None else ""
     return _reason("outstanding_retake", weights["outstanding_retake"],
                    f"Bạn chưa đạt môn này ở học kỳ {term_code}{detail}.", data)
 
@@ -139,7 +136,7 @@ def strong_topic(topic, pass_score, max_score, weights):
     studied = len(topic["course_codes"])
     return _reason("strong_topic", weights["strong_topic"] * level,
                    f"Bạn đang học tốt chủ đề {topic['topic_name']}: điểm trung bình "
-                   f"{_decimal(topic['average_score'])} trên {studied} môn đã học.",
+                   f"{format_decimal(topic['average_score'])} trên {studied} môn đã học.",
                    {"topic_code": str(topic["topic_code"]), "topic_name": str(topic["topic_name"]),
                     "average_score": round(float(topic["average_score"]), 2),
                     "course_codes": sorted(topic["course_codes"])})
