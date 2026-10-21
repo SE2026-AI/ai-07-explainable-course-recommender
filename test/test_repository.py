@@ -71,3 +71,100 @@ def test_block_progress_sums_to_credits_earned(repo):
         assert counted == student["credits_earned"], f"sinh viên {student['student_code']}"
         assert (progress[progress["selection_rule"] == "container"]["earned_credits"] == 0).all()
         assert len(progress) == len(repo.blocks(student["curriculum_code"])), "thiếu khối chưa học môn nào"
+
+
+def _same(a, b):
+    """So hai giá trị của một ô, coi NaN bằng NaN."""
+    if isinstance(a, float) and isinstance(b, float) and pd.isna(a) and pd.isna(b):
+        return True
+    return a == b
+
+
+def test_student_matches_its_row_in_students_for_every_student(repo_all):
+    """`student()` lọc kết quả theo học kỳ bằng SQL riêng, vì view `v_student_progress` không nhận tham số.
+    Ở học kỳ cần gợi ý, hai đường phải cho cùng giá trị ở MỌI cột — đây là chốt chặn hai bản công thức
+    tín chỉ và GPA lệch nhau."""
+    students = repo_all.students()
+    assert not students.empty
+    for _, expected in students.iterrows():
+        actual = repo_all.student(expected["university_code"], expected["student_code"])
+        assert list(actual.index) == list(expected.index)
+        diff = [col for col in expected.index if not _same(actual[col], expected[col])]
+        assert not diff, f"{expected['university_code']}/{expected['student_code']}: lệch ở {diff}"
+
+
+def test_student_sees_only_results_from_terms_before_the_requested_one(repo_all):
+    """Hợp đồng mục 3.1: T04 trượt MAT2505 ở kỳ 20242, học lại đạt ở kỳ 20251. Nhìn từ đầu kỳ 20251 thì
+    môn đó vẫn đang nợ, và T04 mới học năm thứ hai."""
+    before = repo_all.student("HUS", "T04", "20251")
+    assert "MAT2505" in before["outstanding_courses"] and "MAT2505" not in before["passed_courses"]
+    assert before["latest_attempts"]["MAT2505"] == {"term_code": "20242", "attempt_no": 1, "score": 3.5,
+                                                     "letter_grade": "F", "status": "failed"}
+    assert before["year_of_study"] == 2
+    now = repo_all.student("HUS", "T04")
+    assert "MAT2505" in now["passed_courses"] and "MAT2505" not in now["outstanding_courses"]
+    assert now["latest_attempts"]["MAT2505"]["term_code"] == "20251"
+    assert now["year_of_study"] == 3
+    assert before["credits_earned"] < now["credits_earned"]
+
+
+def test_block_progress_uses_the_same_term_as_student(repo_all):
+    for term in ("20251", None):
+        student = repo_all.student("HUS", "T04", term)
+        progress = repo_all.block_progress(student["student_id"], term)
+        assert progress[progress["counts_toward_total"] == 1]["earned_credits"].sum() == student["credits_earned"]
+
+
+def test_student_is_none_when_unknown_and_rejects_a_term_outside_the_calendar(repo_all):
+    assert repo_all.student("HUS", "KHONG-CO") is None
+    assert repo_all.student("DEMO", "26000001") is None, "mã sinh viên chỉ duy nhất trong một trường"
+    with pytest.raises(KeyError):
+        repo_all.student("HUS", "T04", "19991")
+
+
+def test_student_programs_tell_a_missing_student_from_a_known_one(repo_all):
+    assert repo_all.student_programs("HUS", "KHONG-CO").empty
+    programs = repo_all.student_programs("HUS", "T04")
+    assert len(programs) == 1 and bool(programs.iloc[0]["is_primary"]) and programs.iloc[0]["status"] == "active"
+
+
+def test_term_looks_up_the_calendar_of_that_university_only(repo_all):
+    assert repo_all.term("HUS", "20251")["term_no"] == 1
+    with pytest.raises(KeyError):
+        repo_all.term("KHONG-CO-TRUONG-NAY", "20251")
+
+
+@pytest.mark.parametrize("curriculum", CURRICULA)
+def test_prerequisite_graph_rebuilds_the_groups_of_curriculum_courses(repo_all, curriculum):
+    """Hợp đồng mục 6.9: gom cạnh theo môn rồi theo `group_no` phải ra đúng `prerequisite_groups` của
+    mục 6.3, mọi đầu mút đều là một nút, và thứ tự tất định theo mục 3.3."""
+    nodes, edges = repo_all.prerequisite_graph(curriculum)
+    courses = repo_all.curriculum_courses(curriculum)
+    assert list(nodes["course_code"]) == list(courses["course_code"]), "nút phải theo sort_no như học phần của khung"
+    assert set(edges["course_code"]) | set(edges["required_course_code"]) <= set(nodes["course_code"])
+    order = ["course_code", "group_no", "required_course_code"]
+    assert edges[order].values.tolist() == edges.sort_values(order)[order].values.tolist()
+    rebuilt = {code: [list(g["required_course_code"]) for _, g in rows.groupby("group_no")]
+               for code, rows in edges.groupby("course_code")}
+    for row in courses.itertuples():
+        assert rebuilt.get(row.course_code, []) == row.prerequisite_groups, row.course_code
+
+
+def test_prerequisite_graph_keeps_an_or_group_on_one_group_number(repo_all):
+    """DEMO: CS202 cần CS101 HOẶC MAT2505 — hai cạnh, cùng một `group_no`."""
+    _, edges = repo_all.prerequisite_graph("DEMO-7480201-2024")
+    cs202 = edges[edges["course_code"] == "CS202"]
+    assert sorted(cs202["required_course_code"]) == ["CS101", "MAT2505"]
+    assert cs202["group_no"].nunique() == 1
+
+
+@pytest.mark.parametrize("curriculum", CURRICULA)
+def test_curriculum_course_lists_are_deterministic(repo_all, curriculum):
+    """Hợp đồng mục 1, nguyên tắc 7: thứ tự không được phụ thuộc thứ tự dòng của database."""
+    for row in repo_all.curriculum_courses(curriculum).itertuples():
+        assert row.skills == sorted(row.skills), row.course_code
+        assert row.topics[1:] == sorted(row.topics[1:]), row.course_code
+        if isinstance(row.primary_topic, str):
+            assert row.topics[0] == row.primary_topic, row.course_code
+        for group in row.prerequisite_groups:
+            assert group == sorted(group), row.course_code
