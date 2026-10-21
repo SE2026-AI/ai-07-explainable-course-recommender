@@ -272,6 +272,7 @@ def test_the_recommendation_example_of_the_contract_is_what_t03_really_gets(repo
     example = _contract_response_example("6.6", "Phản hồi, rút gọn còn hai học phần:")
     result = rec.recommend(repo_all, repo_all.student("HUS", "T03"), k=2)
     assert result["items"] == example["items"]
+    assert all(row in result["not_eligible"] for row in example["not_eligible"]), "ví dụ rút gọn, nhưng phải có thật"
     assert result["candidate_count"] == example["candidate_count"]
     assert result["weights"] == example["weights"]
     assert result["what_if"] == example["what_if"]

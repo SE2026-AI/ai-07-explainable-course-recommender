@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Phiên bản hợp đồng | 1.0.0 |
-| Cập nhật | 2026-10-20 |
+| Cập nhật | 2026-10-21 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -97,6 +97,7 @@ v1 chưa mô hình hóa việc học phần nào được mở ở học kỳ n�
 | Học phần của khung | `sort_no` tăng dần |
 | Khối kiến thức | `sort_order` tăng dần |
 | Trạng thái học phần | `course_code` tăng dần |
+| Học phần không gợi ý được (`not_eligible`) | `course_code` tăng dần, như trạng thái học phần |
 | Gợi ý (`items`) | `score` giảm dần, rồi `recommended_semester` tăng, rồi `course_code` tăng |
 | Lý do (`reasons`) | `contribution` giảm dần, rồi `code` tăng |
 | Học kỳ | `code` tăng dần |
@@ -523,7 +524,8 @@ Phản hồi, rút gọn còn hai học phần:
   "not_eligible": [
     {
       "course_code": "MAT3533", "course_name": "Học máy", "credits": 3,
-      "status": "missing_prerequisite", "missing_prerequisites": [["MAT2323"]],
+      "block_code": "V.1", "status": "missing_prerequisite",
+      "missing_prerequisites": [["MAT2323"]],
       "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."
     }
   ]
@@ -540,7 +542,9 @@ Quy định của endpoint này:
 4. `candidate_count` là tổng số học phần có thể gợi ý (`retake` + `eligible`), kể cả phần vượt `limit`.
 5. `weights` trong phản hồi là bảng trọng số đã dùng, sau khi ghép giá trị client gửi với giá trị mặc định.
 6. `what_if` là `true` khi request có `assumptions` khác rỗng.
-7. `not_eligible` liệt kê mọi học phần còn lại của khung kèm lý do, cùng cấu trúc với `courses` ở mục 6.5.
+7. `not_eligible` liệt kê mọi học phần còn lại của khung — mọi học phần có `status` là `passed`,
+   `block_complete` hoặc `missing_prerequisite` — kèm lý do, cùng cấu trúc với `courses` ở mục 6.5. Vì vậy
+   `candidate_count` cộng số phần tử của `not_eligible` bằng số học phần của khung.
 8. Trạng thái của một học phần trong `not_eligible` PHẢI trùng trạng thái mà `GET .../course-status` trả về
    với cùng `term` và cùng `assumptions`.
 
