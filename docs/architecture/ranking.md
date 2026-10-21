@@ -193,9 +193,15 @@ một tổ hợp điểm thấp hơn tổ hợp tốt nhất, nhưng không bao 
 | `weights` | Bảng trọng số đã ghép với mặc định (mục 2) |
 | `candidate_count` | Mọi học phần `retake` + `eligible`, đếm **trước** luật khối tự chọn và trước khi cắt `k` |
 | `items` | Các phần tử đã chọn, sắp theo mục 5 |
+| `not_eligible` | Mọi học phần còn lại của khung (`passed`, `block_complete`, `missing_prerequisite`), cùng dạng một dòng `course-status`, sắp theo `course_code` |
 
-`not_eligible` chưa có ở đây vì nó cần chi tiết của từng trạng thái — nhóm tiên quyết còn thiếu, khối đã
-đủ — mà tầng luật chưa công bố (#16). Khi có, nó được dựng từ đúng các trạng thái mà `recommend()` đã dùng.
+`not_eligible` dựng từ đúng kết quả `rules.course_status_details()` mà `recommend()` dùng để chọn ứng viên,
+cộng câu `text` của `src/explain/`. Tầng xếp hạng không tự tính lại trạng thái hay chi tiết nào, nên
+`candidate_count` cộng số phần tử của `not_eligible` luôn bằng số học phần của khung.
+
+Giới hạn hiện tại: tầng luật đọc `last_attempt` từ database chứ chưa từ dòng sinh viên. Với giả định what-if
+`passed`, dòng `not_eligible` của môn đó vẫn mang lần học thật, chưa mang lần học giả định.
+`test_an_assumed_pass_shows_the_assumed_attempt_in_not_eligible` đánh dấu `xfail` cho tới khi tầng luật sửa.
 
 Dòng sinh viên phải được đọc ở cùng học kỳ với `term_code`, tức `repo.student(uni, code, term_code)`. Lần
 học gần nhất của mỗi môn lấy từ cột `latest_attempts` của chính dòng đó, nên lý do `outstanding_retake`, các
@@ -256,4 +262,4 @@ trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, ph
 | Phiên bản | Thay đổi |
 | --- | --- |
 | 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
-| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3 |
+| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3; phản hồi có `not_eligible` kèm `text` cho mọi học phần không gợi ý được |

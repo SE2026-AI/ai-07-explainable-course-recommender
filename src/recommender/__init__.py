@@ -8,8 +8,11 @@ Hàm công bố cho tầng API (mục 6.6) và cho `test/test_recommender_contra
 `src/rules/status.py` quyết định; tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức
 của sáu tiêu chí: `docs/architecture/ranking.md`.
 """
+from copy import deepcopy
+
 import pandas as pd
 
+from src.explain import status_text
 from src.recommender.scoring import (
     DEFAULT_WEIGHTS,
     interest,
@@ -24,7 +27,7 @@ from src.recommender.scoring import (
 )
 from src.recommender.selection import pick_items
 from src.recommender.whatif import apply_assumptions
-from src.rules.status import course_status, elective_credits_passed
+from src.rules.status import course_status_details, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
 ALGORITHM = "rule_based_weighted"
@@ -102,6 +105,27 @@ def _elective_progress(courses, student):
     return elective_credits_passed(courses, passed), open_courses
 
 
+def _not_eligible(courses, details):
+    """Mọi học phần không gợi ý được, mỗi dòng cùng dạng một dòng `courses` của mục 6.5: thông tin môn,
+    `status` kèm chi tiết của tầng luật, rồi câu `text` của tầng giải thích. Sắp theo `course_code` (mục 3.3).
+
+    Chép sâu chi tiết của tầng luật: các môn cùng khối dùng chung một dict `block`, nên sửa một dòng của
+    phản hồi không được làm đổi dòng khác."""
+    names = dict(zip(courses["course_code"], courses["course_name"], strict=True))
+    rows = []
+    for course in courses.sort_values("course_code").to_dict("records"):
+        detail = details[course["course_code"]]
+        if detail["status"] in RECOMMENDABLE_STATUSES:
+            continue
+        rows.append({"course_code": str(course["course_code"]),
+                     "course_name": str(course["course_name"]),
+                     "credits": int(course["credits"]),
+                     "block_code": str(course["block_code"]),
+                     **deepcopy(detail),
+                     "text": status_text(course, detail, names)})
+    return rows
+
+
 def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None):
     """Học phần nên học ở học kỳ `term_code`, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
 
@@ -114,8 +138,8 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
 
     Trả về dict theo đúng thứ tự khóa của mục 6.6: `what_if`, `weights` (bảng đã ghép), `candidate_count`
     (mọi học phần `retake` + `eligible`, kể cả phần vượt `k`), `items` (đã sắp theo mục 3.3, mỗi phần tử có
-    `rank`, `course_code`, `course_name`, `credits`, `block_code`, `status`, `score`, `reasons`).
-    `not_eligible` chưa có ở đây: nó cần `rules.course_status_details()` (#16).
+    `rank`, `course_code`, `course_name`, `credits`, `block_code`, `status`, `score`, `reasons`),
+    `not_eligible` (mọi học phần còn lại của khung: `passed`, `block_complete`, `missing_prerequisite`).
     """
     weights = merge_weights(weights)
     curriculum_code = student["curriculum_code"]
@@ -125,7 +149,8 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     if assumptions:
         student = apply_assumptions(student, assumptions, set(courses["course_code"]), grading["max_score"],
                                     _attempt_term(repo, student["university_code"], term["term_code"]))
-    statuses = course_status(repo, student)
+    details = course_status_details(repo, student)
+    statuses = {code: detail["status"] for code, detail in details.items()}
     semester_no = target_semester(student["year_of_study"], term["term_no"])
     prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
     attempts = student["latest_attempts"]
@@ -165,4 +190,5 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     return {"what_if": bool(assumptions),
             "weights": weights,
             "candidate_count": sum(state in RECOMMENDABLE_STATUSES for state in statuses.values()),
-            "items": pick_items(ranked, k, required, taken, open_courses)}
+            "items": pick_items(ranked, k, required, taken, open_courses),
+            "not_eligible": _not_eligible(courses, details)}

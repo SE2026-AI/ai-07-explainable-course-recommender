@@ -155,12 +155,45 @@ def test_every_item_score_is_the_sum_of_its_reasons_and_every_reason_has_a_weigh
 
 def test_the_response_echoes_the_merged_weights_and_counts_every_candidate(repo_all):
     result = rec.recommend(repo_all, _t03(repo_all), k=3, weights={"interest": 0})
-    assert list(result) == ["what_if", "weights", "candidate_count", "items"], "thứ tự khóa theo mục 6.6"
+    assert list(result) == ["what_if", "weights", "candidate_count", "items", "not_eligible"], "thứ tự khóa theo mục 6.6"
     assert result["what_if"] is False
     assert result["weights"] == {**rec.DEFAULT_WEIGHTS, "interest": 0.0}
     expected = sum(st in ("eligible", "retake") for (u, c, _), st in STATUS.items() if (u, c) == ("HUS", "T03"))
     assert result["candidate_count"] == expected, "đếm cả phần vượt k (mục 6.6, quy định 4)"
     assert len(result["items"]) == 3 < result["candidate_count"]
+
+
+# Trường chi tiết đi kèm từng trạng thái trong một dòng `course-status` (mục 6.5).
+DETAIL_FIELDS = {"passed": "last_attempt", "block_complete": "block", "missing_prerequisite": "missing_prerequisites"}
+
+
+@pytest.mark.parametrize("uni,code", CASES)
+def test_not_eligible_holds_every_other_course_with_the_answer_key_status(repo_all, uni, code):
+    """Quy định 7 và 8 của mục 6.6: `not_eligible` là đúng phần còn lại của khung — mọi môn không phải
+    `retake` hay `eligible` — mang trạng thái của đáp án viết tay, mỗi dòng cùng dạng một dòng `course-status`."""
+    result = rec.recommend(repo_all, repo_all.student(uni, code), k=20)
+    expected = {course: status for (u, c, course), status in STATUS.items() if (u, c) == (uni, code)}
+    rows = result["not_eligible"]
+    assert {row["course_code"]: row["status"] for row in rows} == \
+        {course: status for course, status in expected.items() if status not in ("retake", "eligible")}
+    assert result["candidate_count"] + len(rows) == len(expected), "hai phần cộng lại là cả khung"
+    assert [row["course_code"] for row in rows] == sorted(row["course_code"] for row in rows), "mục 3.3"
+    for row in rows:
+        assert list(row) == ["course_code", "course_name", "credits", "block_code", "status",
+                             DETAIL_FIELDS[row["status"]], "text"], row
+        assert row["course_name"] in row["text"], row
+
+
+@pytest.mark.xfail(strict=True, reason="rules.course_status_details() đọc last_attempt từ database thay vì từ dòng "
+                                       "sinh viên nên chưa thấy giả định what-if; chờ tầng luật sửa (#16)")
+def test_an_assumed_pass_shows_the_assumed_attempt_in_not_eligible(repo_all):
+    """Tiêu chí "Trung thực" của README: giả định đạt MAT2505 với 8,0 thì dòng của môn đó phải nói 8,0, không
+    phải điểm 3,0 của lần trượt thật. Khi tầng luật sửa, test này qua và `strict` buộc xóa dấu `xfail`."""
+    result = rec.recommend(repo_all, _t03(repo_all), assumptions=[{"course_code": "MAT2505", "status": "passed",
+                                                                   "score": 8.0}])
+    row = next(row for row in result["not_eligible"] if row["course_code"] == "MAT2505")
+    assert row["last_attempt"] == {"term_code": "20252", "attempt_no": 2, "score": 8.0, "letter_grade": None}
+    assert row["text"] == "Đã đạt Lập trình cơ bản (điểm 8,0)."
 
 
 def test_two_identical_calls_give_byte_identical_results(repo_all):
