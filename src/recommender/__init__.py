@@ -23,7 +23,7 @@ from src.recommender.scoring import (
     unlocks,
 )
 from src.recommender.selection import pick_items
-from src.rules.status import course_status
+from src.rules.status import course_status, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
 ALGORITHM = "rule_based_weighted"
@@ -96,19 +96,14 @@ def _declared_topics(repo, student):
 def _elective_progress(courses, student):
     """Tín chỉ đã đạt và các môn chưa đạt của từng khối tự chọn: `(taken, open_courses)` cho `pick_items`.
 
-    Tín chỉ đã đạt tính cùng cách với `src/rules/status.py` (môn được miễn tính là đạt). Hai bản tính này
-    gộp làm một khi tầng luật công bố `elective_credits_passed()` (#16)."""
+    Tín chỉ đã đạt lấy từ `rules.elective_credits_passed()`, chính phép tính quyết định trạng thái
+    `block_complete`, nên khối mà tầng luật coi là đủ thì ở đây cũng đủ."""
     passed = set(student["passed_courses"])
-    taken, open_courses = {}, {}
+    open_courses = {}
     for course in courses.itertuples():
-        block = course.elective_block
-        if not isinstance(block, str):
-            continue
-        if course.course_code in passed:
-            taken[block] = taken.get(block, 0) + int(course.credits)
-        else:
-            open_courses.setdefault(block, {})[course.course_code] = int(course.credits)
-    return taken, open_courses
+        if isinstance(course.elective_block, str) and course.course_code not in passed:
+            open_courses.setdefault(course.elective_block, {})[course.course_code] = int(course.credits)
+    return elective_credits_passed(courses, passed), open_courses
 
 
 def recommend(repo, student, k=5, weights=None, status=None):

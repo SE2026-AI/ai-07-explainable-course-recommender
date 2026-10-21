@@ -156,6 +156,11 @@ sau cùng đúng, tính cả tín chỉ đã đạt và tín chỉ của những
 2. phần còn thiếu vẫn ghép được **đúng** bằng các môn chưa đạt, chưa được chọn của khối — kể cả môn chưa
    đủ tiên quyết, vì khối có thể hoàn thành bằng chúng ở các kỳ sau.
 
+Tín chỉ đã đạt của mỗi khối lấy từ `rules.elective_credits_passed()`, chính phép tính quyết định trạng
+thái `block_complete`. Điều 1 là `rules.fits_in_block()`, luật "vượt khối" mà tầng luật công bố cho các tầng
+khác. Nhờ vậy `recommend()` không thể hiểu "đủ khối" hay "vượt khối" khác tầng luật. Điều 2 chỉ có ở tầng xếp hạng: một kế hoạch làm
+khối kẹt lại chưa vi phạm luật nào, nhưng gợi ý nó thì sinh viên không đi tiếp được.
+
 Lý do của điều 2: khối `choose_credits` phải chọn đúng `required_credits` chứ không phải tối thiểu (mục
 6.2 của hợp đồng). Khối `II` cần 5 tín chỉ gồm môn 2 và 3 tín chỉ. Nhận một môn 2 rồi thêm một môn 2 nữa
 thì chưa vượt, nhưng còn thiếu 1 mà không môn nào đủ nhỏ, nên khối không bao giờ hoàn thành đúng được. Bản

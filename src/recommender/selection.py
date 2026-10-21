@@ -5,6 +5,7 @@ cứng: không trọng số nào đưa được một môn làm hỏng khối v�
 
 Tầng này KHÔNG đọc cơ sở dữ liệu, nên `test/test_selection.py` chạy được mà không cần PostgreSQL.
 """
+from src.rules.status import fits_in_block
 
 
 def reachable_sums(credits: list[int]) -> set[int]:
@@ -22,9 +23,12 @@ def fits_elective_block(credits: int, taken: int, required: int, others: list[in
     `others` — tín chỉ của các môn khác trong khối chưa đạt và chưa được chọn. Điều kiện thứ hai là chỗ dễ
     bỏ sót: khối cần 5 tín chỉ gồm môn 2 và 3 tín chỉ, đã có 2 thì nhận môn 3 (đủ 5), nhưng không nhận thêm
     môn 2 (lên 4, còn thiếu 1 mà không môn nào đủ nhỏ, nên khối không bao giờ hoàn thành đúng được nữa).
+
+    Điều kiện thứ nhất là `rules.fits_in_block()`, để tầng xếp hạng và tầng luật không thể hiểu "vượt khối"
+    theo hai cách. Điều kiện thứ hai chỉ có ở đây: một kế hoạch làm khối kẹt lại chưa vi phạm luật nào, nhưng
+    gợi ý nó thì sinh viên không đi tiếp được.
     """
-    after = taken + credits
-    return after <= required and required - after in reachable_sums(others)
+    return fits_in_block(credits, taken, required) and required - (taken + credits) in reachable_sums(others)
 
 
 def pick_items(ranked: list[tuple[dict, str | None]], k: int, required: dict[str, int],

@@ -4,6 +4,7 @@ Không cần database. Các ca dựng theo hai khối thật của khung `HUS-74
 gồm môn 2 và 3 tín chỉ, khối `V.3` cần 7 tín chỉ gồm khóa luận 7 tín chỉ hoặc hai môn 4 + 3 tín chỉ.
 """
 from src.recommender.selection import fits_elective_block, pick_items, reachable_sums
+from src.rules.status import fits_in_block
 
 BLOCK_II = {"HUS1021": 3, "HUS1022": 2, "HUS1023": 2, "HUS1024": 3, "HIS1056": 3}
 BLOCK_V3 = {"MAT4080": 7, "MAT1203": 4, "MAT3377": 3}
@@ -36,6 +37,16 @@ def test_a_course_that_leaves_an_unfillable_gap_does_not_fit():
 def test_a_course_that_completes_the_block_exactly_fits():
     assert fits_elective_block(7, 0, 7, [3, 4])
     assert fits_elective_block(4, 3, 7, [7])
+
+
+def test_selection_never_accepts_a_course_the_rules_layer_says_overshoots():
+    """`recommend()` và `plan-check` không được nói ngược nhau: môn nào tầng xếp hạng nhận thì cũng qua được
+    `rules.fits_in_block()`, dù các môn còn lại của khối là gì."""
+    for required in range(1, 9):
+        for taken in range(required + 1):
+            for credits in range(1, 8):
+                if not fits_in_block(credits, taken, required):
+                    assert not fits_elective_block(credits, taken, required, [1, 2, 3, 4]), (credits, taken, required)
 
 
 def test_the_regression_case_two_two_three_now_picks_two_three():
