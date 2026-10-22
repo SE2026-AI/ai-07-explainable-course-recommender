@@ -1,0 +1,55 @@
+{
+  "university_code": "HUS",
+  "student_code": "T03",
+  "full_name": "Sinh viên test HUS T03",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "major_code": "7480113QTD",
+  "major_name": "Khoa học máy tính và thông tin",
+  "cohort_year": 2025,
+  "year_of_study": 2,
+  "term": "20261",
+  "target_semester": 3,
+  "credits_earned": 34,
+  "credits_outstanding": 3,
+  "total_credits": 129,
+  "gpa": 2.76,
+  "max_credits_per_term": 21,
+  "interests": [
+    "phan_mem"
+  ],
+  "outstanding_courses": [
+    "MAT2505"
+  ],
+  "blocks": [
+    {
+      "block_code": "I.1",
+      "required_credits": 16,
+      "earned_credits": 8,
+      "counts_toward_total": true
+    },
+    {
+      "block_code": "I.2",
+      "required_credits": 5,
+      "earned_credits": 5,
+      "counts_toward_total": true
+    },
+    {
+      "block_code": "II",
+      "required_credits": 5,
+      "earned_credits": 2,
+      "counts_toward_total": true
+    },
+    {
+      "block_code": "IV",
+      "required_credits": 28,
+      "earned_credits": 13,
+      "counts_toward_total": true
+    },
+    {
+      "block_code": "V.1",
+      "required_credits": 49,
+      "earned_credits": 6,
+      "counts_toward_total": true
+    }
+  ]
+}
