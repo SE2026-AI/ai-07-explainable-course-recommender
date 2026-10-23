@@ -107,14 +107,18 @@ def violation_text(violation: Mapping, course: Mapping | None, names: Mapping[st
     """Câu `text` cho một vi phạm của `plan-check` (mục 6.7; mã vi phạm ở mục 4.5).
 
     `violation` có `code`, `course_code` và `data`. `course` là dòng của học phần đó trong khung, hoặc
-    `None` khi vi phạm không gắn với một môn cụ thể hay mã không thuộc khung. Trường cần có trong `data`:
+    `None` khi vi phạm không gắn với một môn cụ thể hay mã không thuộc khung. Trường cần có trong `data`, đúng
+    tên trường mà `check_plan()` của tầng luật trả về:
 
     | `code` | `data` |
     | --- | --- |
     | `credit_limit_exceeded` | `total_credits`, `max_credits_per_term` |
     | `missing_prerequisite` | `missing_prerequisites` |
-    | `block_limit_exceeded` | `block_name`, `required_credits`, `planned_credits` |
-    | `duplicate_course` | `count` |
+    | `block_limit_exceeded` | `block_code`, `required_credits`, `total_credits`; `block_name` nếu có |
+    | `duplicate_course` | `occurrence`: lần xuất hiện thứ mấy, mỗi lần lặp là một vi phạm |
+
+    `total_credits` của `block_limit_exceeded` là tín chỉ của khối sau khi thêm môn này: đã đạt cộng môn của
+    khối đứng trước trong kế hoạch cộng chính nó. Tầng luật chưa gửi `block_name` thì câu gọi khối bằng mã.
     """
     code, data = violation["code"], violation.get("data", {})
     name = course["course_name"] if course else violation.get("course_code")
@@ -128,11 +132,11 @@ def violation_text(violation: Mapping, course: Mapping | None, names: Mapping[st
     if code == "already_passed":
         return f"Bạn đã đạt {name}: bỏ khỏi kế hoạch."
     if code == "block_limit_exceeded":
-        block = _block_phrase(data["block_name"])
-        return (f"{block[0].upper() + block[1:]} chỉ cần {data['required_credits']} tín chỉ, kế hoạch đưa tổng lên "
-                f"{data['planned_credits']}: bỏ bớt môn của khối này.")
+        block = _block_phrase(data.get("block_name") or data["block_code"])
+        return (f"{block[0].upper() + block[1:]} chỉ cần {data['required_credits']} tín chỉ, thêm {name} đưa tổng "
+                f"của khối lên {data['total_credits']}: bỏ bớt môn của khối này.")
     if code == "duplicate_course":
-        return f"{name} xuất hiện {data['count']} lần trong kế hoạch: chỉ giữ một."
+        return f"{name} xuất hiện lần thứ {data['occurrence']} trong kế hoạch: bỏ lần lặp này."
     if code == "not_in_curriculum":
         return f"Học phần {violation['course_code']} không thuộc chương trình đào tạo của bạn: bỏ khỏi kế hoạch."
     raise ValueError(f"Mã vi phạm không có trong hợp đồng (mục 4.5): {code!r}")

@@ -112,16 +112,17 @@ SAMPLE_DETAILS = {
     "retake": {"status": "retake", "last_attempt": {"term_code": "20252", "attempt_no": 1, "score": None}},
     "eligible": {"status": "eligible"},
 }
+# `data` đúng dạng `check_plan()` của tầng luật trả về (`src/rules/plan.py`).
 SAMPLE_VIOLATIONS = {
-    "credit_limit_exceeded": {"code": "credit_limit_exceeded", "course_code": None,
-                              "data": {"total_credits": 24, "max_credits_per_term": 21}},
+    "credit_limit_exceeded": {"code": "credit_limit_exceeded", "course_code": "HIS1056",
+                              "data": {"max_credits_per_term": 40, "total_credits": 43}},
     "missing_prerequisite": {"code": "missing_prerequisite", "course_code": "MAT3533",
                              "data": {"missing_prerequisites": [["MAT2323"]]}},
     "already_passed": {"code": "already_passed", "course_code": "MAT2502", "data": {}},
     "block_limit_exceeded": {"code": "block_limit_exceeded", "course_code": "HIS1056",
-                             "data": {"block_name": "Khối kiến thức theo lĩnh vực", "required_credits": 5,
-                                      "planned_credits": 7}},
-    "duplicate_course": {"code": "duplicate_course", "course_code": "MAT2502", "data": {"count": 2}},
+                             "data": {"block_code": "II", "required_credits": 5, "earned_credits": 2,
+                                      "planned_credits": 2, "course_credits": 3, "total_credits": 7}},
+    "duplicate_course": {"code": "duplicate_course", "course_code": "MAT2502", "data": {"occurrence": 2}},
     "not_in_curriculum": {"code": "not_in_curriculum", "course_code": "XYZ999", "data": {}},
 }
 
@@ -146,6 +147,19 @@ def test_every_violation_has_a_clean_sentence_that_says_what_to_do():
         text = violation_text(violation, course, NAMES)
         assert _looks_clean(text) and ": " in text, (code, text)
     assert "bỏ bớt ít nhất 3 tín chỉ" in violation_text(SAMPLE_VIOLATIONS["credit_limit_exceeded"], None, NAMES)
+
+
+def test_block_and_duplicate_violations_read_the_fields_the_rules_layer_sends():
+    block = SAMPLE_VIOLATIONS["block_limit_exceeded"]
+    assert violation_text(block, _course("Lịch sử văn minh thế giới"), NAMES) == (
+        "Khối II chỉ cần 5 tín chỉ, thêm Lịch sử văn minh thế giới đưa tổng của khối lên 7: "
+        "bỏ bớt môn của khối này.")
+    named = {**block, "data": {**block["data"], "block_name": "Khối kiến thức theo lĩnh vực"}}
+    assert violation_text(named, _course("Lịch sử văn minh thế giới"), NAMES).startswith(
+        "Khối kiến thức theo lĩnh vực chỉ cần 5 tín chỉ")
+    third = {"code": "duplicate_course", "course_code": "MAT2502", "data": {"occurrence": 3}}
+    assert violation_text(third, _course("Giải tích 2"), NAMES) == \
+        "Giải tích 2 xuất hiện lần thứ 3 trong kế hoạch: bỏ lần lặp này."
 
 
 def test_unknown_codes_are_rejected():
