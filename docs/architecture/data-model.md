@@ -177,6 +177,11 @@ lại nhiều lần, để câu truy vấn trong `Repository` ngắn và đọc 
 | `v_course_results` | Kết quả học tập kèm mã học kỳ; `recency = 1` là lần học gần nhất |
 | `v_student_progress` | Tín chỉ tích lũy, tín chỉ đang nợ, điểm trung bình thang 4 |
 
+View không nhận tham số, nên `v_course_results` và `v_student_progress` luôn tính trên **mọi** học kỳ.
+`Repository.student()` cần tính trên các học kỳ trước một học kỳ cho trước (mục 3.1 của hợp đồng API), nên
+chép công thức của `v_student_progress` vào một câu truy vấn có tham số. `test_repository.py` kiểm hai bản
+cho cùng kết quả ở học kỳ cần gợi ý; sửa công thức ở view thì sửa cả bản trong `repository.py`.
+
 ## 7. Đọc dữ liệu qua `Repository`
 
 Tầng nghiệp vụ và tầng API **chỉ** gọi các hàm dưới đây; không có câu SQL nào nằm ngoài `src/data/`.
@@ -187,14 +192,18 @@ Mọi hàm trả về `pandas.DataFrame`, trừ nơi ghi khác.
 | `setting(key)` | Một giá trị cấu hình (chuỗi) |
 | `universities()` | Danh sách trường |
 | `terms(university_code)` | Lịch học kỳ của một trường, cũ đến mới |
+| `term(university_code, term_code)` | Một học kỳ trong lịch của trường đó (một dòng); `KeyError` khi không có |
 | `target_term(university_code)` | Học kỳ đang gợi ý, trong lịch của chính trường đó (một dòng) |
 | `curricula()` | Mọi khung kèm thang điểm và giới hạn tín chỉ mỗi kỳ |
 | `curriculum(code)` | Một khung (một dòng) |
 | `curriculum_courses(code)` | Học phần của khung; cột `prerequisite_groups` là `list[list[str]]` |
+| `prerequisite_graph(code)` | `(nodes, edges)` của sơ đồ tiên quyết; gom `edges` theo nhóm ra đúng `prerequisite_groups` |
 | `blocks(code)` | Mọi khối của khung, kèm `parent_block_code` |
 | `elective_blocks(code)` | Chỉ các khối tự chọn (`choose_credits`) |
-| `students(only_primary=True)` | Sinh viên kèm tiến độ, môn đã đạt, môn đang nợ, sở thích |
-| `block_progress(student_id)` | Tín chỉ cần và đã đạt theo từng khối |
+| `students(only_primary=True)` | Sinh viên kèm tiến độ, môn đã đạt, môn đang nợ, lần học gần nhất, sở thích |
+| `student(university_code, student_code, term_code=None)` | Một dòng như `students()`, chỉ tính các học kỳ trước `term_code`; `None` khi không có CTĐT chính |
+| `student_programs(university_code, student_code)` | Mọi CTĐT của một sinh viên; rỗng khi không có sinh viên này |
+| `block_progress(student_id, term_code=None)` | Tín chỉ cần và đã đạt theo từng khối, cùng mốc học kỳ với `student()` |
 | `course_results(student_id=None)` | Kết quả học tập từng lần học |
 | `registrations(term_code=None)` | Đăng ký học phần |
 | `data_issues()` | Các chỗ văn bản gốc mâu thuẫn, kèm văn bản nguồn |

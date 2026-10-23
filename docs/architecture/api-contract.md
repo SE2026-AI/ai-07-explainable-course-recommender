@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Phiên bản hợp đồng | 1.0.0 |
-| Cập nhật | 2026-10-20 |
+| Cập nhật | 2026-10-24 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -97,6 +97,7 @@ v1 chưa mô hình hóa việc học phần nào được mở ở học kỳ n�
 | Học phần của khung | `sort_no` tăng dần |
 | Khối kiến thức | `sort_order` tăng dần |
 | Trạng thái học phần | `course_code` tăng dần |
+| Học phần không gợi ý được (`not_eligible`) | `course_code` tăng dần, như trạng thái học phần |
 | Gợi ý (`items`) | `score` giảm dần, rồi `recommended_semester` tăng, rồi `course_code` tăng |
 | Lý do (`reasons`) | `contribution` giảm dần, rồi `code` tăng |
 | Học kỳ | `code` tăng dần |
@@ -256,7 +257,7 @@ client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức
   "api_version": "1.0.0",
   "schema_version": "3.0.0",
   "algorithm": "rule_based_weighted",
-  "algorithm_version": "1.0.0",
+  "algorithm_version": "1.0.1",
   "default_term": "20261",
   "curriculum_codes": ["HUS-7460108-2022", "HUS-7480113QTD-2022"]
 }
@@ -443,7 +444,8 @@ Môn được miễn có `status = "passed"`, `last_attempt.score = null` và `l
 ### 6.6 `GET` và `POST /v1/universities/{uni}/students/{student_code}/recommendations`
 
 Hai phương thức trả về cùng một cấu trúc. `GET` dùng trọng số mặc định và không nhận giả định; `POST`
-nhận trọng số tùy chọn và giả định what-if.
+nhận trọng số tùy chọn và ba loại what-if: giả định kết quả một môn (`assumptions`), chưa muốn học một môn ở
+học kỳ này (`skip`), đổi một môn lấy môn khác (`swap`).
 
 Tham số `GET`: `term`, `limit`.
 
@@ -455,7 +457,9 @@ Body `POST`:
   "limit": 5,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
-  "assumptions": [{"course_code": "MAT2505", "status": "passed", "score": 6.0}]
+  "assumptions": [{"course_code": "MAT2505", "status": "passed", "score": 6.0}],
+  "skip": ["MAT2503"],
+  "swap": [{"course_code": "HIS1056", "replacement": "HUS1024"}]
 }
 ```
 
@@ -464,10 +468,15 @@ Body `POST`:
 | `limit` | Mặc định 5, tối đa 20. Ngoài khoảng → `validation_error` |
 | `weights` | Gửi một phần được, khóa thiếu lấy mặc định. Giá trị `>= 0`. Khóa lạ → `validation_error` |
 | `assumptions` | `status` nhận `passed` hoặc `failed`; `score` trong `[0, max_score]` của khung; `course_code` phải thuộc khung |
+| `skip` | Mã các học phần sinh viên chưa muốn học ở `term`. Mỗi mã có `status` là `retake` hoặc `eligible` |
+| `swap` | Các cặp `{"course_code", "replacement"}`: bỏ `course_code` như `skip` và đưa `replacement` vào `items`. Cả hai mã có `status` là `retake` hoặc `eligible`; số cặp không vượt `limit` |
 
 Bảng trọng số mặc định chính là bảng trong ví dụ trên.
 
-Giả định trong `assumptions` được áp lên bản sao dữ liệu trong bộ nhớ và KHÔNG ĐƯỢC ghi vào cơ sở dữ liệu.
+`status` của `skip` và `swap` được xét sau khi áp `assumptions`. Mỗi mã xuất hiện nhiều nhất một lần trong
+`skip` và `swap` cộng lại. Mã không thuộc khung, sai `status`, lặp lại hay khóa lạ → `validation_error`.
+
+`assumptions`, `skip` và `swap` được áp lên bản sao dữ liệu trong bộ nhớ và KHÔNG ĐƯỢC ghi vào cơ sở dữ liệu.
 
 Phản hồi, rút gọn còn hai học phần:
 
@@ -477,7 +486,7 @@ Phản hồi, rút gọn còn hai học phần:
   "student_code": "T03",
   "curriculum_code": "HUS-7480113QTD-2022",
   "term": "20261",
-  "algorithm_version": "1.0.0",
+  "algorithm_version": "1.0.1",
   "what_if": false,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
@@ -485,7 +494,7 @@ Phản hồi, rút gọn còn hai học phần:
   "items": [
     {
       "rank": 1, "course_code": "MAT2505", "course_name": "Lập trình cơ bản", "credits": 3,
-      "block_code": "III", "status": "retake", "score": 5.5,
+      "block_code": "III", "status": "retake", "score": 5.7083,
       "reasons": [
         {"code": "outstanding_retake", "contribution": 3.0,
          "text": "Bạn chưa đạt môn này ở học kỳ 20252 (điểm 3,0).",
@@ -496,26 +505,35 @@ Phản hồi, rút gọn còn hai học phần:
                   "MAT3514", "MAT3519", "MAT3539", "MAT3550E", "MAT3554E", "MAT3558", "MAT3560"]}},
         {"code": "overdue", "contribution": 1.0,
          "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
-         "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1}}
+         "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1}},
+        {"code": "strong_topic", "contribution": 0.2083,
+         "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
+         "data": {"topic_code": "lap_trinh", "topic_name": "Lập trình", "average_score": 5.25,
+                  "course_codes": ["HUS1011", "MAT2505"]}}
       ]
     },
     {
       "rank": 2, "course_code": "MAT2323", "course_name": "Xác suất - Thống kê", "credits": 4,
-      "block_code": "IV", "status": "eligible", "score": 2.75,
+      "block_code": "IV", "status": "eligible", "score": 3.3333,
       "reasons": [
         {"code": "on_time", "contribution": 2.0,
          "text": "Đúng kỳ dự kiến của chương trình (kỳ 3).",
          "data": {"recommended_semester": 3, "target_semester": 3}},
         {"code": "unlocks", "contribution": 0.75,
          "text": "Đạt môn này sẽ mở khóa 5 học phần khác của chương trình.",
-         "data": {"count": 5, "course_codes": ["MAT3452", "MAT3453", "MAT3533", "MAT3534", "MAT3535"]}}
+         "data": {"count": 5, "course_codes": ["MAT3452", "MAT3453", "MAT3533", "MAT3534", "MAT3535"]}},
+        {"code": "strong_topic", "contribution": 0.5833,
+         "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
+         "data": {"topic_code": "toan", "topic_name": "Toán", "average_score": 7.5,
+                  "course_codes": ["MAT2400", "MAT2501", "MAT2502", "MAT3500"]}}
       ]
     }
   ],
   "not_eligible": [
     {
       "course_code": "MAT3533", "course_name": "Học máy", "credits": 3,
-      "status": "missing_prerequisite", "missing_prerequisites": [["MAT2323"]],
+      "block_code": "V.1", "status": "missing_prerequisite",
+      "missing_prerequisites": [["MAT2323"]],
       "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."
     }
   ]
@@ -531,10 +549,17 @@ Quy định của endpoint này:
 3. `rank` bắt đầu từ 1, liên tục, theo thứ tự ở mục 3.3.
 4. `candidate_count` là tổng số học phần có thể gợi ý (`retake` + `eligible`), kể cả phần vượt `limit`.
 5. `weights` trong phản hồi là bảng trọng số đã dùng, sau khi ghép giá trị client gửi với giá trị mặc định.
-6. `what_if` là `true` khi request có `assumptions` khác rỗng.
-7. `not_eligible` liệt kê mọi học phần còn lại của khung kèm lý do, cùng cấu trúc với `courses` ở mục 6.5.
+6. `what_if` là `true` khi request có `assumptions`, `skip` hoặc `swap` khác rỗng.
+7. `not_eligible` liệt kê mọi học phần còn lại của khung — mọi học phần có `status` là `passed`,
+   `block_complete` hoặc `missing_prerequisite` — kèm lý do, cùng cấu trúc với `courses` ở mục 6.5. Vì vậy
+   `candidate_count` cộng số phần tử của `not_eligible` bằng số học phần của khung.
 8. Trạng thái của một học phần trong `not_eligible` PHẢI trùng trạng thái mà `GET .../course-status` trả về
    với cùng `term` và cùng `assumptions`.
+9. Học phần trong `skip` và mọi `swap[].course_code` không có trong `items`; chỗ của chúng thuộc về học phần
+   xếp kế tiếp. Mọi `swap[].replacement` có trong `items`, ở vị trí theo mục 3.3 như mọi học phần khác. Quy
+   định 1 vẫn là ràng buộc cứng: `replacement` làm khối tự chọn không còn hoàn thành đúng số tín chỉ được →
+   `validation_error`. `skip` và `swap` không đổi trạng thái học phần, nên `candidate_count` và
+   `not_eligible` giữ nguyên.
 
 ### 6.7 `POST /v1/universities/{uni}/students/{student_code}/plan-check`
 

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from src.api.app import create_app
 from src.api.deps import get_repo
+from src.recommender import ALGORITHM_VERSION
 
 
 @pytest.fixture(scope="session")
@@ -64,7 +65,7 @@ def test_meta(api_client: TestClient):
     assert data["api_version"] == "1.0.0"
     assert data["schema_version"] == "3.0.0"
     assert data["algorithm"] == "rule_based_weighted"
-    assert data["algorithm_version"] == "1.0.0"
+    assert data["algorithm_version"] == ALGORITHM_VERSION
     assert data["default_term"] == "20261"
     assert "HUS-7480113QTD-2022" in data["curriculum_codes"]
 
