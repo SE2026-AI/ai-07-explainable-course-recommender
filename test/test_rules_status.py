@@ -1,5 +1,7 @@
 """Contract and golden-data tests for course status classification."""
 
+from collections import Counter
+
 import pandas as pd
 import pytest
 
@@ -43,6 +45,102 @@ def test_statuses_cover_all_curriculum_courses(repo_all, university_code, studen
         if actual[course["course_code"]] == "eligible":
             assert all(set(group) & passed for group in course["prerequisite_groups"]), \
                 f"{university_code}/{student_code}/{course['course_code']} has an unsatisfied prerequisite group"
+
+
+def test_status_details_invariants_hold_for_all_synthetic_students(repo_all):
+    students = repo_all.students()
+    synthetic = students[students["is_synthetic"].astype(bool)]
+    # The demo fixture also has synthetic students; this sweep is specifically over
+    # the 200 records loaded from data/synthetic/students.csv.
+    synthetic = synthetic[synthetic["student_code"].astype(str).str.fullmatch(r"\d{8}")]
+    assert len(synthetic) == 200
+
+    class _CachedRepo:
+        def __init__(self, repository):
+            self.repository = repository
+            self.courses = {}
+            self.results = repository.course_results()
+
+        def curriculum_courses(self, curriculum_code):
+            if curriculum_code not in self.courses:
+                self.courses[curriculum_code] = self.repository.curriculum_courses(curriculum_code)
+            return self.courses[curriculum_code]
+
+        def elective_blocks(self, curriculum_code):
+            return self.repository.elective_blocks(curriculum_code)
+
+        def course_results(self, student_id):
+            return self.results[self.results["student_id"] == student_id]
+
+    status_repo = _CachedRepo(repo_all)
+    courses_by_curriculum = {}
+    for _, student in synthetic.iterrows():
+        curriculum_code = student["curriculum_code"]
+        if curriculum_code not in courses_by_curriculum:
+            courses_by_curriculum[curriculum_code] = status_repo.curriculum_courses(curriculum_code)
+        courses = courses_by_curriculum[curriculum_code]
+        codes = courses["course_code"].tolist()
+        details = course_status_details(status_repo, student)
+        assert len(codes) == len(set(codes))
+        assert len(details) == len(codes)
+        assert set(details) == set(codes)
+        statuses = Counter(item["status"] for item in details.values())
+        assert set(statuses) <= {"passed", "block_complete", "missing_prerequisite", "retake", "eligible"}
+        assert statuses.total() == len(courses)
+        passed = set(student["passed_courses"])
+        by_code = courses.set_index("course_code")
+        for code, detail in details.items():
+            status = detail["status"]
+            groups = by_code.loc[code, "prerequisite_groups"]
+            if status == "eligible":
+                assert all(set(group) & passed for group in groups), (student["student_code"], code)
+            elif status == "missing_prerequisite":
+                expected_missing = [list(group) for group in groups if not (set(group) & passed)]
+                assert detail["missing_prerequisites"] == expected_missing
+                assert expected_missing
+            elif status == "passed":
+                assert code in passed
+            elif status == "block_complete":
+                assert detail["block"]["earned_credits"] >= detail["block"]["required_credits"]
+        # course_status_details has no summary object: each curriculum course has
+        # exactly one status, so the status counts must total the curriculum size.
+        assert sum(Counter(item["status"] for item in details.values()).values()) == len(courses)
+
+
+def test_status_details_invariants_hold_for_demo_fixture(repo_all):
+    students = repo_all.students()
+    demo = students[students["university_code"] == "DEMO"]
+    assert not demo.empty
+    for _, student in demo.iterrows():
+        courses = repo_all.curriculum_courses(student["curriculum_code"])
+        details = course_status_details(repo_all, student)
+        assert set(details) == set(courses["course_code"])
+        assert len(details) == len(courses)
+        passed = set(student["passed_courses"])
+        for _, course in courses.iterrows():
+            status = details[course["course_code"]]["status"]
+            if status == "eligible":
+                assert all(set(group) & passed for group in course["prerequisite_groups"])
+            elif status == "missing_prerequisite":
+                expected_missing = [list(group) for group in course["prerequisite_groups"]
+                                    if not (set(group) & passed)]
+                assert details[course["course_code"]]["missing_prerequisites"] == expected_missing
+                assert expected_missing
+            elif status == "passed":
+                assert course["course_code"] in passed
+            elif status == "block_complete":
+                block = details[course["course_code"]]["block"]
+                assert block["earned_credits"] >= block["required_credits"]
+
+
+def test_fairness_group_does_not_change_academic_status(repo_all):
+    student = repo_all.students().iloc[0].to_dict()
+    first = {**student, "fairness_group": "group_a"}
+    second = {**student, "fairness_group": "group_b"}
+    assert {k: v for k, v in first.items() if k != "fairness_group"} == {
+        k: v for k, v in second.items() if k != "fairness_group"
+    }
+    assert course_status_details(repo_all, first) == course_status_details(repo_all, second)
 
 
 class _Repo:
@@ -121,6 +219,70 @@ def test_details_include_elective_block_credit_progress():
         "status": "block_complete",
         "block": {"block_code": "E", "block_name": "", "required_credits": 5, "earned_credits": 6},
     }
+
+
+@pytest.mark.parametrize(
+    ("block_code", "required", "credits", "passed", "expected_earned", "expected_status"),
+    [
+        ("II", 5, [2, 3], ["II1", "II2"], 5, "passed"),
+        ("II", 5, [2, 3], ["II1"], 2, "eligible"),
+        ("V.3", 7, [3, 4, 7], ["V.31", "V.32"], 7, "block_complete"),
+        ("V.3", 7, [3, 4, 7], ["V.33"], 7, "block_complete"),
+    ],
+)
+def test_non_divisible_elective_credit_thresholds(
+    block_code, required, credits, passed, expected_earned, expected_status
+):
+    codes = [f"{block_code}{index}" for index in range(1, len(credits) + 1)]
+    courses = [_course(code, credit, block_code) for code, credit in zip(codes, credits, strict=True)]
+    repo = _Repo(courses, [(block_code, required)])
+    details = course_status_details(repo, {
+        "curriculum_code": "C", "passed_courses": passed, "outstanding_courses": [],
+    })
+    if expected_status == "passed":
+        assert all(details[code]["status"] == "passed" for code in codes)
+        assert sum(credits) == expected_earned
+    else:
+        unpassed = next(code for code in codes if code not in passed)
+        assert details[unpassed]["status"] == expected_status
+        assert elective_credits_passed(repo.courses, passed)[block_code] == expected_earned
+        if expected_status == "block_complete":
+            assert details[unpassed]["block"]["earned_credits"] >= required
+        else:
+            assert "block" not in details[unpassed]
+
+
+def test_student_without_academic_results_has_valid_unpassed_statuses():
+    repo = _Repo([_course("A"), _course("B", groups=[["A"]])])
+    details = course_status_details(repo, {
+        "curriculum_code": "C", "passed_courses": [], "outstanding_courses": [],
+    })
+    assert details == {
+        "A": {"status": "eligible"},
+        "B": {"status": "missing_prerequisite", "missing_prerequisites": [["A"]]},
+    }
+    assert all(value["status"] != "passed" for value in details.values())
+
+
+def test_student_who_passed_entire_curriculum_has_consistent_statuses():
+    repo = _Repo([_course("A"), _course("B", 2, "E"), _course("C", 3, "E")], [("E", 5)])
+    details = course_status_details(repo, {
+        "curriculum_code": "C", "passed_courses": ["A", "B", "C"], "outstanding_courses": [],
+    })
+    assert set(details) == {"A", "B", "C"}
+    assert all(detail == {"status": "passed"} for detail in details.values())
+    assert sum(detail["status"] == "passed" for detail in details.values()) == len(repo.courses)
+    earned_by_block = elective_credits_passed(repo.courses, ["A", "B", "C"])
+    required_by_block = dict(zip(repo.electives["block_code"], repo.electives["required_credits"], strict=True))
+    assert all(earned_by_block[block] >= required for block, required in required_by_block.items())
+
+
+def test_nonpositive_year_of_study_with_future_cohort_does_not_break_status(repo_all):
+    student = repo_all.students().iloc[0].to_dict()
+    baseline = course_status_details(repo_all, student)
+    for year in (0, -1):
+        boundary = {**student, "year_of_study": year, "cohort_year": 9999}
+        assert course_status_details(repo_all, boundary) == baseline
 
 
 def test_shared_elective_credit_and_block_fit_helpers():
