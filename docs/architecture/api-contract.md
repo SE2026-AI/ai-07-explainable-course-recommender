@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Phiên bản hợp đồng | 1.0.0 |
-| Cập nhật | 2026-10-21 |
+| Cập nhật | 2026-10-24 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -444,7 +444,8 @@ Môn được miễn có `status = "passed"`, `last_attempt.score = null` và `l
 ### 6.6 `GET` và `POST /v1/universities/{uni}/students/{student_code}/recommendations`
 
 Hai phương thức trả về cùng một cấu trúc. `GET` dùng trọng số mặc định và không nhận giả định; `POST`
-nhận trọng số tùy chọn và giả định what-if.
+nhận trọng số tùy chọn và ba loại what-if: giả định kết quả một môn (`assumptions`), chưa muốn học một môn ở
+học kỳ này (`skip`), đổi một môn lấy môn khác (`swap`).
 
 Tham số `GET`: `term`, `limit`.
 
@@ -456,7 +457,9 @@ Body `POST`:
   "limit": 5,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
-  "assumptions": [{"course_code": "MAT2505", "status": "passed", "score": 6.0}]
+  "assumptions": [{"course_code": "MAT2505", "status": "passed", "score": 6.0}],
+  "skip": ["MAT2503"],
+  "swap": [{"course_code": "HIS1056", "replacement": "HUS1024"}]
 }
 ```
 
@@ -465,10 +468,15 @@ Body `POST`:
 | `limit` | Mặc định 5, tối đa 20. Ngoài khoảng → `validation_error` |
 | `weights` | Gửi một phần được, khóa thiếu lấy mặc định. Giá trị `>= 0`. Khóa lạ → `validation_error` |
 | `assumptions` | `status` nhận `passed` hoặc `failed`; `score` trong `[0, max_score]` của khung; `course_code` phải thuộc khung |
+| `skip` | Mã các học phần sinh viên chưa muốn học ở `term`. Mỗi mã có `status` là `retake` hoặc `eligible` |
+| `swap` | Các cặp `{"course_code", "replacement"}`: bỏ `course_code` như `skip` và đưa `replacement` vào `items`. Cả hai mã có `status` là `retake` hoặc `eligible`; số cặp không vượt `limit` |
 
 Bảng trọng số mặc định chính là bảng trong ví dụ trên.
 
-Giả định trong `assumptions` được áp lên bản sao dữ liệu trong bộ nhớ và KHÔNG ĐƯỢC ghi vào cơ sở dữ liệu.
+`status` của `skip` và `swap` được xét sau khi áp `assumptions`. Mỗi mã xuất hiện nhiều nhất một lần trong
+`skip` và `swap` cộng lại. Mã không thuộc khung, sai `status`, lặp lại hay khóa lạ → `validation_error`.
+
+`assumptions`, `skip` và `swap` được áp lên bản sao dữ liệu trong bộ nhớ và KHÔNG ĐƯỢC ghi vào cơ sở dữ liệu.
 
 Phản hồi, rút gọn còn hai học phần:
 
@@ -541,12 +549,17 @@ Quy định của endpoint này:
 3. `rank` bắt đầu từ 1, liên tục, theo thứ tự ở mục 3.3.
 4. `candidate_count` là tổng số học phần có thể gợi ý (`retake` + `eligible`), kể cả phần vượt `limit`.
 5. `weights` trong phản hồi là bảng trọng số đã dùng, sau khi ghép giá trị client gửi với giá trị mặc định.
-6. `what_if` là `true` khi request có `assumptions` khác rỗng.
+6. `what_if` là `true` khi request có `assumptions`, `skip` hoặc `swap` khác rỗng.
 7. `not_eligible` liệt kê mọi học phần còn lại của khung — mọi học phần có `status` là `passed`,
    `block_complete` hoặc `missing_prerequisite` — kèm lý do, cùng cấu trúc với `courses` ở mục 6.5. Vì vậy
    `candidate_count` cộng số phần tử của `not_eligible` bằng số học phần của khung.
 8. Trạng thái của một học phần trong `not_eligible` PHẢI trùng trạng thái mà `GET .../course-status` trả về
    với cùng `term` và cùng `assumptions`.
+9. Học phần trong `skip` và mọi `swap[].course_code` không có trong `items`; chỗ của chúng thuộc về học phần
+   xếp kế tiếp. Mọi `swap[].replacement` có trong `items`, ở vị trí theo mục 3.3 như mọi học phần khác. Quy
+   định 1 vẫn là ràng buộc cứng: `replacement` làm khối tự chọn không còn hoàn thành đúng số tín chỉ được →
+   `validation_error`. `skip` và `swap` không đổi trạng thái học phần, nên `candidate_count` và
+   `not_eligible` giữ nguyên.
 
 ### 6.7 `POST /v1/universities/{uni}/students/{student_code}/plan-check`
 

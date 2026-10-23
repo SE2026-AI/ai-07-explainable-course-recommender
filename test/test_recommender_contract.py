@@ -248,24 +248,74 @@ def test_a_student_read_at_an_earlier_term_is_ranked_as_of_that_term(repo_all):
     assert reason["data"] == {"term_code": "20242", "score": 3.5, "attempt_no": 1}
 
 
+T03_TOP_5 = ["MAT2505", "MAT2323", "HIS1056", "MAT2503", "PHI1002"]
+
+
+def test_skipping_a_course_hands_its_place_to_the_next_one(repo_all):
+    """T03 chưa muốn học Xác suất - Thống kê kỳ này: môn xếp thứ 6 lên thế chỗ, trạng thái học phần không đổi
+    (mục 6.6, quy định 9)."""
+    before = rec.recommend(repo_all, _t03(repo_all), k=5)
+    after = rec.recommend(repo_all, _t03(repo_all), k=5, skip=["MAT2323"])
+    assert [i["course_code"] for i in before["items"]] == T03_TOP_5
+    assert [i["course_code"] for i in after["items"]] == ["MAT2505", "HIS1056", "MAT2503", "PHI1002", "HUS1012"]
+    assert [i["rank"] for i in after["items"]] == [1, 2, 3, 4, 5]
+    assert after["what_if"] is True
+    assert after["candidate_count"] == before["candidate_count"]
+    assert after["not_eligible"] == before["not_eligible"]
+
+
+def test_swapping_a_course_brings_in_the_replacement_at_its_own_score(repo_all):
+    """Đổi Xác suất - Thống kê lấy Tối ưu hóa (vốn xếp thứ 10): Tối ưu hóa có mặt, đứng theo điểm của chính nó."""
+    result = rec.recommend(repo_all, _t03(repo_all), k=5,
+                           swap=[{"course_code": "MAT2323", "replacement": "MAT2407"}])
+    assert [i["course_code"] for i in result["items"]] == ["MAT2505", "HIS1056", "MAT2503", "PHI1002", "MAT2407"]
+    scores = [i["score"] for i in result["items"]]
+    assert scores == sorted(scores, reverse=True), "mục 3.3"
+
+
+def test_a_swap_inside_an_elective_block_keeps_the_block_exact(repo_all):
+    """T03 đã đạt HUS1022 (2 tín chỉ) của khối II cần 5. Đổi HIS1056 lấy HUS1024 (cùng 3 tín chỉ) thì được;
+    đổi lấy HUS1023 (2 tín chỉ) thì khối còn thiếu 1 mà không môn nào đủ nhỏ, nên bị từ chối."""
+    result = rec.recommend(repo_all, _t03(repo_all), k=5,
+                           swap=[{"course_code": "HIS1056", "replacement": "HUS1024"}])
+    assert "HUS1024" in {i["course_code"] for i in result["items"]}
+    with pytest.raises(ValueError, match=r"^swap\[0\]\.replacement: HUS1023"):
+        rec.recommend(repo_all, _t03(repo_all), swap=[{"course_code": "HIS1056", "replacement": "HUS1023"}])
+
+
+def test_the_request_example_of_the_contract_is_accepted(repo_all):
+    body = json.loads(_contract_block("6.6", "Body `POST`:"))
+    result = rec.recommend(repo_all, _t03(repo_all), k=body["limit"], weights=body["weights"],
+                           assumptions=body["assumptions"], skip=body["skip"], swap=body["swap"])
+    codes = [i["course_code"] for i in result["items"]]
+    assert body["skip"][0] not in codes and body["swap"][0]["course_code"] not in codes
+    assert body["swap"][0]["replacement"] in codes
+
+
 @pytest.mark.parametrize(("kwargs", "message"), [
     ({"weights": {"unlocks": -1}}, "unlocks"),
     ({"weights": {"popularity": 1}}, "popularity"),
     ({"assumptions": [{"course_code": "XYZ999", "status": "passed"}]}, r"assumptions\[0\]\.course_code"),
+    ({"skip": ["HUS1022"]}, r"skip\[0\]"),
+    ({"swap": [{"course_code": "MAT2323", "replacement": "MAT1203"}]}, r"swap\[0\]\.replacement"),
 ])
 def test_invalid_weights_and_assumptions_raise_value_error(repo_all, kwargs, message):
     with pytest.raises(ValueError, match=message):
         rec.recommend(repo_all, _t03(repo_all), **kwargs)
 
 
-def _contract_response_example(section, marker):
-    """Khối JSON ví dụ phản hồi đứng sau `marker` trong mục `section` của hợp đồng. Ví dụ là một phần của
-    đặc tả, nên test đọc thẳng từ tài liệu: sửa ví dụ mà không sửa code (hay ngược lại) sẽ làm test đỏ."""
+def _contract_block(section, marker):
+    """Khối JSON ví dụ đứng sau `marker` trong mục `section` của hợp đồng. Ví dụ là một phần của đặc tả, nên
+    test đọc thẳng từ tài liệu: sửa ví dụ mà không sửa code (hay ngược lại) sẽ làm test đỏ."""
     text = Path("docs/architecture/api-contract.md").read_text(encoding="utf-8")
     after = text[text.index(f"### {section} "):]
     after = after[after.index(marker):]
     start = after.index("```json") + len("```json")
-    return json.loads(after[start:after.index("```", start)])
+    return after[start:after.index("```", start)]
+
+
+def _contract_response_example(section, marker):
+    return json.loads(_contract_block(section, marker))
 
 
 def test_the_recommendation_example_of_the_contract_is_what_t03_really_gets(repo_all):

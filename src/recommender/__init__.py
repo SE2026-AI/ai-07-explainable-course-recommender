@@ -2,7 +2,7 @@
 
 Hàm công bố cho tầng API (mục 6.6) và cho `test/test_recommender_contract.py`:
 
-    recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None) -> dict
+    recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None) -> dict
 
 `student` là một dòng của `repo.student()` hoặc `repo.students()`. Trạng thái học phần do
 `src/rules/status.py` quyết định; tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức
@@ -26,7 +26,7 @@ from src.recommender.scoring import (
     unlocks,
 )
 from src.recommender.selection import pick_items
-from src.recommender.whatif import apply_assumptions
+from src.recommender.whatif import apply_assumptions, check_choices
 from src.rules.status import course_status_details, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
@@ -126,15 +126,29 @@ def _not_eligible(courses, details):
     return rows
 
 
-def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None):
+def _require_chosen(items, chosen, ranked):
+    """Môn chọn thay chỉ vắng mặt khi nó làm khối tự chọn không còn hoàn thành đúng được, cùng các môn chọn
+    thay khác: luật khối là ràng buộc cứng (mục 6.6, quy định 1), nên đó là lựa chọn sai, không lặng lẽ bỏ."""
+    picked = {item["course_code"] for item in items}
+    blocks = {item["course_code"]: block for item, block in ranked}
+    for code, index in sorted(chosen.items(), key=lambda pair: pair[1]):
+        if code not in picked:
+            raise ValueError(f"swap[{index}].replacement: {code} làm khối tự chọn {blocks[code]} không còn "
+                             "hoàn thành đúng số tín chỉ được, cùng các môn đã chọn")
+
+
+def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None):
     """Học phần nên học ở học kỳ `term_code`, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
 
     `student` phải được đọc ở cùng học kỳ, tức `repo.student(uni, code, term_code)`: `year_of_study` và
     các môn đã đạt đều tính theo mốc đó (mục 3.1). `term_code` để `None` là học kỳ cần gợi ý.
 
     `k` là số phần tử tối đa. `weights` gửi một phần được: khóa thiếu lấy mặc định. `assumptions` là các
-    giả định what-if, áp lên bản sao trong bộ nhớ, không ghi database. Khóa trọng số lạ, trọng số âm hay
-    giả định sai làm hàm raise `ValueError`, để tầng API trả `validation_error` (mục 5).
+    giả định what-if, áp lên bản sao trong bộ nhớ, không ghi database. `skip` là mã các môn sinh viên chưa
+    muốn học kỳ này; `swap` là các cặp `{"course_code", "replacement"}` đổi một môn lấy môn khác — môn bị bỏ
+    nhường chỗ cho môn xếp sau, môn chọn thay luôn có mặt nhưng vẫn sắp theo điểm (`whatif.check_choices`).
+    Khóa trọng số lạ, trọng số âm, giả định hay lựa chọn sai làm hàm raise `ValueError`, để tầng API trả
+    `validation_error` (mục 5).
 
     Trả về dict theo đúng thứ tự khóa của mục 6.6: `what_if`, `weights` (bảng đã ghép), `candidate_count`
     (mọi học phần `retake` + `eligible`, kể cả phần vượt `k`), `items` (đã sắp theo mục 3.3, mỗi phần tử có
@@ -151,6 +165,7 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
                                     _attempt_term(repo, student["university_code"], term["term_code"]))
     details = course_status_details(repo, student)
     statuses = {code: detail["status"] for code, detail in details.items()}
+    removed, chosen = check_choices(skip or [], swap or [], statuses, RECOMMENDABLE_STATUSES, k)
     semester_no = target_semester(student["year_of_study"], term["term_no"])
     prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
     attempts = student["latest_attempts"]
@@ -160,7 +175,7 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     candidates = []
     for course in courses.itertuples():
         state = statuses.get(course.course_code)
-        if state not in RECOMMENDABLE_STATUSES:
+        if state not in RECOMMENDABLE_STATUSES or course.course_code in removed:
             continue
         topic = course.primary_topic if isinstance(course.primary_topic, str) else None
         reasons = sort_reasons([
@@ -187,8 +202,10 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     taken, open_courses = _elective_progress(courses, student)
     ranked = [(item, course.elective_block if isinstance(course.elective_block, str) else None)
               for item, course in candidates]
-    return {"what_if": bool(assumptions),
+    items = pick_items(ranked, k, required, taken, open_courses, chosen)
+    _require_chosen(items, chosen, ranked)
+    return {"what_if": bool(assumptions or skip or swap),
             "weights": weights,
             "candidate_count": sum(state in RECOMMENDABLE_STATUSES for state in statuses.values()),
-            "items": pick_items(ranked, k, required, taken, open_courses),
+            "items": items,
             "not_eligible": _not_eligible(courses, details)}

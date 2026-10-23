@@ -189,7 +189,7 @@ một tổ hợp điểm thấp hơn tổ hợp tốt nhất, nhưng không bao 
 
 | Khóa | Nội dung |
 | --- | --- |
-| `what_if` | `true` khi có giả định khác rỗng |
+| `what_if` | `true` khi `assumptions`, `skip` hoặc `swap` khác rỗng |
 | `weights` | Bảng trọng số đã ghép với mặc định (mục 2) |
 | `candidate_count` | Mọi học phần `retake` + `eligible`, đếm **trước** luật khối tự chọn và trước khi cắt `k` |
 | `items` | Các phần tử đã chọn, sắp theo mục 5 |
@@ -221,6 +221,23 @@ Bản sao chỉ đổi những cột mà tầng luật và tầng xếp hạng �
 không dùng bản sao để dựng `profile`. Giả định sai — mã không thuộc khung, trạng thái lạ, điểm ngoài
 `[0, max_score]` của khung, một môn được giả định hai lần, khóa lạ — làm hàm raise `ValueError` với thông
 điệp mở đầu bằng đường dẫn tới trường sai, để tầng API đưa vào `details.fields`.
+
+### 5.3 Chưa học một môn và đổi môn
+
+`skip` (chưa muốn học môn này ở học kỳ đang gợi ý) và `swap` (đổi một môn lấy môn khác) không đổi điểm hay
+trạng thái của học phần nào. Chúng chỉ đổi bước chọn `k` phần tử của mục 5, sau khi đã áp `assumptions`:
+
+- môn trong `skip` và `swap[].course_code` bị loại khỏi danh sách đã xếp hạng, nên môn xếp kế tiếp lên thế chỗ;
+- môn `swap[].replacement` được `pick_items()` xét **trước** mọi môn khác, nên luôn có chỗ và chiếm tín chỉ
+  khối tự chọn trước các môn xếp trên nó; danh sách trả về vẫn sắp theo mục 5, nên môn chọn thay đứng ở vị
+  trí đúng với điểm của nó, không nhất thiết ở chỗ của môn bị đổi;
+- luật khối vẫn áp cho môn chọn thay: nếu nó làm khối không còn hoàn thành đúng số tín chỉ được thì
+  `recommend()` raise `ValueError` chỉ vào `swap[i].replacement`, chứ không lặng lẽ bỏ nó đi.
+
+Môn chọn thay giữ nguyên `reasons` thật của nó, kể cả khi điểm thấp: lời giải thích nói vì sao môn đó tốt
+hay không tốt, còn việc nó có mặt là do sinh viên chọn — client đã biết điều đó vì chính nó gửi `swap`.
+Mọi kiểm tra đầu vào nằm ở `whatif.check_choices()`: mã phải thuộc khung, đang là `retake` hoặc `eligible`,
+không lặp lại trong `skip` và `swap`, và số môn chọn thay không vượt `k`.
 
 ## 6. Những quyết định có thể bàn lại
 

@@ -84,6 +84,28 @@ def test_courses_outside_elective_blocks_are_never_filtered():
     assert _codes(pick_items(ranked, 10, {}, {}, {})) == ["C0", "C1", "C2", "C3"]
 
 
+def test_a_chosen_course_always_gets_a_place_and_keeps_its_ranked_position():
+    ranked = [(_item(f"C{i}", 3), None) for i in range(6)]
+    picked = pick_items(ranked, 3, {}, {}, {}, chosen={"C5"})
+    assert _codes(picked) == ["C0", "C1", "C5"]
+    assert [item["rank"] for item in picked] == [1, 2, 3]
+
+
+def test_a_chosen_course_takes_its_elective_block_before_higher_ranked_courses():
+    """Đã đạt HUS1022 (2 tín chỉ) của khối II: chọn HUS1024 thì 3 tín chỉ còn lại thuộc về nó, HUS1021 hết chỗ."""
+    ranked = [(_item("HUS1021", 3), "II"), (_item("MAT2505", 3), None), (_item("HUS1024", 3), "II")]
+    open_courses = {"II": {code: c for code, c in BLOCK_II.items() if code != "HUS1022"}}
+    picked = pick_items(ranked, 5, {"II": 5}, {"II": 2}, open_courses, chosen={"HUS1024"})
+    assert _codes(picked) == ["MAT2505", "HUS1024"]
+
+
+def test_a_chosen_course_that_would_break_its_block_is_left_out_for_the_caller_to_report():
+    ranked = [(_item("MAT2505", 3), None), (_item("HUS1023", 2), "II")]
+    open_courses = {"II": {code: c for code, c in BLOCK_II.items() if code != "HUS1022"}}
+    picked = pick_items(ranked, 5, {"II": 5}, {"II": 2}, open_courses, chosen={"HUS1023"})
+    assert _codes(picked) == ["MAT2505"]
+
+
 def test_pick_items_does_not_modify_its_arguments():
     item = _item("HUS1022", 2)
     taken, open_courses = {"II": 0}, {"II": dict(BLOCK_II)}

@@ -5,6 +5,8 @@ cứng: không trọng số nào đưa được một môn làm hỏng khối v�
 
 Tầng này KHÔNG đọc cơ sở dữ liệu, nên `test/test_selection.py` chạy được mà không cần PostgreSQL.
 """
+from collections.abc import Collection
+
 from src.rules.status import fits_in_block
 
 
@@ -32,7 +34,8 @@ def fits_elective_block(credits: int, taken: int, required: int, others: list[in
 
 
 def pick_items(ranked: list[tuple[dict, str | None]], k: int, required: dict[str, int],
-               taken: dict[str, int], open_courses: dict[str, dict[str, int]]) -> list[dict]:
+               taken: dict[str, int], open_courses: dict[str, dict[str, int]],
+               chosen: Collection[str] = ()) -> list[dict]:
     """Đi từ trên xuống `ranked`, lấy nhiều nhất `k` phần tử, bỏ qua môn làm hỏng khối tự chọn.
 
     `ranked` là list `(item, mã khối tự chọn hoặc None)` đã sắp theo mục 3.3; `item` có `course_code` và
@@ -40,14 +43,20 @@ def pick_items(ranked: list[tuple[dict, str | None]], k: int, required: dict[str
     `open_courses`: mã khối → {mã môn: tín chỉ} của mọi môn trong khối chưa đạt, kể cả môn chưa đủ điều kiện
     tiên quyết — khối có thể hoàn thành bằng chúng ở các kỳ sau.
 
+    `chosen` là mã các môn sinh viên chọn học thay (`swap`, mục 6.6). Chúng được xét trước mọi môn khác nên
+    luôn có chỗ, và chiếm tín chỉ của khối tự chọn trước; luật khối vẫn áp như mọi môn, nên môn chọn thay làm
+    hỏng khối thì vắng mặt và người gọi phải báo lỗi. Danh sách trả về vẫn theo thứ tự của `ranked`.
+
     Chọn tham lam chứ không tìm tổ hợp tối ưu, để lời giải thích luôn nói được: "môn này không được gợi ý
     vì các môn xếp trên nó đã chiếm chỗ trong khối". Không sửa tham số nào; trả về bản sao đã điền `rank`.
     """
     taken = dict(taken)
     open_courses = {block: dict(courses) for block, courses in open_courses.items()}
-    picked = []
-    for item, block in ranked:
-        if len(picked) >= k:
+    accepted = set()
+    first = [pair for pair in ranked if pair[0]["course_code"] in chosen]
+    rest = [pair for pair in ranked if pair[0]["course_code"] not in chosen]
+    for item, block in first + rest:
+        if len(accepted) >= k:
             break
         if block in required:
             pending = open_courses.get(block, {})
@@ -56,5 +65,6 @@ def pick_items(ranked: list[tuple[dict, str | None]], k: int, required: dict[str
                 continue
             taken[block] = taken.get(block, 0) + item["credits"]
             pending.pop(item["course_code"], None)
-        picked.append({**item, "rank": len(picked) + 1})
-    return picked
+        accepted.add(item["course_code"])
+    picked = [item for item, _ in ranked if item["course_code"] in accepted]
+    return [{**item, "rank": rank} for rank, item in enumerate(picked, start=1)]
