@@ -3,16 +3,28 @@
 Chạy: uvicorn src.api.app:app --reload
 
 Cấu trúc:
-- create_app(): tạo và cấu hình FastAPI app (router, exception handler)
+- create_app(): tạo và cấu hình FastAPI app (router, exception handler, lifespan)
 - app: instance dùng cho uvicorn và export_openapi
 """
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from src.api.deps import dispose_repo
 from src.api.errors import register_handlers
-from src.api.routers import catalog, system
+from src.api.routers import catalog, recommendations, students, system
+from src.api.serialization import CleanJSONResponse
 from src.api.version import API_VERSION, CONTRACT_VERSION
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Quản lý vòng đời ứng dụng: giải phóng tài nguyên database khi dừng."""
+    yield
+    dispose_repo()
 
 
 def create_app() -> FastAPI:
@@ -32,15 +44,19 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        default_response_class=CleanJSONResponse,
+        lifespan=lifespan,
     )
 
     # Đăng ký exception handler cho tất cả loại lỗi (chuẩn mục 5, không có request_id)
     register_handlers(app)
 
-    # Đăng ký router với tiền tố /v1
+    # Đăng ký router với tiền tố /v1 (tổng cộng 14 endpoint theo hợp đồng)
     prefix = f"/{API_VERSION}"
     app.include_router(system.router, prefix=prefix)
     app.include_router(catalog.router, prefix=prefix)
+    app.include_router(students.router, prefix=prefix)
+    app.include_router(recommendations.router, prefix=prefix)
 
     return app
 
