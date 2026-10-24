@@ -85,3 +85,27 @@ class CurriculumCoursesOut(BaseModel):
     curriculum_code: str
     count: int
     courses: list[CourseItemOut]
+
+
+class PrerequisiteGraphNode(BaseModel):
+    """Một nút trong sơ đồ tiên quyết (mục 6.9)."""
+    course_code: str
+    course_name: str
+    credits: int
+    block_code: str
+    recommended_semester: int | None = None
+
+
+class PrerequisiteGraphEdge(BaseModel):
+    """Một cạnh trong sơ đồ tiên quyết (mục 6.9)."""
+    course_code: str
+    group_no: int
+    required_course_code: str
+
+
+class PrerequisiteGraphOut(BaseModel):
+    """Sơ đồ tiên quyết của khung chương trình đào tạo (mục 6.9)."""
+    curriculum_code: str
+    nodes: list[PrerequisiteGraphNode] = Field(default_factory=list)
+    edges: list[PrerequisiteGraphEdge] = Field(default_factory=list)
+

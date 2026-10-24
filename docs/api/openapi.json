@@ -1,6 +1,41 @@
 {
   "components": {
     "schemas": {
+      "AssumptionIn": {
+        "additionalProperties": false,
+        "description": "Giả định kết quả học tập cho kịch bản what-if (mục 6.6).",
+        "properties": {
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_code",
+          "status"
+        ],
+        "title": "AssumptionIn",
+        "type": "object"
+      },
       "CourseItemOut": {
         "description": "Thông tin một học phần trong khung chương trình (mục 6.3).",
         "properties": {
@@ -106,6 +141,168 @@
           "is_required"
         ],
         "title": "CourseItemOut",
+        "type": "object"
+      },
+      "CourseStatusItemOut": {
+        "description": "Trạng thái một học phần đối với một sinh viên (mục 6.5).",
+        "properties": {
+          "block": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatusBlockDetailOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "last_attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastAttemptOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing_prerequisites": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Prerequisites"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "block_complete",
+              "missing_prerequisite",
+              "retake",
+              "eligible"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "course_code",
+          "course_name",
+          "credits",
+          "block_code",
+          "status"
+        ],
+        "title": "CourseStatusItemOut",
+        "type": "object"
+      },
+      "CourseStatusOut": {
+        "description": "Phản hồi trạng thái toàn bộ học phần của khung (mục 6.5).",
+        "properties": {
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/CourseStatusItemOut"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "student_code": {
+            "title": "Student Code",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/CourseStatusSummaryOut"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "university_code",
+          "student_code",
+          "curriculum_code",
+          "term",
+          "summary",
+          "courses"
+        ],
+        "title": "CourseStatusOut",
+        "type": "object"
+      },
+      "CourseStatusSummaryOut": {
+        "description": "Tổng hợp số lượng học phần theo từng trạng thái (mục 6.5).",
+        "properties": {
+          "block_complete": {
+            "default": 0,
+            "title": "Block Complete",
+            "type": "integer"
+          },
+          "eligible": {
+            "default": 0,
+            "title": "Eligible",
+            "type": "integer"
+          },
+          "missing_prerequisite": {
+            "default": 0,
+            "title": "Missing Prerequisite",
+            "type": "integer"
+          },
+          "passed": {
+            "default": 0,
+            "title": "Passed",
+            "type": "integer"
+          },
+          "retake": {
+            "default": 0,
+            "title": "Retake",
+            "type": "integer"
+          }
+        },
+        "title": "CourseStatusSummaryOut",
         "type": "object"
       },
       "CurriculumBlockOut": {
@@ -485,6 +682,47 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "LastAttemptOut": {
+        "description": "Thông tin lần học gần nhất (mục 6.5).",
+        "properties": {
+          "attempt_no": {
+            "title": "Attempt No",
+            "type": "integer"
+          },
+          "letter_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Letter Grade"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "term_code": {
+            "title": "Term Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "term_code",
+          "attempt_no"
+        ],
+        "title": "LastAttemptOut",
+        "type": "object"
+      },
       "MetaOut": {
         "description": "Thông tin phiên bản và cấu hình hệ thống (mục 6.1).",
         "properties": {
@@ -525,6 +763,583 @@
           "curriculum_codes"
         ],
         "title": "MetaOut",
+        "type": "object"
+      },
+      "PlanCheckBodyIn": {
+        "additionalProperties": false,
+        "description": "Body gửi lên cho POST /v1/.../plan-check (mục 6.7).",
+        "properties": {
+          "course_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Course Codes",
+            "type": "array"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          }
+        },
+        "title": "PlanCheckBodyIn",
+        "type": "object"
+      },
+      "PlanCheckOut": {
+        "description": "Kết quả kiểm tra kế hoạch học kỳ (mục 6.7).",
+        "properties": {
+          "max_credits_per_term": {
+            "title": "Max Credits Per Term",
+            "type": "integer"
+          },
+          "student_code": {
+            "title": "Student Code",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "total_credits": {
+            "title": "Total Credits",
+            "type": "integer"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/PlanViolationOut"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "university_code",
+          "student_code",
+          "term",
+          "total_credits",
+          "max_credits_per_term",
+          "valid"
+        ],
+        "title": "PlanCheckOut",
+        "type": "object"
+      },
+      "PlanViolationOut": {
+        "description": "Một vi phạm trong kế hoạch học kỳ (mục 4.5 và 6.7).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "course_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Code"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "PlanViolationOut",
+        "type": "object"
+      },
+      "PrerequisiteGraphEdge": {
+        "description": "Một cạnh trong sơ đồ tiên quyết (mục 6.9).",
+        "properties": {
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "group_no": {
+            "title": "Group No",
+            "type": "integer"
+          },
+          "required_course_code": {
+            "title": "Required Course Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_code",
+          "group_no",
+          "required_course_code"
+        ],
+        "title": "PrerequisiteGraphEdge",
+        "type": "object"
+      },
+      "PrerequisiteGraphNode": {
+        "description": "Một nút trong sơ đồ tiên quyết (mục 6.9).",
+        "properties": {
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "recommended_semester": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Semester"
+          }
+        },
+        "required": [
+          "course_code",
+          "course_name",
+          "credits",
+          "block_code"
+        ],
+        "title": "PrerequisiteGraphNode",
+        "type": "object"
+      },
+      "PrerequisiteGraphOut": {
+        "description": "Sơ đồ tiên quyết của khung chương trình đào tạo (mục 6.9).",
+        "properties": {
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/PrerequisiteGraphEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/PrerequisiteGraphNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "curriculum_code"
+        ],
+        "title": "PrerequisiteGraphOut",
+        "type": "object"
+      },
+      "RecommendationBodyIn": {
+        "additionalProperties": false,
+        "description": "Body gửi lên cho POST /v1/.../recommendations (mục 6.6).",
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/AssumptionIn"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "limit": {
+            "default": 5,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term"
+          },
+          "weights": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weights"
+          }
+        },
+        "title": "RecommendationBodyIn",
+        "type": "object"
+      },
+      "RecommendationItemOut": {
+        "description": "Một học phần được gợi ý trong items (mục 6.6).",
+        "properties": {
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationReasonOut"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "retake",
+              "eligible"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "course_code",
+          "course_name",
+          "credits",
+          "block_code",
+          "status",
+          "score"
+        ],
+        "title": "RecommendationItemOut",
+        "type": "object"
+      },
+      "RecommendationReasonOut": {
+        "description": "Lý do và điểm đóng góp cho một học phần được gợi ý (mục 4.4 và 6.6).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "contribution": {
+            "title": "Contribution",
+            "type": "number"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "code",
+          "contribution"
+        ],
+        "title": "RecommendationReasonOut",
+        "type": "object"
+      },
+      "RecommendationsOut": {
+        "description": "Phản hồi đầy đủ của endpoint gợi ý học phần (mục 6.6).",
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "candidate_count": {
+            "title": "Candidate Count",
+            "type": "integer"
+          },
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "not_eligible": {
+            "items": {
+              "$ref": "#/components/schemas/CourseStatusItemOut"
+            },
+            "title": "Not Eligible",
+            "type": "array"
+          },
+          "student_code": {
+            "title": "Student Code",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Weights",
+            "type": "object"
+          },
+          "what_if": {
+            "title": "What If",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "university_code",
+          "student_code",
+          "curriculum_code",
+          "term",
+          "algorithm_version",
+          "what_if",
+          "weights",
+          "candidate_count"
+        ],
+        "title": "RecommendationsOut",
+        "type": "object"
+      },
+      "StatusBlockDetailOut": {
+        "description": "Thông tin khối tự chọn đã hoàn thành (mục 6.5).",
+        "properties": {
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "block_name": {
+            "title": "Block Name",
+            "type": "string"
+          },
+          "earned_credits": {
+            "title": "Earned Credits",
+            "type": "integer"
+          },
+          "required_credits": {
+            "title": "Required Credits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "block_code",
+          "block_name",
+          "required_credits",
+          "earned_credits"
+        ],
+        "title": "StatusBlockDetailOut",
+        "type": "object"
+      },
+      "StudentProfileBlockOut": {
+        "description": "Tiến độ của một khối kiến thức trong hồ sơ sinh viên (mục 6.4).",
+        "properties": {
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "counts_toward_total": {
+            "title": "Counts Toward Total",
+            "type": "boolean"
+          },
+          "earned_credits": {
+            "title": "Earned Credits",
+            "type": "integer"
+          },
+          "required_credits": {
+            "title": "Required Credits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "block_code",
+          "required_credits",
+          "earned_credits",
+          "counts_toward_total"
+        ],
+        "title": "StudentProfileBlockOut",
+        "type": "object"
+      },
+      "StudentProfileOut": {
+        "description": "Hồ sơ tiến độ học tập của sinh viên (mục 6.4).",
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/StudentProfileBlockOut"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "cohort_year": {
+            "title": "Cohort Year",
+            "type": "integer"
+          },
+          "credits_earned": {
+            "title": "Credits Earned",
+            "type": "integer"
+          },
+          "credits_outstanding": {
+            "title": "Credits Outstanding",
+            "type": "integer"
+          },
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "gpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpa"
+          },
+          "interests": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Interests",
+            "type": "array"
+          },
+          "major_code": {
+            "title": "Major Code",
+            "type": "string"
+          },
+          "major_name": {
+            "title": "Major Name",
+            "type": "string"
+          },
+          "max_credits_per_term": {
+            "title": "Max Credits Per Term",
+            "type": "integer"
+          },
+          "outstanding_courses": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outstanding Courses",
+            "type": "array"
+          },
+          "student_code": {
+            "title": "Student Code",
+            "type": "string"
+          },
+          "target_semester": {
+            "title": "Target Semester",
+            "type": "integer"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "total_credits": {
+            "title": "Total Credits",
+            "type": "integer"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          },
+          "year_of_study": {
+            "title": "Year Of Study",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "university_code",
+          "student_code",
+          "full_name",
+          "curriculum_code",
+          "major_code",
+          "major_name",
+          "cohort_year",
+          "year_of_study",
+          "term",
+          "target_semester",
+          "credits_earned",
+          "credits_outstanding",
+          "total_credits",
+          "max_credits_per_term"
+        ],
+        "title": "StudentProfileOut",
         "type": "object"
       },
       "TermOut": {
@@ -752,6 +1567,16 @@
               }
             },
             "description": "Lỗi nội bộ hệ thống"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Cơ sở dữ liệu không khả dụng"
           }
         },
         "summary": "Kiểm tra dịch vụ còn sống",
@@ -1126,6 +1951,584 @@
         "summary": "Học phần của khung CTĐT",
         "tags": [
           "Danh mục & Chương trình đào tạo"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/curricula/{curriculum_code}/prerequisite-graph": {
+      "get": {
+        "description": "Sơ đồ môn nào mở khóa môn nào của một khung CTĐT (mục 6.9).",
+        "operationId": "get_prerequisite_graph_v1_universities__uni__curricula__curriculum_code__prerequisite_graph_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "curriculum_code",
+            "required": true,
+            "schema": {
+              "title": "Curriculum Code",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrerequisiteGraphOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Sơ đồ tiên quyết của khung CTĐT",
+        "tags": [
+          "Danh mục & Chương trình đào tạo"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/students/{student_code}/course-status": {
+      "get": {
+        "description": "Trả về trạng thái một học phần đối với sinh viên theo hợp đồng mục 6.5.",
+        "operationId": "get_student_course_status_v1_universities__uni__students__student_code__course_status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_code",
+            "required": true,
+            "schema": {
+              "title": "Student Code",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mã học kỳ (mặc định target_term_code)",
+            "in": "query",
+            "name": "term",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Mã học kỳ (mặc định target_term_code)",
+              "title": "Term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Trạng thái mọi học phần của khung CTĐT",
+        "tags": [
+          "Sinh viên"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/students/{student_code}/plan-check": {
+      "post": {
+        "description": "Kiểm tra kế hoạch học tập sinh viên dự định đăng ký theo hợp đồng mục 6.7.",
+        "operationId": "post_plan_check_v1_universities__uni__students__student_code__plan_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_code",
+            "required": true,
+            "schema": {
+              "title": "Student Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanCheckBodyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanCheckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Kiểm tra kế hoạch đăng ký học kỳ",
+        "tags": [
+          "Gợi ý & Kế hoạch"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/students/{student_code}/profile": {
+      "get": {
+        "description": "Trả về thông tin tiến độ học tập của sinh viên theo hợp đồng mục 6.4.",
+        "operationId": "get_student_profile_v1_universities__uni__students__student_code__profile_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_code",
+            "required": true,
+            "schema": {
+              "title": "Student Code",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mã học kỳ (mặc định target_term_code)",
+            "in": "query",
+            "name": "term",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Mã học kỳ (mặc định target_term_code)",
+              "title": "Term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Tiến độ học tập của sinh viên",
+        "tags": [
+          "Sinh viên"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/students/{student_code}/recommendations": {
+      "get": {
+        "description": "Trả về danh sách học phần được gợi ý xếp hạng theo hợp đồng mục 6.6.",
+        "operationId": "get_recommendations_v1_universities__uni__students__student_code__recommendations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_code",
+            "required": true,
+            "schema": {
+              "title": "Student Code",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mã học kỳ (mặc định target_term_code)",
+            "in": "query",
+            "name": "term",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Mã học kỳ (mặc định target_term_code)",
+              "title": "Term"
+            }
+          },
+          {
+            "description": "Số học phần tối đa cần gợi ý (1-20)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "description": "Số học phần tối đa cần gợi ý (1-20)",
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Gợi ý học phần cho kỳ tới",
+        "tags": [
+          "Gợi ý & Kế hoạch"
+        ]
+      },
+      "post": {
+        "description": "Gợi ý học phần có thể kèm trọng số tùy chỉnh và kịch bản what-if (mục 6.6).",
+        "operationId": "post_recommendations_v1_universities__uni__students__student_code__recommendations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_code",
+            "required": true,
+            "schema": {
+              "title": "Student Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationBodyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Gợi ý học phần với trọng số tùy chỉnh và giả định",
+        "tags": [
+          "Gợi ý & Kế hoạch"
         ]
       }
     },

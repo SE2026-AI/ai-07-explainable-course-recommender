@@ -223,6 +223,7 @@ Yêu cầu này áp dụng cả cho lỗi do tầng validate của web framework
 | 409 | `no_primary_program` | Sinh viên không có CTĐT chính đang hoạt động |
 | 422 | `validation_error` | Tham số hoặc body sai kiểu, ngoài khoảng, chứa khóa lạ; `details.fields` liệt kê từng lỗi |
 | 500 | `internal_error` | Lỗi không lường trước; `message` không chứa thông tin nội bộ |
+| 503 | `service_unavailable` | Chỉ `GET /v1/health`: cơ sở dữ liệu không kết nối được; `details.database` là `"down"` |
 | khác | `http_error` | Lỗi HTTP khác do web framework sinh ra, khi không khớp dòng nào ở trên |
 
 `route_not_found`, `method_not_allowed` và `http_error` phát sinh ở tầng định tuyến, không phải lỗi dữ liệu:
