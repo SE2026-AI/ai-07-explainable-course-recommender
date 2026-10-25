@@ -2,14 +2,17 @@
 
 Hàm công bố cho tầng API (mục 6.6) và cho `test/test_recommender_contract.py`:
 
-    recommend(repo, student, k=5, weights=None, status=None) -> list[dict]
+    recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None) -> dict
 
-`student` là một dòng của `repo.students()`. Trạng thái học phần do `src/rules/status.py` quyết định;
-tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức của sáu tiêu chí:
-`docs/architecture/ranking.md`.
+`student` là một dòng của `repo.student()` hoặc `repo.students()`. Trạng thái học phần do
+`src/rules/status.py` quyết định; tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức
+của sáu tiêu chí: `docs/architecture/ranking.md`.
 """
+from copy import deepcopy
+
 import pandas as pd
 
+from src.explain import status_text
 from src.recommender.scoring import (
     DEFAULT_WEIGHTS,
     interest,
@@ -22,11 +25,13 @@ from src.recommender.scoring import (
     total_score,
     unlocks,
 )
-from src.rules.status import course_status
+from src.recommender.selection import pick_items
+from src.recommender.whatif import apply_assumptions, check_choices
+from src.rules.status import course_status_details, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
 ALGORITHM = "rule_based_weighted"
-ALGORITHM_VERSION = "1.0.0"
+ALGORITHM_VERSION = "1.0.1"
 
 # Chỉ hai trạng thái này được vào danh sách gợi ý (mục 6.6, quy định 1).
 RECOMMENDABLE_STATUSES = ("retake", "eligible")
@@ -49,19 +54,14 @@ def _semester_key(course):
     return MISSING_SEMESTER if semester is None else semester
 
 
-def _latest_attempts(repo, student):
-    """Lần học gần nhất của mỗi học phần: mã môn → dict `term_code`, `score`, `attempt_no`."""
-    results = repo.course_results(student["student_id"])
-    if results.empty:
-        return {}
-    attempts = {}
-    for row in results[results["recency"] == 1].itertuples():
-        attempts[row.course_code] = {
-            "term_code": str(row.term_code),
-            "score": None if pd.isna(row.score) else float(row.score),
-            "attempt_no": int(row.attempt_no),
-        }
-    return attempts
+def _attempt_term(repo, university_code, term_code):
+    """Học kỳ chính (không phải kỳ hè) ngay trước `term_code`: nơi một giả định what-if "diễn ra".
+
+    Giả định nói về môn sinh viên đang học dở hoặc chưa có điểm, nên lần học giả định thuộc học kỳ vừa
+    qua. v1 không gợi ý cho kỳ hè (ranking.md mục 3.2), nên kỳ hè bị bỏ qua."""
+    terms = repo.terms(university_code)
+    earlier = terms[(terms["term_code"] < term_code) & terms["term_no"].isin([1, 2])]["term_code"]
+    return str(earlier.max()) if not earlier.empty else str(term_code)
 
 
 def _strong_topics(repo, courses, attempts):
@@ -92,43 +92,90 @@ def _declared_topics(repo, student):
             for row in declared.itertuples()}
 
 
-def _elective_credits_passed(courses, student):
-    """Tín chỉ đã đạt trong từng khối tự chọn, cùng cách tính với `src/rules/status.py`."""
+def _elective_progress(courses, student):
+    """Tín chỉ đã đạt và các môn chưa đạt của từng khối tự chọn: `(taken, open_courses)` cho `pick_items`.
+
+    Tín chỉ đã đạt lấy từ `rules.elective_credits_passed()`, chính phép tính quyết định trạng thái
+    `block_complete`, nên khối mà tầng luật coi là đủ thì ở đây cũng đủ."""
     passed = set(student["passed_courses"])
-    earned = {}
+    open_courses = {}
     for course in courses.itertuples():
-        block = course.elective_block
-        if isinstance(block, str) and course.course_code in passed:
-            earned[block] = earned.get(block, 0) + int(course.credits)
-    return earned
+        if isinstance(course.elective_block, str) and course.course_code not in passed:
+            open_courses.setdefault(course.elective_block, {})[course.course_code] = int(course.credits)
+    return elective_credits_passed(courses, passed), open_courses
 
 
-def recommend(repo, student, k=5, weights=None, status=None):
-    """Học phần nên học ở học kỳ tới, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
+def _not_eligible(courses, details):
+    """Mọi học phần không gợi ý được, mỗi dòng cùng dạng một dòng `courses` của mục 6.5: thông tin môn,
+    `status` kèm chi tiết của tầng luật, rồi câu `text` của tầng giải thích. Sắp theo `course_code` (mục 3.3).
 
-    `k` là số phần tử tối đa. `weights` gửi một phần được: khóa thiếu lấy mặc định, khóa lạ hoặc
-    giá trị âm làm hàm raise `ValueError`. `status` nhận sẵn kết quả của `course_status` để không
-    phải tính lại; để `None` thì hàm tự tính.
+    Chép sâu chi tiết của tầng luật: các môn cùng khối dùng chung một dict `block`, nên sửa một dòng của
+    phản hồi không được làm đổi dòng khác."""
+    names = dict(zip(courses["course_code"], courses["course_name"], strict=True))
+    rows = []
+    for course in courses.sort_values("course_code").to_dict("records"):
+        detail = details[course["course_code"]]
+        if detail["status"] in RECOMMENDABLE_STATUSES:
+            continue
+        rows.append({"course_code": str(course["course_code"]),
+                     "course_name": str(course["course_name"]),
+                     "credits": int(course["credits"]),
+                     "block_code": str(course["block_code"]),
+                     **deepcopy(detail),
+                     "text": status_text(course, detail, names)})
+    return rows
 
-    Trả về list[dict] đã sắp theo mục 3.3, mỗi dict có `rank`, `course_code`, `course_name`,
-    `credits`, `block_code`, `status`, `score`, `reasons`.
+
+def _require_chosen(items, chosen, ranked):
+    """Môn chọn thay chỉ vắng mặt khi nó làm khối tự chọn không còn hoàn thành đúng được, cùng các môn chọn
+    thay khác: luật khối là ràng buộc cứng (mục 6.6, quy định 1), nên đó là lựa chọn sai, không lặng lẽ bỏ."""
+    picked = {item["course_code"] for item in items}
+    blocks = {item["course_code"]: block for item, block in ranked}
+    for code, index in sorted(chosen.items(), key=lambda pair: pair[1]):
+        if code not in picked:
+            raise ValueError(f"swap[{index}].replacement: {code} làm khối tự chọn {blocks[code]} không còn "
+                             "hoàn thành đúng số tín chỉ được, cùng các môn đã chọn")
+
+
+def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None):
+    """Học phần nên học ở học kỳ `term_code`, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
+
+    `student` phải được đọc ở cùng học kỳ, tức `repo.student(uni, code, term_code)`: `year_of_study` và
+    các môn đã đạt đều tính theo mốc đó (mục 3.1). `term_code` để `None` là học kỳ cần gợi ý.
+
+    `k` là số phần tử tối đa. `weights` gửi một phần được: khóa thiếu lấy mặc định. `assumptions` là các
+    giả định what-if, áp lên bản sao trong bộ nhớ, không ghi database. `skip` là mã các môn sinh viên chưa
+    muốn học kỳ này; `swap` là các cặp `{"course_code", "replacement"}` đổi một môn lấy môn khác — môn bị bỏ
+    nhường chỗ cho môn xếp sau, môn chọn thay luôn có mặt nhưng vẫn sắp theo điểm (`whatif.check_choices`).
+    Khóa trọng số lạ, trọng số âm, giả định hay lựa chọn sai làm hàm raise `ValueError`, để tầng API trả
+    `validation_error` (mục 5).
+
+    Trả về dict theo đúng thứ tự khóa của mục 6.6: `what_if`, `weights` (bảng đã ghép), `candidate_count`
+    (mọi học phần `retake` + `eligible`, kể cả phần vượt `k`), `items` (đã sắp theo mục 3.3, mỗi phần tử có
+    `rank`, `course_code`, `course_name`, `credits`, `block_code`, `status`, `score`, `reasons`),
+    `not_eligible` (mọi học phần còn lại của khung: `passed`, `block_complete`, `missing_prerequisite`).
     """
     weights = merge_weights(weights)
     curriculum_code = student["curriculum_code"]
     courses = repo.curriculum_courses(curriculum_code)
-    statuses = course_status(repo, student) if status is None else status
     grading = repo.curriculum(curriculum_code)
-    semester_no = target_semester(student["year_of_study"],
-                                  repo.target_term(student["university_code"])["term_no"])
+    term = repo.term(student["university_code"], term_code or repo.setting("target_term_code"))
+    if assumptions:
+        student = apply_assumptions(student, assumptions, set(courses["course_code"]), grading["max_score"],
+                                    _attempt_term(repo, student["university_code"], term["term_code"]))
+    details = course_status_details(repo, student)
+    statuses = {code: detail["status"] for code, detail in details.items()}
+    removed, chosen = check_choices(skip or [], swap or [], statuses, RECOMMENDABLE_STATUSES, k)
+    semester_no = target_semester(student["year_of_study"], term["term_no"])
     prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
-    attempts = _latest_attempts(repo, student)
+    attempts = student["latest_attempts"]
     strong = _strong_topics(repo, courses, attempts)
     declared = _declared_topics(repo, student)
 
     candidates = []
     for course in courses.itertuples():
         state = statuses.get(course.course_code)
-        if state not in RECOMMENDABLE_STATUSES:
+        if state not in RECOMMENDABLE_STATUSES or course.course_code in removed:
             continue
         topic = course.primary_topic if isinstance(course.primary_topic, str) else None
         reasons = sort_reasons([
@@ -152,17 +199,13 @@ def recommend(repo, student, k=5, weights=None, status=None):
                                       pair[0]["course_code"]))
 
     required = repo.elective_blocks(curriculum_code).set_index("block_code")["required_credits"].to_dict()
-    taken = _elective_credits_passed(courses, student)
-    items = []
-    for item, course in candidates:
-        if len(items) >= k:
-            break
-        block = course.elective_block if isinstance(course.elective_block, str) else None
-        if block is not None and block in required:
-            # Trần tín chỉ của khối tự chọn là ràng buộc cứng: không trọng số nào vượt được (mục 6.6).
-            if taken.get(block, 0) >= int(required[block]):
-                continue
-            taken[block] = taken.get(block, 0) + item["credits"]
-        item["rank"] = len(items) + 1
-        items.append(item)
-    return items
+    taken, open_courses = _elective_progress(courses, student)
+    ranked = [(item, course.elective_block if isinstance(course.elective_block, str) else None)
+              for item, course in candidates]
+    items = pick_items(ranked, k, required, taken, open_courses, chosen)
+    _require_chosen(items, chosen, ranked)
+    return {"what_if": bool(assumptions or skip or swap),
+            "weights": weights,
+            "candidate_count": sum(state in RECOMMENDABLE_STATUSES for state in statuses.values()),
+            "items": items,
+            "not_eligible": _not_eligible(courses, details)}

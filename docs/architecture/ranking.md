@@ -1,13 +1,15 @@
 # Xếp hạng và giải thích
 
-Mục 10 của `api-contract.md` ghi: **công thức tính `contribution` của từng tiêu chí thuộc tầng xếp
+Mục 4.4 của `api-contract.md` ghi: **công thức tính `contribution` của từng tiêu chí thuộc tầng xếp
 hạng, hợp đồng không quy định**. Tài liệu này là đặc tả của phần đó.
 
 | Nơi | Nội dung |
 | --- | --- |
 | `src/recommender/scoring.py` | Sáu tiêu chí, mỗi tiêu chí một hàm thuần, không đọc database |
+| `src/recommender/selection.py` | Chọn `k` phần tử, giữ đúng luật khối tự chọn; hàm thuần, không đọc database |
 | `src/recommender/__init__.py` | `recommend()`: lấy dữ liệu, gọi sáu tiêu chí, sắp và chọn |
 | `test/test_scoring.py` | Công thức từng tiêu chí và hai ví dụ của hợp đồng; không cần database |
+| `test/test_selection.py` | Luật khối tự chọn trên các khối thật của khung; không cần database |
 | `test/test_recommender_contract.py` | Bất biến của mục 7 trên toàn bộ sinh viên kiểm thử |
 
 ---
@@ -24,9 +26,10 @@ Mọi `contribution` có dạng **trọng số × mức độ**, trong đó mứ
 một tiêu chí. `on_time` và `overdue` loại trừ nhau nên điểm tối đa trên thực tế là
 `3,0 + 2,0 + 1,5 + 1,0 + 0,5 = 8,0`.
 
-Chỉ học phần có trạng thái `retake` hoặc `eligible` được xếp hạng. Điều kiện tiên quyết và trần tín chỉ
-của khối tự chọn là **ràng buộc cứng**: chúng được `src/rules/status.py` xử lý trước khi tầng này chạy,
-nên không giá trị trọng số nào đưa được một học phần vi phạm vào danh sách (mục 6.6, quy định 1).
+Chỉ học phần có trạng thái `retake` hoặc `eligible` được xếp hạng. Điều kiện tiên quyết và luật khối tự
+chọn là **ràng buộc cứng**: `src/rules/status.py` loại môn chưa đủ tiên quyết và khối đã đủ tín chỉ trước
+khi tầng này chạy, rồi `src/recommender/selection.py` giữ cho các môn được chọn không làm hỏng khối (mục 5).
+Không giá trị trọng số nào đưa được một học phần vi phạm vào danh sách (mục 6.6, quy định 1).
 
 ## 2. Bảng trọng số mặc định
 
@@ -126,18 +129,25 @@ nó không bao giờ được là tiêu chí quyết định.
 
 ## 4. Kiểm chứng với hai ví dụ của hợp đồng
 
-Mục 6.6 có hai học phần kèm điểm. Công thức ở trên tái tạo đúng cả hai, và
-`test/test_scoring.py` kiểm lại từng dòng dưới đây:
+Mục 6.6 có hai học phần kèm điểm, là hai phần tử đầu của gợi ý thật cho sinh viên kiểm thử `HUS/T03`.
+`test/test_scoring.py` kiểm lại từng dòng dưới đây bằng hàm thuần, và
+`test/test_recommender_contract.py` kiểm cả hai phần tử khớp nguyên văn ví dụ khi chạy `recommend()` trên
+dữ liệu kiểm thử:
 
 | Học phần | Lý do | Mức độ | `contribution` |
 | --- | --- | --- | --- |
 | MAT2505 | `outstanding_retake` | đang nợ từ kỳ 20252 | 3,0 |
 | | `unlocks` | `min(1, 12/10) = 1` | 1,5 |
 | | `overdue` | `min(1, 1/2) = 0,5` | 1,0 |
-| | **tổng** | | **5,5** |
+| | `strong_topic` | `(5,25 − 4) / (10 − 4) = 0,2083` | 0,2083 |
+| | **tổng** | | **5,7083** |
 | MAT2323 | `on_time` | kỳ 3, đúng kỳ | 2,0 |
 | | `unlocks` | `min(1, 5/10) = 0,5` | 0,75 |
-| | **tổng** | | **2,75** |
+| | `strong_topic` | `(7,5 − 4) / (10 − 4) = 0,5833` | 0,5833 |
+| | **tổng** | | **3,3333** |
+
+Bản trước của ví dụ thiếu hai dòng `strong_topic`, nên ghi tổng 5,5 và 2,75 — đúng số học, nhưng không
+phải điều hệ thống thật sự trả về cho T03.
 
 ## 5. Sắp xếp, trần khối tự chọn và chọn `k` phần tử
 
@@ -146,14 +156,88 @@ Mục 6.6 có hai học phần kèm điểm. Công thức ở trên tái tạo �
 sau cùng trong nhóm bằng điểm. Ba mốc so sánh này đủ để không còn chỗ nào phụ thuộc thứ tự dòng của
 database, nên hai lần gọi cùng tham số cho phản hồi giống nhau từng byte.
 
-Sau khi sắp, `recommend()` đi từ trên xuống và **bỏ qua** học phần thuộc khối tự chọn đã đủ tín chỉ, tính
-cả tín chỉ của những học phần cùng khối vừa được chọn ở trên. `src/rules/status.py` đã loại khối đã đủ
-tín chỉ từ trước, nên bước này chỉ xử lý phần còn lại: một khối cần 12 tín chỉ mà sinh viên chưa học môn
-nào thì nhận nhiều nhất 4 môn 3 tín chỉ, không nhận môn thứ năm, dù môn đó điểm cao.
+Sau khi sắp, `recommend()` đi từ trên xuống và **nhận** một học phần thuộc khối tự chọn chỉ khi cả hai điều
+sau cùng đúng, tính cả tín chỉ đã đạt và tín chỉ của những môn cùng khối vừa được chọn ở trên:
 
-Chọn đi từ trên xuống, không tìm tổ hợp tối ưu. Với trần của một khối và `k ≤ 20` thì cách tham lam này
-cho kết quả giống hệt cách tối ưu trong gần như mọi trường hợp, và nó giải thích được: "môn này không
-được gợi ý vì khối tự chọn đã đủ tín chỉ từ các môn trên nó trong danh sách".
+1. khối không vượt `required_credits`;
+2. phần còn thiếu vẫn ghép được **đúng** bằng các môn chưa đạt, chưa được chọn của khối — kể cả môn chưa
+   đủ tiên quyết, vì khối có thể hoàn thành bằng chúng ở các kỳ sau.
+
+Tín chỉ đã đạt của mỗi khối lấy từ `rules.elective_credits_passed()`, chính phép tính quyết định trạng
+thái `block_complete`. Điều 1 là `rules.fits_in_block()`, luật "vượt khối" mà tầng luật công bố cho các tầng
+khác. Nhờ vậy `recommend()` không thể hiểu "đủ khối" hay "vượt khối" khác tầng luật. Điều 2 chỉ có ở tầng xếp hạng: một kế hoạch làm
+khối kẹt lại chưa vi phạm luật nào, nhưng gợi ý nó thì sinh viên không đi tiếp được.
+
+Lý do của điều 2: khối `choose_credits` phải chọn đúng `required_credits` chứ không phải tối thiểu (mục
+6.2 của hợp đồng). Khối `II` cần 5 tín chỉ gồm môn 2 và 3 tín chỉ. Nhận một môn 2 rồi thêm một môn 2 nữa
+thì chưa vượt, nhưng còn thiếu 1 mà không môn nào đủ nhỏ, nên khối không bao giờ hoàn thành đúng được. Bản
+1.0.0 chỉ dừng khi khối đã đủ. Với `k = 20`, nó làm hỏng khối tự chọn của 52/200 sinh viên trong
+`data/synthetic`, trong đó 42 em nhận 2 + 2 + 3 = 7/5 tín chỉ ở khối `II`. Bản 1.0.1 gợi ý 2 + 3 và không
+làm hỏng khối nào.
+
+Môn học lại (`retake`) cũng theo luật này: trượt một môn tự chọn không buộc phải học lại đúng môn đó, nếu
+môn khác trong khối hoàn thành khối đúng hơn. Môn đó vẫn mang trạng thái `retake` trong `course-status`.
+
+Chọn đi từ trên xuống, không tìm tổ hợp tối ưu, để lời giải thích luôn nói được: "môn này không được gợi
+ý vì các môn xếp trên nó đã chiếm chỗ trong khối". Điều 2 làm việc này an toàn: cách tham lam có thể chọn
+một tổ hợp điểm thấp hơn tổ hợp tốt nhất, nhưng không bao giờ chọn một tổ hợp mà sinh viên không đi tiếp
+được.
+
+### 5.1 Phản hồi của `recommend()`
+
+`recommend()` trả về phần của phản hồi mục 6.6 do tầng xếp hạng quyết định, theo đúng thứ tự khóa ở đó:
+
+| Khóa | Nội dung |
+| --- | --- |
+| `what_if` | `true` khi `assumptions`, `skip` hoặc `swap` khác rỗng |
+| `weights` | Bảng trọng số đã ghép với mặc định (mục 2) |
+| `candidate_count` | Mọi học phần `retake` + `eligible`, đếm **trước** luật khối tự chọn và trước khi cắt `k` |
+| `items` | Các phần tử đã chọn, sắp theo mục 5 |
+| `not_eligible` | Mọi học phần còn lại của khung (`passed`, `block_complete`, `missing_prerequisite`), cùng dạng một dòng `course-status`, sắp theo `course_code` |
+
+`not_eligible` dựng từ đúng kết quả `rules.course_status_details()` mà `recommend()` dùng để chọn ứng viên,
+cộng câu `text` của `src/explain/`. Tầng xếp hạng không tự tính lại trạng thái hay chi tiết nào, nên
+`candidate_count` cộng số phần tử của `not_eligible` luôn bằng số học phần của khung.
+
+Giới hạn hiện tại: tầng luật đọc `last_attempt` từ database chứ chưa từ dòng sinh viên. Với giả định what-if
+`passed`, dòng `not_eligible` của môn đó vẫn mang lần học thật, chưa mang lần học giả định.
+`test_an_assumed_pass_shows_the_assumed_attempt_in_not_eligible` đánh dấu `xfail` cho tới khi tầng luật sửa.
+
+Dòng sinh viên phải được đọc ở cùng học kỳ với `term_code`, tức `repo.student(uni, code, term_code)`. Lần
+học gần nhất của mỗi môn lấy từ cột `latest_attempts` của chính dòng đó, nên lý do `outstanding_retake`, các
+môn đã đạt và trạng thái học phần luôn nhìn cùng một mốc thời gian (mục 3.1 của hợp đồng).
+
+### 5.2 Giả định what-if
+
+`src/recommender/whatif.py` áp các giả định lên một **bản sao** của dòng sinh viên, không đọc và không ghi
+database. Mỗi giả định được coi là lần học mới nhất của môn đó:
+
+- diễn ra ở học kỳ chính ngay trước học kỳ đang gợi ý — kỳ hè bị bỏ qua, như mục 3.2;
+- là lần học thứ `n + 1` nếu môn đã từng học `n` lần;
+- `passed` đưa môn vào danh sách đã đạt và xóa khỏi danh sách đang nợ, `failed` làm ngược lại;
+- `score` có thể vắng mặt; khi đó môn không góp vào điểm trung bình của tiêu chí `strong_topic`.
+
+Bản sao chỉ đổi những cột mà tầng luật và tầng xếp hạng đọc. Tín chỉ tích lũy và GPA giữ nguyên, nên
+không dùng bản sao để dựng `profile`. Giả định sai — mã không thuộc khung, trạng thái lạ, điểm ngoài
+`[0, max_score]` của khung, một môn được giả định hai lần, khóa lạ — làm hàm raise `ValueError` với thông
+điệp mở đầu bằng đường dẫn tới trường sai, để tầng API đưa vào `details.fields`.
+
+### 5.3 Chưa học một môn và đổi môn
+
+`skip` (chưa muốn học môn này ở học kỳ đang gợi ý) và `swap` (đổi một môn lấy môn khác) không đổi điểm hay
+trạng thái của học phần nào. Chúng chỉ đổi bước chọn `k` phần tử của mục 5, sau khi đã áp `assumptions`:
+
+- môn trong `skip` và `swap[].course_code` bị loại khỏi danh sách đã xếp hạng, nên môn xếp kế tiếp lên thế chỗ;
+- môn `swap[].replacement` được `pick_items()` xét **trước** mọi môn khác, nên luôn có chỗ và chiếm tín chỉ
+  khối tự chọn trước các môn xếp trên nó; danh sách trả về vẫn sắp theo mục 5, nên môn chọn thay đứng ở vị
+  trí đúng với điểm của nó, không nhất thiết ở chỗ của môn bị đổi;
+- luật khối vẫn áp cho môn chọn thay: nếu nó làm khối không còn hoàn thành đúng số tín chỉ được thì
+  `recommend()` raise `ValueError` chỉ vào `swap[i].replacement`, chứ không lặng lẽ bỏ nó đi.
+
+Môn chọn thay giữ nguyên `reasons` thật của nó, kể cả khi điểm thấp: lời giải thích nói vì sao môn đó tốt
+hay không tốt, còn việc nó có mặt là do sinh viên chọn — client đã biết điều đó vì chính nó gửi `swap`.
+Mọi kiểm tra đầu vào nằm ở `whatif.check_choices()`: mã phải thuộc khung, đang là `retake` hoặc `eligible`,
+không lặp lại trong `skip` và `swap`, và số môn chọn thay không vượt `k`.
 
 ## 6. Những quyết định có thể bàn lại
 
@@ -164,11 +248,20 @@ Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng 
 | `unlocks` | Đếm trên khung | Chỉ đếm môn sinh viên chưa đạt — sát với "mở khóa cho tôi" hơn, nhưng con số đổi theo từng sinh viên |
 | `strong_topic`, `interest` | Chỉ xét chủ đề chính | Xét cả chủ đề phụ, lấy chủ đề có trọng số cao nhất |
 | Mốc đạt trần | 10 học phần, 2 học kỳ | Chuẩn hóa theo giá trị lớn nhất trong chính khung |
-| Trần khối tự chọn | Chọn tham lam từ trên xuống | Tối ưu tổ hợp theo tổng điểm |
+| Khối tự chọn | Tham lam từ trên xuống, giữ khối hoàn thành đúng được | Tối ưu tổ hợp theo tổng điểm |
 
-Chưa có mốc nào trong bảng này được chọn bằng số đo, vì bất biến "Có ích" (precision@k so với
-`data/synthetic/course_registrations.csv`) chưa có ngưỡng — mục 10 của hợp đồng còn để mở. Khi có số đo
-đầu tiên, đây là bốn chỗ nên thử trước.
+Chưa có mốc nào trong bảng này được chọn bằng số đo. Bất biến "Có ích" (mục 7 của hợp đồng) giờ đã có
+ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic` sinh với trần 40 tín chỉ mỗi kỳ:
+
+| Phiên bản | precision@5 | precision@10 |
+| --- | --- | --- |
+| 1.0.0 | 0,8890 | 0,5620 |
+| 1.0.1 | 0,8900 | 0,5625 |
+
+precision@10 thấp vì mỗi sinh viên chỉ đăng ký trung bình 6,2 môn, nên trần của nó khoảng 0,62. Đăng ký dự
+kiến được sinh theo lộ trình chuẩn của khung — môn nợ trước, rồi môn đúng hoặc trễ kỳ — trùng ba tiêu chí
+nặng nhất ở mục 2, nên con số này chỉ dùng để chống thụt lùi, chưa đủ để chọn giữa các phương án trong
+bảng. Muốn so các phương án cần một thước đo không dựng từ chính các tiêu chí đó.
 
 ## 7. Phiên bản
 
@@ -177,8 +270,13 @@ Chưa có mốc nào trong bảng này được chọn bằng số đo, vì bấ
 | Hằng số | Giá trị |
 | --- | --- |
 | `ALGORITHM` | `rule_based_weighted` |
-| `ALGORITHM_VERSION` | `1.0.0` |
+| `ALGORITHM_VERSION` | `1.0.1` |
 
 Tăng `ALGORITHM_VERSION` mỗi khi **cách tính điểm hoặc cách dựng lời giải thích** thay đổi, kể cả khi chỉ
 đổi một mốc đạt trần hay sửa câu chữ của `text`. Đổi trọng số mặc định cũng là đổi cách tính điểm. Thêm
 trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, phải sửa mục 4.4 và mục 6.6 cùng lúc.
+
+| Phiên bản | Thay đổi |
+| --- | --- |
+| 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
+| 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3; phản hồi có `not_eligible` kèm `text` cho mọi học phần không gợi ý được |
