@@ -113,6 +113,6 @@ def test_recommendations_are_valid_plans(repo_all):
     students = repo_all.students()
     student = students[(students["university_code"] == "DEMO")
                        & (students["student_code"] == "T01")].iloc[0]
-    codes = [item["course_code"] for item in recommend(repo_all, student)]
+    codes = [item["course_code"] for item in recommend(repo_all, student)["items"]]
     assert codes
     assert check_plan(repo_all, student, codes) == []
