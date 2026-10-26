@@ -1,0 +1,34 @@
+[
+  {
+    "curriculum_code": "HUS-7460108-2022",
+    "university_code": "HUS",
+    "major_code": "7460108",
+    "major_name": "Khoa học dữ liệu",
+    "name": "Chương trình chuẩn",
+    "program_type": "standard",
+    "effective_from_cohort": 2022,
+    "effective_to_cohort": null,
+    "total_credits": 127,
+    "standard_semesters": 8,
+    "max_credits_per_term": 21,
+    "pass_score": 4.0,
+    "max_score": 10.0,
+    "status": "active"
+  },
+  {
+    "curriculum_code": "HUS-7480113QTD-2022",
+    "university_code": "HUS",
+    "major_code": "7480113QTD",
+    "major_name": "Khoa học máy tính và thông tin",
+    "name": "Chương trình chuẩn",
+    "program_type": "standard",
+    "effective_from_cohort": 2022,
+    "effective_to_cohort": null,
+    "total_credits": 129,
+    "standard_semesters": 8,
+    "max_credits_per_term": 21,
+    "pass_score": 4.0,
+    "max_score": 10.0,
+    "status": "active"
+  }
+]

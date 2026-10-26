@@ -1,0 +1,107 @@
+[
+  {
+    "term_code": "20221",
+    "term_no": 1,
+    "name": "Học kỳ 1 năm học 2022–2023",
+    "academic_year_code": "2022-2023",
+    "start_year": 2022
+  },
+  {
+    "term_code": "20222",
+    "term_no": 2,
+    "name": "Học kỳ 2 năm học 2022–2023",
+    "academic_year_code": "2022-2023",
+    "start_year": 2022
+  },
+  {
+    "term_code": "20223",
+    "term_no": 3,
+    "name": "Học kỳ hè năm học 2022–2023",
+    "academic_year_code": "2022-2023",
+    "start_year": 2022
+  },
+  {
+    "term_code": "20231",
+    "term_no": 1,
+    "name": "Học kỳ 1 năm học 2023–2024",
+    "academic_year_code": "2023-2024",
+    "start_year": 2023
+  },
+  {
+    "term_code": "20232",
+    "term_no": 2,
+    "name": "Học kỳ 2 năm học 2023–2024",
+    "academic_year_code": "2023-2024",
+    "start_year": 2023
+  },
+  {
+    "term_code": "20233",
+    "term_no": 3,
+    "name": "Học kỳ hè năm học 2023–2024",
+    "academic_year_code": "2023-2024",
+    "start_year": 2023
+  },
+  {
+    "term_code": "20241",
+    "term_no": 1,
+    "name": "Học kỳ 1 năm học 2024–2025",
+    "academic_year_code": "2024-2025",
+    "start_year": 2024
+  },
+  {
+    "term_code": "20242",
+    "term_no": 2,
+    "name": "Học kỳ 2 năm học 2024–2025",
+    "academic_year_code": "2024-2025",
+    "start_year": 2024
+  },
+  {
+    "term_code": "20243",
+    "term_no": 3,
+    "name": "Học kỳ hè năm học 2024–2025",
+    "academic_year_code": "2024-2025",
+    "start_year": 2024
+  },
+  {
+    "term_code": "20251",
+    "term_no": 1,
+    "name": "Học kỳ 1 năm học 2025–2026",
+    "academic_year_code": "2025-2026",
+    "start_year": 2025
+  },
+  {
+    "term_code": "20252",
+    "term_no": 2,
+    "name": "Học kỳ 2 năm học 2025–2026",
+    "academic_year_code": "2025-2026",
+    "start_year": 2025
+  },
+  {
+    "term_code": "20253",
+    "term_no": 3,
+    "name": "Học kỳ hè năm học 2025–2026",
+    "academic_year_code": "2025-2026",
+    "start_year": 2025
+  },
+  {
+    "term_code": "20261",
+    "term_no": 1,
+    "name": "Học kỳ 1 năm học 2026–2027",
+    "academic_year_code": "2026-2027",
+    "start_year": 2026
+  },
+  {
+    "term_code": "20262",
+    "term_no": 2,
+    "name": "Học kỳ 2 năm học 2026–2027",
+    "academic_year_code": "2026-2027",
+    "start_year": 2026
+  },
+  {
+    "term_code": "20263",
+    "term_no": 3,
+    "name": "Học kỳ hè năm học 2026–2027",
+    "academic_year_code": "2026-2027",
+    "start_year": 2026
+  }
+]

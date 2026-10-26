@@ -1,0 +1,121 @@
+{
+  "university_code": "HUS",
+  "student_code": "T03",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "term": "20261",
+  "algorithm_version": "1.0.0",
+  "what_if": false,
+  "weights": {
+    "outstanding_retake": 3.0,
+    "overdue": 2.0,
+    "on_time": 2.0,
+    "unlocks": 1.5,
+    "strong_topic": 1.0,
+    "interest": 0.5
+  },
+  "candidate_count": 16,
+  "items": [
+    {
+      "rank": 1,
+      "course_code": "MAT2505",
+      "course_name": "Lập trình cơ bản",
+      "credits": 3,
+      "block_code": "III",
+      "status": "retake",
+      "score": 5.5,
+      "reasons": [
+        {
+          "code": "outstanding_retake",
+          "contribution": 3.0,
+          "text": "Bạn chưa đạt môn này ở học kỳ 20252 (điểm 3,0).",
+          "data": {
+            "term_code": "20252",
+            "score": 3.0,
+            "attempt_no": 1
+          }
+        },
+        {
+          "code": "unlocks",
+          "contribution": 1.5,
+          "text": "Đạt môn này sẽ mở khóa 12 học phần khác của chương trình.",
+          "data": {
+            "count": 12,
+            "course_codes": [
+              "MAT1202",
+              "MAT3373E",
+              "MAT3505",
+              "MAT3506",
+              "MAT3507",
+              "MAT3514",
+              "MAT3519",
+              "MAT3539",
+              "MAT3550E",
+              "MAT3554E",
+              "MAT3558",
+              "MAT3560"
+            ]
+          }
+        },
+        {
+          "code": "overdue",
+          "contribution": 1.0,
+          "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
+          "data": {
+            "recommended_semester": 2,
+            "target_semester": 3,
+            "semesters_late": 1
+          }
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "course_code": "MAT2323",
+      "course_name": "Xác suất - Thống kê",
+      "credits": 4,
+      "block_code": "IV",
+      "status": "eligible",
+      "score": 2.75,
+      "reasons": [
+        {
+          "code": "on_time",
+          "contribution": 2.0,
+          "text": "Đúng kỳ dự kiến của chương trình (kỳ 3).",
+          "data": {
+            "recommended_semester": 3,
+            "target_semester": 3
+          }
+        },
+        {
+          "code": "unlocks",
+          "contribution": 0.75,
+          "text": "Đạt môn này sẽ mở khóa 5 học phần khác của chương trình.",
+          "data": {
+            "count": 5,
+            "course_codes": [
+              "MAT3452",
+              "MAT3453",
+              "MAT3533",
+              "MAT3534",
+              "MAT3535"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "not_eligible": [
+    {
+      "course_code": "MAT3533",
+      "course_name": "Học máy",
+      "credits": 3,
+      "status": "missing_prerequisite",
+      "missing_prerequisites": [
+        [
+          "MAT2323"
+        ]
+      ],
+      "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."
+    }
+  ]
+}
