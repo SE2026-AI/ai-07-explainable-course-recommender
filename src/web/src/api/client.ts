@@ -1,86 +1,171 @@
-// Tầng gọi API v1. Đường dẫn và kiểu lấy từ docs/api/openapi.json (src/api/types.ts, sinh tự động).
-// Hiện có 8 endpoint đang chạy thật; endpoint sinh viên (§6.4–6.7) và prerequisite-graph được
-// thêm vào đây khi issue API tương ứng merge và openapi.json có chúng.
-import { ApiError } from "./errors";
-import { mockClient, type MockScenario } from "./mock";
+import catalog from "./mocks/catalog-response.mock.json";
+import graph from "./mocks/graph-response.mock.json";
+import success from "./mocks/recommendation-success.mock.json";
+import empty from "./mocks/recommendation-empty.mock.json";
+import why from "./mocks/why-not.mock.json";
+import unavailable from "./mocks/error-unavailable.mock.json";
 import type {
-  CurriculumCourses,
-  CurriculumDetail,
-  CurriculumSummary,
-  DataIssues,
-  Health,
-  Meta,
-  Term,
-  University,
-} from "./schema";
-
+  ApiError as ApiErrorBody,
+  CatalogPage,
+  Graph,
+  RecommendationRequest,
+  RecommendationResponse,
+  WhyNotRequest,
+  WhyNotResponse,
+} from "./types";
 export type ApiMode = "mock" | "live";
-
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly body: ApiErrorBody,
+  ) {
+    super(body.error.message);
+    this.name = "ApiError";
+  }
+  get code() {
+    return this.body.error.code;
+  }
+  get retryable() {
+    return this.body.error.retryable;
+  }
+  get fieldErrors(): Record<string, string> {
+    const errors = this.body.error.details?.errors;
+    if (!Array.isArray(errors)) return {};
+    return Object.fromEntries(
+      errors
+        .filter(
+          (e): e is { field: string; message: string } =>
+            typeof e?.field === "string" && typeof e?.message === "string",
+        )
+        .map((e) => [e.field, e.message]),
+    );
+  }
+}
 export interface ApiClient {
-  readonly mode: ApiMode;
-  health(signal?: AbortSignal): Promise<Health>;
-  meta(signal?: AbortSignal): Promise<Meta>;
-  universities(signal?: AbortSignal): Promise<University[]>;
-  terms(uni: string, signal?: AbortSignal): Promise<Term[]>;
-  curricula(uni: string, signal?: AbortSignal): Promise<CurriculumSummary[]>;
-  curriculum(uni: string, curriculumCode: string, signal?: AbortSignal): Promise<CurriculumDetail>;
-  curriculumCourses(
-    uni: string,
-    curriculumCode: string,
+  mode: ApiMode;
+  courses(
+    version?: string,
     signal?: AbortSignal,
-  ): Promise<CurriculumCourses>;
-  dataIssues(signal?: AbortSignal): Promise<DataIssues>;
+    cursor?: string,
+  ): Promise<CatalogPage>;
+  graph(version: string, signal?: AbortSignal): Promise<Graph>;
+  recommend(
+    request: RecommendationRequest,
+    signal?: AbortSignal,
+  ): Promise<RecommendationResponse>;
+  whyNot(request: WhyNotRequest, signal?: AbortSignal): Promise<WhyNotResponse>;
 }
-
-/** Ghép đường dẫn, mã hóa từng mã tự nhiên trong path. */
-function path(strings: TemplateStringsArray, ...codes: string[]): string {
-  return strings.reduce((out, s, i) => out + s + (i < codes.length ? encodeURIComponent(codes[i]) : ""), "");
-}
-
 export function createLiveClient(baseUrl = "/v1"): ApiClient {
-  const root = baseUrl.replace(/\/$/, "");
-
-  async function get<T>(route: string, signal?: AbortSignal): Promise<T> {
+  async function call<T>(
+    method: string,
+    path: string,
+    payload?: unknown,
+    signal?: AbortSignal,
+  ): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(root + route, { headers: { Accept: "application/json" }, signal });
+      response = await fetch(`${baseUrl.replace(/\/$/, "")}${path}`, {
+        method,
+        signal,
+        headers: { "Content-Type": "application/json" },
+        body: payload === undefined ? undefined : JSON.stringify(payload),
+      });
     } catch (error) {
-      if (signal?.aborted || (error as { name?: unknown })?.name === "AbortError") throw error;
-      throw new ApiError(0, "network_error", "Không kết nối được API.");
+      if (error instanceof Error && error.name === "AbortError") throw error;
+      throw new ApiError(0, {
+        request_id: "",
+        contract_version: "0.1.0",
+        error: {
+          code: "NETWORK_ERROR",
+          message: "Không kết nối được API.",
+          retryable: true,
+        },
+      });
     }
-    let body: unknown;
+    let data: unknown;
     try {
-      body = await response.json();
+      data = await response.json();
     } catch {
-      throw new ApiError(response.status, "bad_response", "API trả về dữ liệu không phải JSON.");
+      throw new ApiError(response.status, {
+        request_id: "",
+        contract_version: "0.1.0",
+        error: {
+          code: "BAD_RESPONSE",
+          message: "API trả về dữ liệu không phải JSON.",
+          retryable: response.status >= 500,
+        },
+      });
     }
-    if (!response.ok) throw ApiError.fromBody(response.status, body);
-    // §9.5: trường lạ được giữ nguyên và bỏ qua, không kiểm tra chặt để không vỡ khi API thêm trường.
-    return body as T;
+    if (!response.ok) {
+      const body = data as Partial<ApiErrorBody> | null;
+      throw new ApiError(
+        response.status,
+        body?.error
+          ? (body as ApiErrorBody)
+          : {
+              request_id: "",
+              contract_version: "0.1.0",
+              error: {
+                code: "HTTP_ERROR",
+                message: `HTTP ${response.status}`,
+                retryable: response.status >= 500,
+              },
+            },
+      );
+    }
+    return data as T;
   }
-
   return {
     mode: "live",
-    health: (s) => get("/health", s),
-    meta: (s) => get("/meta", s),
-    universities: (s) => get("/universities", s),
-    terms: (uni, s) => get(path`/universities/${uni}/terms`, s),
-    curricula: (uni, s) => get(path`/universities/${uni}/curricula`, s),
-    curriculum: (uni, code, s) => get(path`/universities/${uni}/curricula/${code}`, s),
-    curriculumCourses: (uni, code, s) => get(path`/universities/${uni}/curricula/${code}/courses`, s),
-    dataIssues: (s) => get("/data-issues", s),
+    courses: (version, signal, cursor) => {
+      const query = new URLSearchParams({ limit: "100" });
+      if (version) query.set("catalog_version", version);
+      if (cursor) query.set("cursor", cursor);
+      return call("GET", `/catalog/courses?${query}`, undefined, signal);
+    },
+    graph: (v, s) =>
+      call(
+        "GET",
+        `/catalog/graph?catalog_version=${encodeURIComponent(v)}`,
+        undefined,
+        s,
+      ),
+    recommend: (r, s) => call("POST", "/recommendations", r, s),
+    whyNot: (r, s) => call("POST", "/why-not", r, s),
   };
 }
-
-export function createMockClient(scenario: MockScenario = "success"): ApiClient {
-  return mockClient(scenario);
+export type MockScenario = "success" | "empty" | "unavailable";
+export function createMockClient(
+  scenario: MockScenario = "success",
+): ApiClient {
+  async function replay<T>(data: T, signal?: AbortSignal): Promise<T> {
+    signal?.throwIfAborted();
+    if (scenario === "unavailable") throw new ApiError(503, unavailable);
+    return structuredClone(data);
+  }
+  return {
+    mode: "mock",
+    courses: (_v, s) => replay(catalog, s),
+    graph: (_v, s) => replay(graph, s),
+    recommend: (_r, s) =>
+      replay(
+        (scenario === "empty" ? empty : success) as RecommendationResponse,
+        s,
+      ),
+    whyNot: (r, s) =>
+      replay(
+        {
+          ...why,
+          results: why.results.filter((row) =>
+            r.course_ids.includes(row.course_id),
+          ),
+        },
+        s,
+      ),
+  };
 }
-
-export function createApiClient(env: ImportMetaEnv = import.meta.env): ApiClient {
-  return env.VITE_API_MODE === "live"
-    ? createLiveClient(env.VITE_API_BASE_URL || "/v1")
+export function createApiClient(): ApiClient {
+  return import.meta.env.VITE_API_MODE === "live"
+    ? createLiveClient(import.meta.env.VITE_API_BASE_URL || "/v1")
     : createMockClient();
 }
-
-export { ApiError };
-export type { MockScenario };

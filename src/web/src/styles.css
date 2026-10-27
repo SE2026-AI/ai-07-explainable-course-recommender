@@ -8,10 +8,10 @@
   --line: #dde3ea;
   --line-soft: #eef1f5;
   --control: #cbd3dd;
-  --accent: #1f4fd8;
+  --accent: #0b5cab; /* HUS blue */
   --accent-ink: #ffffff;
-  --accent-soft: #e8eefc;
-  --accent-deep: #163a9e;
+  --accent-soft: #e6f0fa;
+  --accent-deep: #083f78;
   --blocked: #b4480b;
   --blocked-ink: #9a3d0a;
   --blocked-soft: #fdf1e8;
@@ -23,9 +23,9 @@
   --err-bg: #fdecec;
   --err-line: #c53030;
   /* score components — differ in lightness, not hue alone */
-  --c-goal: #1e3a8a;
-  --c-interest: #4f7bea;
-  --c-prep: #9db8f2;
+  --c-goal: #083f78;
+  --c-interest: #2f86d6;
+  --c-prep: #9cc6ee;
   --c-workload: #d98a1c;
   --radius: 14px;
   --font-ui: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -1625,25 +1625,47 @@ button.gnode.failed .gnode-sub {
 
 .app-header {
   max-width: 1120px;
-  margin: auto;
-  padding: 28px 24px;
+  margin: 0 auto 24px;
+  padding: 20px 24px 0;
+  background: var(--panel);
+  border-top: 4px solid var(--accent);
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+.brand img {
+  max-width: 100%;
+  height: auto;
 }
 .app-header h1 {
-  font-size: 28px;
+  margin: 0;
+  font-size: 20px;
+  color: var(--accent-deep);
 }
 nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
-  margin-top: 18px;
+  gap: 4px;
+  margin-top: 16px;
 }
 nav a {
-  color: var(--ink);
-  padding: 8px;
+  color: var(--muted);
+  padding: 12px 16px;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+}
+nav a:hover {
+  color: var(--accent);
 }
 nav a.active {
+  color: var(--accent);
   font-weight: 700;
-  border-bottom: 2px solid currentColor;
+  border-bottom-color: var(--accent);
 }
 .route-content {
   max-width: 1120px;
@@ -1658,62 +1680,4 @@ nav a.active {
 }
 .card-title a {
   color: inherit;
-}
-
-/* WEB-1: bảng khung chương trình và điều kiện tiên quyết */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.93rem;
-}
-.table caption {
-  text-align: left;
-  font-weight: 600;
-  padding: 0.5rem 0;
-}
-.table th,
-.table td {
-  text-align: left;
-  vertical-align: top;
-  padding: 0.45rem 0.6rem;
-  border-bottom: 1px solid var(--line-soft);
-}
-.table th {
-  color: var(--muted);
-  font-weight: 600;
-}
-.facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
-  margin: 0 0 1rem;
-}
-.facts dt {
-  color: var(--faint);
-  font-size: 0.85rem;
-}
-.facts dd {
-  margin: 0;
-  font-weight: 600;
-}
-.prereq-and {
-  color: var(--ink);
-  text-transform: uppercase;
-  font-size: 0.8rem;
-}
-.prereq-or {
-  color: var(--accent-deep);
-  font-size: 0.85rem;
-}
-.issues {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.issues li {
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--line-soft);
-}
-.top-tools a {
-  margin-right: 0.75rem;
 }

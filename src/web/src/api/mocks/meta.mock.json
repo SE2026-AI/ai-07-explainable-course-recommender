@@ -1,0 +1,36 @@
+{
+  "request_id": "req-d9f172e1fed1",
+  "contract_version": "0.1.0",
+  "catalog_version": "catalog-demo-v1",
+  "available_catalog_versions": [
+    "catalog-demo-v1",
+    "catalog-synthetic-v1"
+  ],
+  "goals": [
+    {
+      "goal_id": "DATA_ANALYST",
+      "title": "Data Analyst"
+    },
+    {
+      "goal_id": "ML_ENGINEER",
+      "title": "Machine Learning Engineer"
+    },
+    {
+      "goal_id": "SWE",
+      "title": "Software Engineer"
+    }
+  ],
+  "topics": [
+    "AI",
+    "DATA",
+    "MATH",
+    "PROCESS",
+    "PROGRAMMING"
+  ],
+  "terms": [
+    "2027-FALL",
+    "2027-SPRING",
+    "2028-FALL",
+    "2028-SPRING"
+  ]
+}

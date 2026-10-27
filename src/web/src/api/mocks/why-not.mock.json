@@ -1,0 +1,1 @@
+﻿{"request_id":"req-why-blocked","catalog_version":"catalog-demo-v1","results":[{"course_id":"AI301","eligible":false,"direct_missing_prerequisite_ids":["ST201"],"transitive_missing_paths":[["ST201","AI301"]],"reason_codes":["MISSING_PREREQUISITE"],"evidence_refs":[{"source":"catalog-demo-v1","record_id":"AI301"}]}]}

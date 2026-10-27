@@ -1,0 +1,1 @@
+﻿{"path":"/v1/catalog/courses","query":{"catalog_version":"catalog-demo-v1","q":"data","limit":50,"cursor":null},"expect":"200"}
