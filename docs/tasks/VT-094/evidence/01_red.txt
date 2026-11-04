@@ -1,0 +1,170 @@
+FFFFFF..FFFF.FF...FF                                                     [100%]
+================================== FAILURES ===================================
+________________ test_t01_response_mapping_and_committed_event ________________
+test\test_vt094_notifications.py:32: in test_t01_response_mapping_and_committed_event
+    assert len(observed) == 1, 'completed transaction must notify exactly once in this execution'
+E   AssertionError: completed transaction must notify exactly once in this execution
+E   assert 0 == 1
+E    +  where 0 = len([])
+_________________ test_t02_sender_error_does_not_undo_commit __________________
+test\test_vt094_notifications.py:47: in test_t02_sender_error_does_not_undo_commit
+    assert hasattr(app.state, 'notifier'), 'missing failure-isolated notification worker'
+E   AssertionError: missing failure-isolated notification worker
+E   assert False
+E    +  where False = hasattr(<starlette.datastructures.State object at 0x000001EAE478A5D0>, 'notifier')
+E    +    where <starlette.datastructures.State object at 0x000001EAE478A5D0> = <fastapi.applications.FastAPI object at 0x000001EAE478A210>.state
+_____________ test_t03_sender_timeout_does_not_hold_main_request ______________
+test\test_vt094_notifications.py:59: in test_t03_sender_timeout_does_not_hold_main_request
+    assert hasattr(app.state, 'notifier'), 'missing bounded sender timeout'
+E   AssertionError: missing bounded sender timeout
+E   assert False
+E    +  where False = hasattr(<starlette.datastructures.State object at 0x000001EAE4854F50>, 'notifier')
+E    +    where <starlette.datastructures.State object at 0x000001EAE4854F50> = <fastapi.applications.FastAPI object at 0x000001EAE48547D0>.state
+____________ test_t04_invalid_partition_rejected_before_db[empty] _____________
+test\test_vt094_notifications.py:69: in test_t04_invalid_partition_rejected_before_db
+    assert response.status_code == 422
+E   assert 200 == 422
+E    +  where 200 = <Response [200 OK]>.status_code
+___________ test_t04_invalid_partition_rejected_before_db[large101] ___________
+test\test_vt094_notifications.py:69: in test_t04_invalid_partition_rejected_before_db
+    assert response.status_code == 422
+E   assert 200 == 422
+E    +  where 200 = <Response [200 OK]>.status_code
+____________ test_t04_invalid_partition_rejected_before_db[code33] ____________
+test\test_vt094_notifications.py:69: in test_t04_invalid_partition_rejected_before_db
+    assert response.status_code == 422
+E   assert 200 == 422
+E    +  where 200 = <Response [200 OK]>.status_code
+______________ test_t05_oversized_input_never_queries_repository ______________
+test\test_vt094_notifications.py:80: in test_t05_oversized_input_never_queries_repository
+    assert response.status_code == 422
+E   assert 500 == 422
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+------------------------------ Captured log call ------------------------------
+ERROR    api.errors:errors.py:113 Lỗi không lường trước: oversized input reached domain/repository
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py", line 109, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py", line 387, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py", line 288, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 98, in plan_check
+    return await run_in_threadpool(primary, body)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\_backends\_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\_backends\_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 91, in primary
+    result = post_plan_check("HUS", "T03", PlanCheckBodyIn(course_codes=body.course_codes), repo)
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\src\api\routers\recommendations.py", line 211, in post_plan_check
+    student, effective_term = load_student(repo, uni, student_code, body.term)
+                              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\src\api\services\students.py", line 78, in load_student
+    validate_university(repo, university_code)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\src\api\services\students.py", line 22, in validate_university
+    unis = repo.universities()
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\test\test_vt094_notifications.py", line 76, in universities
+    raise AssertionError('oversized input reached domain/repository')
+AssertionError: oversized input reached domain/repository
+_ test_t06_invalid_business_plan_still_has_completed_event[codes0-not_in_curriculum] _
+test\test_vt094_notifications.py:96: in test_t06_invalid_business_plan_still_has_completed_event
+    assert len(events) == 1 and events[0]['valid'] is False
+E   assert (0 == 1)
+E    +  where 0 = len([])
+_ test_t06_invalid_business_plan_still_has_completed_event[codes1-duplicate_course] _
+test\test_vt094_notifications.py:96: in test_t06_invalid_business_plan_still_has_completed_event
+    assert len(events) == 1 and events[0]['valid'] is False
+E   assert (0 == 1)
+E    +  where 0 = len([])
+________ test_t07_upper_partition_100_preserves_result_and_small_event ________
+test\test_vt094_notifications.py:110: in test_t07_upper_partition_100_preserves_result_and_small_event
+    assert len(events) == 1 and events[0]['course_count'] == 100
+E   assert (0 == 1)
+E    +  where 0 = len([])
+_______________________ test_t09_queue_full_is_bounded ________________________
+test\test_vt094_notifications.py:130: in test_t09_queue_full_is_bounded
+    assert hasattr(vt, 'Notifier'), 'bounded notification queue is not implemented'
+E   AssertionError: bounded notification queue is not implemented
+E   assert False
+E    +  where False = hasattr(vt, 'Notifier')
+_____________________ test_t10_json_extra_field_rejected ______________________
+test\test_vt094_notifications.py:145: in test_t10_json_extra_field_rejected
+    assert response.status_code == 422 and app.state.audit.rows() == []
+E   assert (200 == 422)
+E    +  where 200 = <Response [200 OK]>.status_code
+____________________ test_t14_saturation_keeps_all_commits ____________________
+test\test_vt094_notifications.py:189: in test_t14_saturation_keeps_all_commits
+    assert started.wait(2), 'no sender started after committed main request'
+E   AssertionError: no sender started after committed main request
+E   assert False
+E    +  where False = wait(2)
+E    +    where wait = <threading.Event at 0x1eae4a21d90: unset>.wait
+________________________ test_t15_empty_code_rejected _________________________
+test\test_vt094_notifications.py:202: in test_t15_empty_code_rejected
+    assert response.status_code == 422 and app.state.audit.rows() == []
+E   assert (200 == 422)
+E    +  where 200 = <Response [200 OK]>.status_code
+============================== warnings summary ===============================
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51
+  C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED test/test_vt094_notifications.py::test_t01_response_mapping_and_committed_event
+FAILED test/test_vt094_notifications.py::test_t02_sender_error_does_not_undo_commit
+FAILED test/test_vt094_notifications.py::test_t03_sender_timeout_does_not_hold_main_request
+FAILED test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[empty]
+FAILED test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[large101]
+FAILED test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[code33]
+FAILED test/test_vt094_notifications.py::test_t05_oversized_input_never_queries_repository
+FAILED test/test_vt094_notifications.py::test_t06_invalid_business_plan_still_has_completed_event[codes0-not_in_curriculum]
+FAILED test/test_vt094_notifications.py::test_t06_invalid_business_plan_still_has_completed_event[codes1-duplicate_course]
+FAILED test/test_vt094_notifications.py::test_t07_upper_partition_100_preserves_result_and_small_event
+FAILED test/test_vt094_notifications.py::test_t09_queue_full_is_bounded - Ass...
+FAILED test/test_vt094_notifications.py::test_t10_json_extra_field_rejected
+FAILED test/test_vt094_notifications.py::test_t14_saturation_keeps_all_commits
+FAILED test/test_vt094_notifications.py::test_t15_empty_code_rejected - asser...
+14 failed, 6 passed, 1 warning in 8.90s
