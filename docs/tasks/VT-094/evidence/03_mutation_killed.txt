@@ -1,0 +1,20 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_t01_response_mapping_and_committed_event ________________
+test\test_vt094_notifications.py:31: in test_t01_response_mapping_and_committed_event
+    assert response.json() == expected
+E   AssertionError: assert {'university_...dits': 3, ...} == {'university_...dits': 3, ...}
+E     
+E     Omitting 6 identical items, use -vv to show
+E     Differing items:
+E     {'student_code': 'HUS'} != {'student_code': 'T03'}
+E     Use -v to get more diff
+============================== warnings summary ===============================
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51
+  C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED test/test_vt094_notifications.py::test_t01_response_mapping_and_committed_event
+1 failed, 1 warning in 4.97s

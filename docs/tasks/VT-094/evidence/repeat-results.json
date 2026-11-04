@@ -1,0 +1,20 @@
+[
+  {
+    "run": 0,
+    "order": "reverse",
+    "collected": 20,
+    "exit_code": 0
+  },
+  {
+    "run": 1,
+    "order": "normal",
+    "collected": 20,
+    "exit_code": 0
+  },
+  {
+    "run": 2,
+    "order": "reverse",
+    "collected": 20,
+    "exit_code": 0
+  }
+]

@@ -1,0 +1,21 @@
+commit 3539c220a201a3a9931aadad67ec51f1d54a2b83
+Author:     truongan1203 <truongan1203.hp@gmail.com>
+AuthorDate: Wed Nov 4 22:55:47 2026 +0700
+Commit:     truongan1203 <truongan1203.hp@gmail.com>
+CommitDate: Wed Nov 4 22:55:47 2026 +0700
+
+    experiment(vt094): deliberate wrong student_code response mapping
+
+diff --git a/tools/vt094/app.py b/tools/vt094/app.py
+index e103ec1..f4eae2a 100644
+--- a/tools/vt094/app.py
++++ b/tools/vt094/app.py
+@@ -139,7 +139,7 @@ def create_app(db_path: Path, sender=None, repo=None, queue_size=128, send_timeo
+     def primary(body):
+         result = post_plan_check("HUS", "T03", PlanCheckBodyIn(course_codes=body.course_codes), repo)
+         response = result.model_dump()
+-        response['student_code'] = result.student_code
++        response['student_code'] = result.university_code
+         check_id = audit.save(response)
+         return check_id, response
+ 

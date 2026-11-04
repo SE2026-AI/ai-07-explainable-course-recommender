@@ -1,0 +1,1315 @@
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_queue_full
+notification_send_failed
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\load.py", line 28, in slow_sender
+    await asyncio.Event().wait()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\OneDrive\Desktop\kythuatphanmem\ai-07-explainable-course-recommender\tools\vt094\app.py", line 89, in run
+    await asyncio.wait_for(self.sender(event), timeout=self.timeout)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 506, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\asyncio\timeouts.py", line 117, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError

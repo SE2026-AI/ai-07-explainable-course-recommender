@@ -1,0 +1,29 @@
+{
+  "baseline": "2cbda6b3ebb203b8be1dd664ab60564311be922e",
+  "scaffold_commit": "d88412b",
+  "red_commit": "d9bb48d",
+  "feature_commit": "2a65151",
+  "mutation_commit": "3539c220a201a3a9931aadad67ec51f1d54a2b83",
+  "red": "14 failed,6 passed;no setup errors",
+  "green": "20 passed,1 existing Starlette deprecation warning",
+  "mutation": "killed by T01;student_code HUS != T03",
+  "repeat": "3x20 passed;reverse/normal/reverse",
+  "regression": "117 passed,1 DB-dependent case deselected",
+  "coverage": {
+    "covered_lines": 106,
+    "num_statements": 107,
+    "percent_covered": 98.1651376146789,
+    "percent_covered_display": "98",
+    "missing_lines": 1,
+    "excluded_lines": 0,
+    "percent_statements_covered": 99.06542056074767,
+    "percent_statements_covered_display": "99",
+    "num_branches": 2,
+    "num_partial_branches": 1,
+    "covered_branches": 1,
+    "missing_branches": 1,
+    "percent_branches_covered": 50.0,
+    "percent_branches_covered_display": "50"
+  },
+  "main_src_diff_empty": true
+}

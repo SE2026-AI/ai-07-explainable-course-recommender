@@ -1,0 +1,120 @@
+EEEEEEEEEEEEEFEEEE                                                       [100%]
+=================================== ERRORS ====================================
+_______ ERROR at setup of test_t01_response_mapping_and_committed_event _______
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+________ ERROR at setup of test_t02_sender_error_does_not_undo_commit _________
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+____ ERROR at setup of test_t03_sender_timeout_does_not_hold_main_request _____
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+___ ERROR at setup of test_t04_invalid_partition_rejected_before_db[empty] ____
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+__ ERROR at setup of test_t04_invalid_partition_rejected_before_db[large101] __
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+___ ERROR at setup of test_t04_invalid_partition_rejected_before_db[code33] ___
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+_ ERROR at setup of test_t04_invalid_partition_rejected_before_db[null-code] __
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+_ ERROR at setup of test_t04_invalid_partition_rejected_before_db[wrong-list-type] _
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+_____ ERROR at setup of test_t05_oversized_input_never_queries_repository _____
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+_ ERROR at setup of test_t06_invalid_business_plan_still_has_completed_event[codes0-not_in_curriculum] _
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+_ ERROR at setup of test_t06_invalid_business_plan_still_has_completed_event[codes1-duplicate_course] _
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+_ ERROR at setup of test_t07_upper_partition_100_preserves_result_and_small_event _
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+________ ERROR at setup of test_t08_main_commit_failure_never_notifies ________
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+____________ ERROR at setup of test_t10_json_extra_field_rejected _____________
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+___________ ERROR at setup of test_t11_primary_error_never_notifies ___________
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+____ ERROR at setup of test_t12_code32_unknown_partition_is_domain_result _____
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+___________ ERROR at setup of test_t13_order_shared_state_isolation ___________
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\pytest_asyncio\plugin.py:924: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+E   PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\pytest-of-Administrator'
+================================== FAILURES ===================================
+_______________________ test_t09_queue_full_is_bounded ________________________
+test\test_vt094_notifications.py:130: in test_t09_queue_full_is_bounded
+    assert hasattr(vt, 'Notifier'), 'bounded notification queue is not implemented'
+E   AssertionError: bounded notification queue is not implemented
+E   assert False
+E    +  where False = hasattr(vt, 'Notifier')
+============================== warnings summary ===============================
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51
+  C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED test/test_vt094_notifications.py::test_t09_queue_full_is_bounded - Ass...
+ERROR test/test_vt094_notifications.py::test_t01_response_mapping_and_committed_event
+ERROR test/test_vt094_notifications.py::test_t02_sender_error_does_not_undo_commit
+ERROR test/test_vt094_notifications.py::test_t03_sender_timeout_does_not_hold_main_request
+ERROR test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[empty]
+ERROR test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[large101]
+ERROR test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[code33]
+ERROR test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[null-code]
+ERROR test/test_vt094_notifications.py::test_t04_invalid_partition_rejected_before_db[wrong-list-type]
+ERROR test/test_vt094_notifications.py::test_t05_oversized_input_never_queries_repository
+ERROR test/test_vt094_notifications.py::test_t06_invalid_business_plan_still_has_completed_event[codes0-not_in_curriculum]
+ERROR test/test_vt094_notifications.py::test_t06_invalid_business_plan_still_has_completed_event[codes1-duplicate_course]
+ERROR test/test_vt094_notifications.py::test_t07_upper_partition_100_preserves_result_and_small_event
+ERROR test/test_vt094_notifications.py::test_t08_main_commit_failure_never_notifies
+ERROR test/test_vt094_notifications.py::test_t10_json_extra_field_rejected - ...
+ERROR test/test_vt094_notifications.py::test_t11_primary_error_never_notifies
+ERROR test/test_vt094_notifications.py::test_t12_code32_unknown_partition_is_domain_result
+ERROR test/test_vt094_notifications.py::test_t13_order_shared_state_isolation
+1 failed, 1 warning, 17 errors in 7.01s
