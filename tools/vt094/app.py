@@ -139,7 +139,7 @@ def create_app(db_path: Path, sender=None, repo=None, queue_size=128, send_timeo
     def primary(body):
         result = post_plan_check("HUS", "T03", PlanCheckBodyIn(course_codes=body.course_codes), repo)
         response = result.model_dump()
-        response['student_code'] = result.student_code
+        response['student_code'] = result.university_code
         check_id = audit.save(response)
         return check_id, response
 
