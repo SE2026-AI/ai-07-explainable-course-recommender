@@ -1,0 +1,17 @@
+....................                                                     [100%]
+============================== warnings summary ===============================
+..\..\..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51
+  C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.13.15-final-0 _______________
+
+Name                 Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------------
+tools\vt094\app.py     107      1      2      1    98%   70
+----------------------------------------------------------------
+TOTAL                  107      1      2      1    98%
+Coverage JSON written to file docs/tasks/VT-094/evidence/coverage.json
+20 passed, 1 warning in 7.11s
