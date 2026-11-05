@@ -11,9 +11,10 @@ function examples(heading: string): unknown[] {
   const start = contract.indexOf(heading);
   if (start < 0) throw new Error(`Không thấy mục ${heading} trong api-contract.md`);
   const rest = contract.slice(start + heading.length);
-  const end = rest.search(/\n#{2,3} /);
+  const end = rest.search(/\r?\n#{2,3} /);
   const section = end < 0 ? rest : rest.slice(0, end);
-  return [...section.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
+  // \r?: Windows checkout with core.autocrlf=true gives the contract CRLF line endings.
+  return [...section.matchAll(/```json\r?\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
 }
 
 describe("mock lấy nguyên văn từ api-contract.md", () => {
