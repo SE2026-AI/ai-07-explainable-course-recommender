@@ -1,0 +1,78 @@
+{
+  "university_code": "HUS",
+  "student_code": "T03",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "term": "20261",
+  "summary": {
+    "passed": 10,
+    "retake": 1,
+    "eligible": 15,
+    "missing_prerequisite": 33,
+    "block_complete": 6
+  },
+  "courses": [
+    {
+      "course_code": "MAT2505",
+      "course_name": "Lập trình cơ bản",
+      "credits": 3,
+      "block_code": "III",
+      "status": "retake",
+      "last_attempt": {
+        "term_code": "20252",
+        "attempt_no": 1,
+        "score": 3.0,
+        "letter_grade": "F"
+      },
+      "text": "Cần học lại Lập trình cơ bản: bạn chưa đạt môn này ở học kỳ 20252 (điểm 3,0)."
+    },
+    {
+      "course_code": "MAT3533",
+      "course_name": "Học máy",
+      "credits": 3,
+      "block_code": "V.1",
+      "status": "missing_prerequisite",
+      "missing_prerequisites": [
+        [
+          "MAT2323"
+        ]
+      ],
+      "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."
+    },
+    {
+      "course_code": "FLF1207",
+      "course_name": "Tiếng Nga B1",
+      "credits": 5,
+      "block_code": "I.2",
+      "status": "block_complete",
+      "block": {
+        "block_code": "I.2",
+        "block_name": "Ngoại ngữ B1",
+        "required_credits": 5,
+        "earned_credits": 5
+      },
+      "text": "Không cần học Tiếng Nga B1: khối Ngoại ngữ B1 đã đủ 5/5 tín chỉ."
+    },
+    {
+      "course_code": "MAT2323",
+      "course_name": "Xác suất - Thống kê",
+      "credits": 4,
+      "block_code": "IV",
+      "status": "eligible",
+      "text": "Học được Xác suất - Thống kê: đã đủ điều kiện tiên quyết."
+    },
+    {
+      "course_code": "PHI1006",
+      "course_name": "Triết học Mác - Lênin",
+      "credits": 3,
+      "block_code": "I.1",
+      "status": "passed",
+      "last_attempt": {
+        "term_code": "20251",
+        "attempt_no": 1,
+        "score": 7.5,
+        "letter_grade": "B"
+      },
+      "text": "Đã đạt Triết học Mác - Lênin (điểm 7,5)."
+    }
+  ]
+}

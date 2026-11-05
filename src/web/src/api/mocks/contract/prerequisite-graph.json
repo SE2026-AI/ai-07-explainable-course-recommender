@@ -1,0 +1,62 @@
+{
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "nodes": [
+    {
+      "course_code": "MAT2502",
+      "course_name": "Giải tích 2",
+      "credits": 4,
+      "block_code": "IV",
+      "recommended_semester": 2
+    },
+    {
+      "course_code": "MAT2323",
+      "course_name": "Xác suất - Thống kê",
+      "credits": 4,
+      "block_code": "IV",
+      "recommended_semester": 3
+    },
+    {
+      "course_code": "MAT3507",
+      "course_name": "Cơ sở dữ liệu",
+      "credits": 4,
+      "block_code": "V.1",
+      "recommended_semester": 4
+    },
+    {
+      "course_code": "MAT3533",
+      "course_name": "Học máy",
+      "credits": 3,
+      "block_code": "V.1",
+      "recommended_semester": 5
+    },
+    {
+      "course_code": "MAT3534",
+      "course_name": "Khai phá dữ liệu",
+      "credits": 3,
+      "block_code": "V.2.2",
+      "recommended_semester": 7
+    }
+  ],
+  "edges": [
+    {
+      "course_code": "MAT2323",
+      "group_no": 1,
+      "required_course_code": "MAT2502"
+    },
+    {
+      "course_code": "MAT3533",
+      "group_no": 1,
+      "required_course_code": "MAT2323"
+    },
+    {
+      "course_code": "MAT3534",
+      "group_no": 1,
+      "required_course_code": "MAT3507"
+    },
+    {
+      "course_code": "MAT3534",
+      "group_no": 2,
+      "required_course_code": "MAT2323"
+    }
+  ]
+}

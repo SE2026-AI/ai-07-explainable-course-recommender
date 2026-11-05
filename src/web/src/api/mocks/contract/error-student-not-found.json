@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "student_not_found",
+    "message": "Không tìm thấy sinh viên T99 của trường HUS.",
+    "details": {
+      "university_code": "HUS",
+      "student_code": "T99"
+    }
+  }
+}

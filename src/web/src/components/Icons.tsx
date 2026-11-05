@@ -1,87 +1,96 @@
-// Small inline stroke icons (decorative; always aria-hidden).
-import type { ReactNode } from "react";
+// Bộ icon nét mảnh 20px (vẽ tay theo lưới 24). Luôn đi kèm chữ, nên mặc định aria-hidden.
+import type { ReactNode, SVGProps } from "react";
 
-function Svg({ size = 18, children }: { size?: number; children: ReactNode }) {
+function Svg({ children, ...rest }: SVGProps<SVGSVGElement> & { children: ReactNode }) {
   return (
     <svg
-      width={size}
-      height={size}
+      width={20}
+      height={20}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.9}
+      strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
+      {...rest}
     >
       {children}
     </svg>
   );
 }
 
-export const CapIcon = ({ size = 22 }: { size?: number }) => (
-  <Svg size={size}>
-    <path d="M3 7l9-4 9 4-9 4-9-4z" />
-    <path d="M7 9.5V15c0 1.5 2.2 3 5 3s5-1.5 5-3V9.5" />
-  </Svg>
-);
-export const CheckIcon = () => (
-  <Svg>
-    <path d="M20 6L9 17l-5-5" />
-  </Svg>
-);
-export const LockIcon = () => (
-  <Svg>
-    <rect x="5" y="11" width="14" height="10" rx="2" />
-    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-  </Svg>
-);
-export const ArrowIcon = () => (
-  <Svg size={16}>
-    <path d="M5 12h14" />
-    <path d="M13 6l6 6-6 6" />
-  </Svg>
-);
-export const AlertIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 8v5" />
-    <path d="M12 16h.01" />
-  </Svg>
-);
-export const CloseIcon = () => (
-  <Svg size={16}>
-    <path d="M6 6l12 12" />
-    <path d="M18 6L6 18" />
-  </Svg>
-);
-export const EyeIcon = () => (
-  <Svg size={20}>
-    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
-    <circle cx="12" cy="12" r="3" />
-  </Svg>
-);
-export const UserIcon = () => (
+export const IconUser = () => (
   <Svg>
     <circle cx="12" cy="8" r="4" />
     <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
   </Svg>
 );
-export const StarIcon = () => (
-  <Svg size={16}>
-    <path d="M12 3l1.9 5.6L20 9.3l-4.6 3.7L17 19l-5-3.2L7 19l1.6-6L4 9.3l6.1-.7z" />
+export const IconList = () => (
+  <Svg>
+    <path d="M9 6h11M9 12h11M9 18h11" />
+    <path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2" />
   </Svg>
 );
-export const SparkIcon = () => (
-  <Svg size={16}>
-    <path d="M12 3v4" />
-    <path d="M12 17v4" />
-    <path d="M3 12h4" />
-    <path d="M17 12h4" />
-    <path d="M6.5 6.5l2.5 2.5" />
-    <path d="M15 15l2.5 2.5" />
-    <path d="M17.5 6.5L15 9" />
-    <path d="M9 15l-2.5 2.5" />
+export const IconSparkle = () => (
+  <Svg>
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+    <path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />
+  </Svg>
+);
+export const IconCalendar = () => (
+  <Svg>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4" />
+  </Svg>
+);
+export const IconGraph = () => (
+  <Svg>
+    <circle cx="5" cy="6" r="2" />
+    <circle cx="5" cy="18" r="2" />
+    <circle cx="19" cy="12" r="2" />
+    <path d="M7 6.5l10 5M7 17.5l10-5" />
+  </Svg>
+);
+export const IconBook = () => (
+  <Svg>
+    <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
+    <path d="M4 19V5M8 7h7" />
+  </Svg>
+);
+export const IconAlert = () => (
+  <Svg>
+    <path d="M12 3l9.5 17h-19z" />
+    <path d="M12 10v4M12 17.5v.01" />
+  </Svg>
+);
+export const IconSearch = () => (
+  <Svg>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M20 20l-3.5-3.5" />
+  </Svg>
+);
+export const IconPlus = () => (
+  <Svg>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+export const IconCheck = () => (
+  <Svg>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </Svg>
+);
+export const IconArrowRight = () => (
+  <Svg>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Svg>
+);
+export const IconSliders = () => (
+  <Svg>
+    <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="10" cy="12" r="2" />
+    <circle cx="18" cy="18" r="2" />
   </Svg>
 );
