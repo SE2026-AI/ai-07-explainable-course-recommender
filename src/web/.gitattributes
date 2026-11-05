@@ -1,0 +1,2 @@
+# openapi-typescript --check compares bytes; keep LF on Windows autocrlf checkouts.
+src/api/types.ts text eol=lf
