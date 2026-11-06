@@ -144,6 +144,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/universities/{uni}/curricula/{curriculum_code}/prerequisite-graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sơ đồ tiên quyết của khung CTĐT
+         * @description Sơ đồ môn nào mở khóa môn nào của một khung CTĐT (mục 6.9).
+         */
+        get: operations["get_prerequisite_graph_v1_universities__uni__curricula__curriculum_code__prerequisite_graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/universities/{uni}/students/{student_code}/course-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Trạng thái mọi học phần của khung CTĐT
+         * @description Trả về trạng thái một học phần đối với sinh viên theo hợp đồng mục 6.5.
+         */
+        get: operations["get_student_course_status_v1_universities__uni__students__student_code__course_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/universities/{uni}/students/{student_code}/plan-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kiểm tra kế hoạch đăng ký học kỳ
+         * @description Kiểm tra kế hoạch học tập sinh viên dự định đăng ký theo hợp đồng mục 6.7.
+         */
+        post: operations["post_plan_check_v1_universities__uni__students__student_code__plan_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/universities/{uni}/students/{student_code}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tiến độ học tập của sinh viên
+         * @description Trả về thông tin tiến độ học tập của sinh viên theo hợp đồng mục 6.4.
+         */
+        get: operations["get_student_profile_v1_universities__uni__students__student_code__profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/universities/{uni}/students/{student_code}/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gợi ý học phần cho kỳ tới
+         * @description Trả về danh sách học phần được gợi ý xếp hạng theo hợp đồng mục 6.6.
+         */
+        get: operations["get_recommendations_v1_universities__uni__students__student_code__recommendations_get"];
+        put?: never;
+        /**
+         * Gợi ý học phần với trọng số tùy chỉnh và giả định
+         * @description Gợi ý học phần có thể kèm trọng số tùy chỉnh và kịch bản what-if (mục 6.6).
+         */
+        post: operations["post_recommendations_v1_universities__uni__students__student_code__recommendations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/universities/{uni}/terms": {
         parameters: {
             query?: never;
@@ -168,6 +272,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AssumptionIn
+         * @description Giả định kết quả học tập cho kịch bản what-if (mục 6.6).
+         */
+        AssumptionIn: {
+            /** Course Code */
+            course_code: string;
+            /** Score */
+            score?: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "failed";
+        };
         /**
          * CourseItemOut
          * @description Thông tin một học phần trong khung chương trình (mục 6.3).
@@ -199,6 +318,79 @@ export interface components {
             teaching_language?: string | null;
             /** Topics */
             topics?: string[];
+        };
+        /**
+         * CourseStatusItemOut
+         * @description Trạng thái một học phần đối với một sinh viên (mục 6.5).
+         */
+        CourseStatusItemOut: {
+            block?: components["schemas"]["StatusBlockDetailOut"] | null;
+            /** Block Code */
+            block_code: string;
+            /** Course Code */
+            course_code: string;
+            /** Course Name */
+            course_name: string;
+            /** Credits */
+            credits: number;
+            last_attempt?: components["schemas"]["LastAttemptOut"] | null;
+            /** Missing Prerequisites */
+            missing_prerequisites?: string[][] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "block_complete" | "missing_prerequisite" | "retake" | "eligible";
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * CourseStatusOut
+         * @description Phản hồi trạng thái toàn bộ học phần của khung (mục 6.5).
+         */
+        CourseStatusOut: {
+            /** Courses */
+            courses: components["schemas"]["CourseStatusItemOut"][];
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Student Code */
+            student_code: string;
+            summary: components["schemas"]["CourseStatusSummaryOut"];
+            /** Term */
+            term: string;
+            /** University Code */
+            university_code: string;
+        };
+        /**
+         * CourseStatusSummaryOut
+         * @description Tổng hợp số lượng học phần theo từng trạng thái (mục 6.5).
+         */
+        CourseStatusSummaryOut: {
+            /**
+             * Block Complete
+             * @default 0
+             */
+            block_complete: number;
+            /**
+             * Eligible
+             * @default 0
+             */
+            eligible: number;
+            /**
+             * Missing Prerequisite
+             * @default 0
+             */
+            missing_prerequisite: number;
+            /**
+             * Passed
+             * @default 0
+             */
+            passed: number;
+            /**
+             * Retake
+             * @default 0
+             */
+            retake: number;
         };
         /**
          * CurriculumBlockOut
@@ -368,6 +560,20 @@ export interface components {
             error: components["schemas"]["ErrorBody"];
         };
         /**
+         * LastAttemptOut
+         * @description Thông tin lần học gần nhất (mục 6.5).
+         */
+        LastAttemptOut: {
+            /** Attempt No */
+            attempt_no: number;
+            /** Letter Grade */
+            letter_grade?: string | null;
+            /** Score */
+            score?: number | null;
+            /** Term Code */
+            term_code: string;
+        };
+        /**
          * MetaOut
          * @description Thông tin phiên bản và cấu hình hệ thống (mục 6.1).
          */
@@ -384,6 +590,266 @@ export interface components {
             default_term: string;
             /** Schema Version */
             schema_version: string;
+        };
+        /**
+         * PlanCheckBodyIn
+         * @description Body gửi lên cho POST /v1/.../plan-check (mục 6.7).
+         */
+        PlanCheckBodyIn: {
+            /** Course Codes */
+            course_codes?: string[];
+            /** Term */
+            term?: string | null;
+        };
+        /**
+         * PlanCheckOut
+         * @description Kết quả kiểm tra kế hoạch học kỳ (mục 6.7).
+         */
+        PlanCheckOut: {
+            /** Max Credits Per Term */
+            max_credits_per_term: number;
+            /** Student Code */
+            student_code: string;
+            /** Term */
+            term: string;
+            /** Total Credits */
+            total_credits: number;
+            /** University Code */
+            university_code: string;
+            /** Valid */
+            valid: boolean;
+            /** Violations */
+            violations?: components["schemas"]["PlanViolationOut"][];
+        };
+        /**
+         * PlanViolationOut
+         * @description Một vi phạm trong kế hoạch học kỳ (mục 4.5 và 6.7).
+         */
+        PlanViolationOut: {
+            /** Code */
+            code: string;
+            /** Course Code */
+            course_code?: string | null;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * PrerequisiteGraphEdge
+         * @description Một cạnh trong sơ đồ tiên quyết (mục 6.9).
+         */
+        PrerequisiteGraphEdge: {
+            /** Course Code */
+            course_code: string;
+            /** Group No */
+            group_no: number;
+            /** Required Course Code */
+            required_course_code: string;
+        };
+        /**
+         * PrerequisiteGraphNode
+         * @description Một nút trong sơ đồ tiên quyết (mục 6.9).
+         */
+        PrerequisiteGraphNode: {
+            /** Block Code */
+            block_code: string;
+            /** Course Code */
+            course_code: string;
+            /** Course Name */
+            course_name: string;
+            /** Credits */
+            credits: number;
+            /** Recommended Semester */
+            recommended_semester?: number | null;
+        };
+        /**
+         * PrerequisiteGraphOut
+         * @description Sơ đồ tiên quyết của khung chương trình đào tạo (mục 6.9).
+         */
+        PrerequisiteGraphOut: {
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Edges */
+            edges?: components["schemas"]["PrerequisiteGraphEdge"][];
+            /** Nodes */
+            nodes?: components["schemas"]["PrerequisiteGraphNode"][];
+        };
+        /**
+         * RecommendationBodyIn
+         * @description Body gửi lên cho POST /v1/.../recommendations (mục 6.6).
+         *
+         *     Hình dạng body do schema kiểm; nội dung (mã thuộc khung, đúng trạng thái, không lặp) do tầng xếp hạng kiểm.
+         */
+        RecommendationBodyIn: {
+            /** Assumptions */
+            assumptions?: components["schemas"]["AssumptionIn"][];
+            /**
+             * Limit
+             * @default 5
+             */
+            limit: number;
+            /** Skip */
+            skip?: string[];
+            /** Swap */
+            swap?: components["schemas"]["SwapIn"][];
+            /** Term */
+            term?: string | null;
+            /** Weights */
+            weights?: {
+                [key: string]: number;
+            } | null;
+        };
+        /**
+         * RecommendationItemOut
+         * @description Một học phần được gợi ý trong items (mục 6.6).
+         */
+        RecommendationItemOut: {
+            /** Block Code */
+            block_code: string;
+            /** Course Code */
+            course_code: string;
+            /** Course Name */
+            course_name: string;
+            /** Credits */
+            credits: number;
+            /** Rank */
+            rank: number;
+            /** Reasons */
+            reasons?: components["schemas"]["RecommendationReasonOut"][];
+            /** Score */
+            score: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "retake" | "eligible";
+        };
+        /**
+         * RecommendationReasonOut
+         * @description Lý do và điểm đóng góp cho một học phần được gợi ý (mục 4.4 và 6.6).
+         */
+        RecommendationReasonOut: {
+            /** Code */
+            code: string;
+            /** Contribution */
+            contribution: number;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * RecommendationsOut
+         * @description Phản hồi đầy đủ của endpoint gợi ý học phần (mục 6.6).
+         */
+        RecommendationsOut: {
+            /** Algorithm Version */
+            algorithm_version: string;
+            /** Candidate Count */
+            candidate_count: number;
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Items */
+            items?: components["schemas"]["RecommendationItemOut"][];
+            /** Not Eligible */
+            not_eligible?: components["schemas"]["CourseStatusItemOut"][];
+            /** Student Code */
+            student_code: string;
+            /** Term */
+            term: string;
+            /** University Code */
+            university_code: string;
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /** What If */
+            what_if: boolean;
+        };
+        /**
+         * StatusBlockDetailOut
+         * @description Thông tin khối tự chọn đã hoàn thành (mục 6.5).
+         */
+        StatusBlockDetailOut: {
+            /** Block Code */
+            block_code: string;
+            /** Block Name */
+            block_name: string;
+            /** Earned Credits */
+            earned_credits: number;
+            /** Required Credits */
+            required_credits: number;
+        };
+        /**
+         * StudentProfileBlockOut
+         * @description Tiến độ của một khối kiến thức trong hồ sơ sinh viên (mục 6.4).
+         */
+        StudentProfileBlockOut: {
+            /** Block Code */
+            block_code: string;
+            /** Counts Toward Total */
+            counts_toward_total: boolean;
+            /** Earned Credits */
+            earned_credits: number;
+            /** Required Credits */
+            required_credits: number;
+        };
+        /**
+         * StudentProfileOut
+         * @description Hồ sơ tiến độ học tập của sinh viên (mục 6.4).
+         */
+        StudentProfileOut: {
+            /** Blocks */
+            blocks?: components["schemas"]["StudentProfileBlockOut"][];
+            /** Cohort Year */
+            cohort_year: number;
+            /** Credits Earned */
+            credits_earned: number;
+            /** Credits Outstanding */
+            credits_outstanding: number;
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Full Name */
+            full_name: string;
+            /** Gpa */
+            gpa?: number | null;
+            /** Interests */
+            interests?: string[];
+            /** Major Code */
+            major_code: string;
+            /** Major Name */
+            major_name: string;
+            /** Max Credits Per Term */
+            max_credits_per_term: number;
+            /** Outstanding Courses */
+            outstanding_courses?: string[];
+            /** Student Code */
+            student_code: string;
+            /** Target Semester */
+            target_semester: number;
+            /** Term */
+            term: string;
+            /** Total Credits */
+            total_credits: number;
+            /** University Code */
+            university_code: string;
+            /** Year Of Study */
+            year_of_study: number;
+        };
+        /**
+         * SwapIn
+         * @description Một cặp đổi môn: bỏ `course_code`, đưa `replacement` vào `items` (mục 6.6).
+         */
+        SwapIn: {
+            /** Course Code */
+            course_code: string;
+            /** Replacement */
+            replacement: string;
         };
         /**
          * TermOut
@@ -533,6 +999,15 @@ export interface operations {
             };
             /** @description Lỗi nội bộ hệ thống */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Cơ sở dữ liệu không khả dụng */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -790,6 +1265,379 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurriculumCoursesOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_prerequisite_graph_v1_universities__uni__curricula__curriculum_code__prerequisite_graph_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uni: string;
+                curriculum_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrerequisiteGraphOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_student_course_status_v1_universities__uni__students__student_code__course_status_get: {
+        parameters: {
+            query?: {
+                /** @description Mã học kỳ (mặc định target_term_code) */
+                term?: string | null;
+            };
+            header?: never;
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseStatusOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_plan_check_v1_universities__uni__students__student_code__plan_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanCheckBodyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanCheckOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_student_profile_v1_universities__uni__students__student_code__profile_get: {
+        parameters: {
+            query?: {
+                /** @description Mã học kỳ (mặc định target_term_code) */
+                term?: string | null;
+            };
+            header?: never;
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentProfileOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_recommendations_v1_universities__uni__students__student_code__recommendations_get: {
+        parameters: {
+            query?: {
+                /** @description Mã học kỳ (mặc định target_term_code) */
+                term?: string | null;
+                /** @description Số học phần tối đa cần gợi ý (1-20) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationsOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_recommendations_v1_universities__uni__students__student_code__recommendations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecommendationBodyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationsOut"];
                 };
             };
             /** @description Tài nguyên không tìm thấy */

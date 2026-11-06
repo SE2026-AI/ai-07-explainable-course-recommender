@@ -15,5 +15,14 @@
       "status": "passed",
       "score": 6.0
     }
+  ],
+  "skip": [
+    "MAT2503"
+  ],
+  "swap": [
+    {
+      "course_code": "HIS1056",
+      "replacement": "HUS1024"
+    }
   ]
 }

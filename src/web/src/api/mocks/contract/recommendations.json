@@ -3,7 +3,7 @@
   "student_code": "T03",
   "curriculum_code": "HUS-7480113QTD-2022",
   "term": "20261",
-  "algorithm_version": "1.0.0",
+  "algorithm_version": "1.0.1",
   "what_if": false,
   "weights": {
     "outstanding_retake": 3.0,
@@ -22,7 +22,7 @@
       "credits": 3,
       "block_code": "III",
       "status": "retake",
-      "score": 5.5,
+      "score": 5.7083,
       "reasons": [
         {
           "code": "outstanding_retake",
@@ -65,6 +65,20 @@
             "target_semester": 3,
             "semesters_late": 1
           }
+        },
+        {
+          "code": "strong_topic",
+          "contribution": 0.2083,
+          "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
+          "data": {
+            "topic_code": "lap_trinh",
+            "topic_name": "Lập trình",
+            "average_score": 5.25,
+            "course_codes": [
+              "HUS1011",
+              "MAT2505"
+            ]
+          }
         }
       ]
     },
@@ -75,7 +89,7 @@
       "credits": 4,
       "block_code": "IV",
       "status": "eligible",
-      "score": 2.75,
+      "score": 3.3333,
       "reasons": [
         {
           "code": "on_time",
@@ -100,6 +114,22 @@
               "MAT3535"
             ]
           }
+        },
+        {
+          "code": "strong_topic",
+          "contribution": 0.5833,
+          "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
+          "data": {
+            "topic_code": "toan",
+            "topic_name": "Toán",
+            "average_score": 7.5,
+            "course_codes": [
+              "MAT2400",
+              "MAT2501",
+              "MAT2502",
+              "MAT3500"
+            ]
+          }
         }
       ]
     }
@@ -109,6 +139,7 @@
       "course_code": "MAT3533",
       "course_name": "Học máy",
       "credits": 3,
+      "block_code": "V.1",
       "status": "missing_prerequisite",
       "missing_prerequisites": [
         [

@@ -9,7 +9,7 @@
   "effective_to_cohort": null,
   "total_credits": 129,
   "standard_semesters": 8,
-  "max_credits_per_term": 21,
+  "max_credits_per_term": 40,
   "pass_score": 4.0,
   "max_score": 10.0,
   "status": "active",

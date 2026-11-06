@@ -11,9 +11,10 @@ function examples(heading: string): unknown[] {
   const start = contract.indexOf(heading);
   if (start < 0) throw new Error(`Không thấy mục ${heading} trong api-contract.md`);
   const rest = contract.slice(start + heading.length);
-  const end = rest.search(/\n#{2,3} /);
+  const end = rest.search(/\r?\n#{2,3} /);
   const section = end < 0 ? rest : rest.slice(0, end);
-  return [...section.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
+  // \r?: Windows checkout with core.autocrlf=true gives the contract CRLF line endings.
+  return [...section.matchAll(/```json\r?\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
 }
 
 describe("mock lấy nguyên văn từ api-contract.md", () => {
@@ -27,6 +28,7 @@ describe("mock lấy nguyên văn từ api-contract.md", () => {
     ["### 6.6 ", ["recommendations-request", "recommendations"]],
     ["### 6.7 ", ["plan-check-request", "plan-check"]],
     ["### 6.8 ", ["data-issues"]],
+    ["### 6.9 ", ["prerequisite-graph"]],
   ])("%s", (heading, names) => {
     expect(names.map(fixture)).toEqual(examples(heading));
   });
@@ -34,7 +36,7 @@ describe("mock lấy nguyên văn từ api-contract.md", () => {
   it("có câu tiếng Việt cho mọi mã lỗi trong bảng §5", () => {
     const section = contract.slice(contract.indexOf("## 5. Lỗi"), contract.indexOf("## 6. Endpoint"));
     const codes = [...section.matchAll(/^\| [^|]+ \| `([a-z_]+)` \|/gm)].map((m) => m[1]).filter((c) => c !== "code"); // bỏ dòng tiêu đề
-    expect(codes).toHaveLength(11);
+    expect(codes).toHaveLength(SERVER_ERROR_CODES.length);
     expect([...codes].sort()).toEqual([...SERVER_ERROR_CODES].sort());
     for (const code of codes) expect(hasUserMessage(code), code).toBe(true);
   });

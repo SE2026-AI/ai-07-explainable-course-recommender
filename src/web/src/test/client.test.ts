@@ -5,6 +5,11 @@ import curriculum from "../api/mocks/contract/curriculum.json";
 import courses from "../api/mocks/contract/curriculum-courses.json";
 import dataIssues from "../api/mocks/contract/data-issues.json";
 import studentNotFound from "../api/mocks/contract/error-student-not-found.json";
+import profile from "../api/mocks/contract/profile.json";
+import recommendations from "../api/mocks/contract/recommendations.json";
+import recommendationsRequest from "../api/mocks/contract/recommendations-request.json";
+import planCheck from "../api/mocks/contract/plan-check.json";
+import graph from "../api/mocks/contract/prerequisite-graph.json";
 import health from "../api/mocks/seed/health.json";
 import universities from "../api/mocks/seed/universities.json";
 import terms from "../api/mocks/seed/terms.json";
@@ -76,6 +81,44 @@ describe("live client: 8 endpoint đang chạy", () => {
     const result = await createLiveClient().curriculumCourses("HUS", "HUS-7480113QTD-2022");
     expect(result.courses[0].prerequisite_groups).toEqual([["HUS1011"]]);
     expect(result.count).toBe(65);
+  });
+});
+
+describe("live client: endpoint sinh viên (§6.4–§6.9)", () => {
+  const ref = { uni: "HUS", student: "SV 01" };
+
+  it("GET profile/course-status/recommendations kèm term, limit; bỏ tham số undefined", async () => {
+    const fetcher = stubFetch(json(profile), json(profile), json(recommendations), json(graph));
+    const c = createLiveClient();
+    await c.profile(ref, { term: "20261" });
+    await c.courseStatus(ref, {});
+    await expect(c.recommendations(ref, { term: "20261", limit: 5 })).resolves.toEqual(recommendations);
+    await expect(c.prerequisiteGraph("HUS", "HUS-X")).resolves.toEqual(graph);
+    expect(fetcher.mock.calls.map((call) => call[0])).toEqual([
+      "/v1/universities/HUS/students/SV%2001/profile?term=20261",
+      "/v1/universities/HUS/students/SV%2001/course-status",
+      "/v1/universities/HUS/students/SV%2001/recommendations?term=20261&limit=5",
+      "/v1/universities/HUS/curricula/HUS-X/prerequisite-graph",
+    ]);
+  });
+
+  it("POST recommendations và plan-check gửi body JSON", async () => {
+    const fetcher = stubFetch(json(recommendations), json(planCheck));
+    const c = createLiveClient();
+    await c.recommend(ref, recommendationsRequest as never);
+    await expect(c.planCheck(ref, { course_codes: ["MAT3533"] })).resolves.toEqual(planCheck);
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe("/v1/universities/HUS/students/SV%2001/recommendations");
+    expect(init).toMatchObject({ method: "POST" });
+    expect(JSON.parse(init.body)).toEqual(recommendationsRequest);
+    expect(fetcher.mock.calls[1][0]).toBe("/v1/universities/HUS/students/SV%2001/plan-check");
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ course_codes: ["MAT3533"] });
+  });
+
+  it("mock: what_if chỉ bật khi body có assumptions/skip/swap", async () => {
+    const c = createMockClient();
+    expect((await c.recommend(ref, { limit: 5 })).what_if).toBe(false);
+    expect((await c.recommend(ref, { limit: 5, skip: ["MAT2505"] })).what_if).toBe(true);
   });
 });
 

@@ -13,6 +13,7 @@ export const SERVER_ERROR_CODES = [
   "no_primary_program",
   "validation_error",
   "internal_error",
+  "service_unavailable",
   "http_error",
 ] as const;
 
@@ -44,6 +45,7 @@ const USER_MESSAGES: Record<string, string> = {
   no_primary_program: "Sinh viên chưa có chương trình đào tạo chính đang hoạt động.",
   validation_error: "Dữ liệu gửi đi chưa hợp lệ. Hãy kiểm tra lại các trường được đánh dấu.",
   internal_error: "Máy chủ gặp lỗi không lường trước. Hãy thử lại sau ít phút.",
+  service_unavailable: "Máy chủ API đang chạy nhưng không kết nối được cơ sở dữ liệu. Hãy thử lại sau.",
   network_error: "Không kết nối được tới máy chủ API. Hãy kiểm tra mạng hoặc backend.",
   bad_response: "Máy chủ API trả về dữ liệu không đúng định dạng.",
 };

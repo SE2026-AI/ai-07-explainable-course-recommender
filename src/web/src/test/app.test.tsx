@@ -17,7 +17,7 @@ function renderApp(client: ApiClient, url = "/catalog") {
 describe("App", () => {
   it("hiện algorithm_version từ /v1/meta và bảng học phần của khung", async () => {
     renderApp(createMockClient(), "/catalog?uni=HUS&curriculum=HUS-7480113QTD-2022");
-    expect(await screen.findByTestId("meta")).toHaveTextContent("rule_based_weighted 1.0.0");
+    expect(await screen.findByTestId("meta")).toHaveTextContent("rule_based_weighted 1.0.1");
     const row = (await screen.findByText("MAT2505")).closest("tr")!;
     expect(within(row).getByText("Lập trình cơ bản")).toBeInTheDocument();
     expect(within(row).getByText("HUS1011")).toBeInTheDocument();

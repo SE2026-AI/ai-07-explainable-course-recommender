@@ -40,11 +40,27 @@ Chạy `live`: dựng database và chạy backend theo [`docs/setup.md`](../../d
 | `errors.ts` | `ApiError` theo §5: `status`, `code`, `message`, `details`; `userMessage` là câu tiếng Việt cho người dùng |
 | `mock.ts`, `mocks/` | Mock, ba kịch bản `success`, `empty`, `error` |
 
-Khi `openapi.json` đổi (ví dụ thêm endpoint sinh viên), chạy `npm run gen:api` rồi thêm phương thức vào
+Khi `openapi.json` đổi, chạy `npm run gen:api` rồi thêm phương thức vào
 `client.ts`. `npm run check:api` báo lỗi nếu `types.ts` đã cũ so với `openapi.json`.
 
-Client hiện gọi 8 endpoint đang chạy: `/v1/health`, `/v1/meta`, `/v1/universities`, `.../terms`,
-`.../curricula`, `.../curricula/{code}`, `.../curricula/{code}/courses`, `/v1/data-issues`.
+Client gọi đủ 14 endpoint của `openapi.json`: `/v1/health`, `/v1/meta`, `/v1/universities`, `.../terms`,
+`.../curricula`, `.../curricula/{code}`, `.../curricula/{code}/courses`, `.../curricula/{code}/prerequisite-graph`,
+`/v1/data-issues`, và các endpoint sinh viên `.../students/{student}/profile`, `course-status`,
+`recommendations` (GET và POST), `plan-check`.
+
+## Màn hình
+
+| Route | Nội dung |
+| --- | --- |
+| `/students` | Chọn trường, nhập mã sinh viên (không có đăng nhập) |
+| `/students/:uni/:student/profile` | Hồ sơ (§6.4) |
+| `.../status` | Trạng thái học phần (§6.5) |
+| `.../recommendations` | Gợi ý, trọng số, giả định (§6.6) |
+| `.../plan` | Kế hoạch học kỳ, kiểm tra bằng plan-check (§6.7) |
+| `.../graph` | Sơ đồ tiên quyết (§6.9) |
+| `/catalog`, `/data-issues` | Khung chương trình, vấn đề dữ liệu |
+
+Ghi chú và ảnh chụp: [`docs/ui/web-2-4-screens.md`](../../docs/ui/web-2-4-screens.md).
 
 ### Lỗi
 
@@ -58,7 +74,7 @@ Client hiện gọi 8 endpoint đang chạy: `/v1/health`, `/v1/meta`, `/v1/univ
 
 ### Mock
 
-- `mocks/contract/`: **nguyên văn** các khối JSON của `api-contract.md` §5 và §6.1–6.8. Test
+- `mocks/contract/`: **nguyên văn** các khối JSON của `api-contract.md` §5 và §6.1–6.9. Test
   `contract-fixtures.test.ts` đọc lại file hợp đồng và so từng khối, nên hợp đồng đổi mà mock không đổi thì
   test đỏ.
 - `mocks/seed/`: hợp đồng không có ví dụ cho health, universities, terms, curricula. Bốn file này là phản hồi
@@ -71,4 +87,6 @@ Client hiện gọi 8 endpoint đang chạy: `/v1/health`, `/v1/meta`, `/v1/univ
 - §4.2: `prerequisite_groups` hiện đúng hai tầng, các nhóm nối bằng **và**, mã trong một nhóm nối bằng
   **hoặc** (`components/Prerequisites.tsx`). Không làm phẳng.
 - `algorithm_version` từ `/v1/meta` luôn hiện ở đầu trang (§6.1).
-- Không tính điểm, thứ hạng hay điều kiện tiên quyết ở client.
+- Không tính điểm, thứ hạng hay điều kiện tiên quyết ở client. Câu giải thích lấy từ `text` của server.
+- Không hiện hay ghi log `fairness_group`, `gender`.
+- `npm test` và `npm run check:api` chưa chạy trong CI; chạy tay trước khi mở PR.
