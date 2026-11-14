@@ -292,6 +292,39 @@ class TestPlanUndoVT097(unittest.TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(resp.json()["error"]["code"], "forbidden_plan_access")
 
+    def test_tc12_api_undo_by_explicit_token_rejects_cross_user_idor(self) -> None:
+        """TC-12 [API/Security - Path 2 Auth]: SV khác dùng undo_token bị lộ -> 403 Forbidden."""
+        undo_service._plans.clear()
+        undo_service._latest_snapshot.clear()
+        undo_service._snapshots_by_token.clear()
+        undo_service.seed_plan("HUS", "22001597", "20261", [{"course_code": "MAT3514", "credits": 3}])
+
+        rem_resp = self.client.post(
+            "/v1/universities/HUS/students/22001597/plan/remove",
+            json={"term": "20261", "course_codes": ["MAT3514"]},
+            headers={"X-Actor-Student-Code": "22001597"},
+        )
+        self.assertEqual(rem_resp.status_code, 200)
+        stolen_token = rem_resp.json()["undo_token"]
+
+        # Kẻ tấn công (22009999) truyền trực tiếp stolen_token vào Đường đi 2 (Explicit Token)
+        attack_resp = self.client.post(
+            "/v1/universities/HUS/students/22001597/plan/undo",
+            json={"term": "20261", "undo_token": stolen_token},
+            headers={"X-Actor-Student-Code": "22009999"},
+        )
+        self.assertEqual(attack_resp.status_code, 403)
+        self.assertEqual(attack_resp.json()["error"]["code"], "forbidden_plan_access")
+
+        # Đảm bảo token của chủ sở hữu thật vẫn chưa bị tiêu thụ (consumed=False)
+        owner_resp = self.client.post(
+            "/v1/universities/HUS/students/22001597/plan/undo",
+            json={"term": "20261", "undo_token": stolen_token},
+            headers={"X-Actor-Student-Code": "22001597"},
+        )
+        self.assertEqual(owner_resp.status_code, 200)
+        self.assertEqual(owner_resp.json()["total_credits"], 3)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
