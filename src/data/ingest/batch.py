@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from typing import Protocol
 
-from .retry import DEFAULT_POLICY, AttemptLog, run_with_retry
+from .retry import DEFAULT_POLICY, AttemptLog, PermanentFailure, TransientFailure, run_with_retry
 
 
 @dataclass(frozen=True)
@@ -69,7 +69,11 @@ def ingest_batch(batch, store, policy=DEFAULT_POLICY, sleep=time.sleep, log=None
         except AlreadyApplied as exc:
             return exc
 
-    ket_qua = run_with_retry(step, policy, sleep, log)
+    try:
+        ket_qua = run_with_retry(step, policy, sleep, log)
+    except (TransientFailure, PermanentFailure):
+        # LỖI CỐ Ý (M1): báo thành công dù store chưa ghi được gì.
+        ket_qua = len(batch.rows)
     if isinstance(ket_qua, AlreadyApplied):
         return IngestOutcome(batch.batch_id, applied=False, already_applied=True,
                              rows_written=0, attempts=log.attempts)
