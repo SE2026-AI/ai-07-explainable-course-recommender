@@ -15,9 +15,11 @@ def assert_store_contract(store, batch, conflicting, count_rows):
     """
     assert batch.batch_id == conflicting.batch_id
     assert batch.checksum != conflicting.checksum
+    assert store.seen(batch) is None, "chưa ghi thì sổ phải trống"
 
     assert store.apply(batch) == len(batch.rows)
     assert count_rows() == len(batch.rows)
+    assert store.seen(batch) == (batch.checksum, len(batch.rows))
 
     with pytest.raises(AlreadyApplied):
         store.apply(batch)

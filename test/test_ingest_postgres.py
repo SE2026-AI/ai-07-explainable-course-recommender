@@ -148,3 +148,29 @@ def test_hai_worker_cung_mot_batch_chi_ghi_mot_lan(store, feed, feed_engine):
     assert [r.applied for r in ket_qua].count(True) == 1
     assert [r.already_applied for r in ket_qua].count(True) == 1
     assert imported_rows(feed_engine) == len(feed)
+
+
+def test_dong_du_lieu_vi_pham_rang_buoc_thi_so_cung_khong_con_dau_vet(store, feed, feed_engine):
+    """Ca mà phân tích coverage chỉ ra còn trống: lỗi ràng buộc xảy ra SAU khi sổ đã được ghi.
+
+    Sổ ghi trước, dữ liệu ghi sau, nên nếu một dòng vi phạm ràng buộc thì transaction rollback và
+    sổ phải mất theo - nếu không, batch sẽ bị coi là "đã áp dụng" trong khi không có dòng nào.
+    """
+    truoc = Batch("sis-20261-0106", "sis", feed)
+    assert ingest_batch(truoc, store, POLICY, no_sleep).rows_written == len(feed)
+
+    trung = Batch("sis-20261-0107", "sis", feed)          # cùng (sinh viên, học phần, học kỳ)
+    with pytest.raises(PermanentFailure):
+        ingest_batch(trung, store, POLICY, no_sleep)
+    assert store.seen(trung) is None, "sổ không được giữ batch mà dữ liệu đã rollback"
+    assert imported_rows(feed_engine) == len(feed)
+
+
+def test_batch_rong_van_chiem_mot_cho_trong_so(store, feed_engine):
+    """Batch rỗng là hợp lệ (nguồn báo "kỳ này không có gì mới") và cũng chỉ được tính một lần."""
+    batch = Batch("sis-20261-0108", "sis", ())
+    out = ingest_batch(batch, store, POLICY, no_sleep)
+    assert out.applied and out.rows_written == 0
+    assert store.seen(batch) == (batch.checksum, 0)
+    assert ingest_batch(batch, store, POLICY, no_sleep).already_applied
+    assert imported_rows(feed_engine) == 0
