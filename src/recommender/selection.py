@@ -1,4 +1,5 @@
-"""Chọn nhiều nhất `k` học phần từ danh sách đã xếp hạng, giữ đúng luật khối tự chọn.
+"""Chọn học phần từ danh sách đã xếp hạng, giữ đúng luật khối tự chọn: nhiều nhất `k` môn (`pick_items`,
+mục 6.6) hoặc trong khoảng tín chỉ sinh viên đặt (`pick_within_credits`, mục 6.11).
 
 Khối `choose_credits` phải chọn ĐÚNG `required_credits` tín chỉ (hợp đồng mục 6.2), nên đây là ràng buộc
 cứng: không trọng số nào đưa được một môn làm hỏng khối vào danh sách gợi ý (mục 6.6, quy định 1).
@@ -68,3 +69,64 @@ def pick_items(ranked: list[tuple[dict, str | None]], k: int, required: dict[str
         accepted.add(item["course_code"])
     picked = [item for item, _ in ranked if item["course_code"] in accepted]
     return [{**item, "rank": rank} for rank, item in enumerate(picked, start=1)]
+
+
+def pick_within_credits(ranked: list[tuple[dict, str | None]], max_credits: int, required: dict[str, int],
+                        taken: dict[str, int], open_courses: dict[str, dict[str, int]],
+                        chosen: Collection[str] = (), skipped: Collection[str] = ()
+                        ) -> tuple[list[dict], list[tuple[dict, str, dict]]]:
+    """Đi từ trên xuống `ranked`, nhận môn khi tổng tín chỉ vẫn không vượt `max_credits` và khối tự chọn vẫn
+    hoàn thành đúng được (mục 6.11). Trả về `(items, left_out)`.
+
+    Khác `pick_items()` ở chỗ dừng theo tín chỉ chứ không theo số môn, và môn không vừa thì bỏ qua rồi XÉT
+    TIẾP: còn trống 2 tín chỉ thì môn 2 tín chỉ xếp dưới vẫn vào được. Các tham số còn lại như `pick_items()`.
+    `chosen` là các môn sinh viên muốn học (`include`), xét trước mọi môn khác. `skipped` là các môn sinh viên
+    chưa muốn học kỳ này (`skip`): vẫn nằm trong `ranked` để giữ đúng thứ tự, nhưng không bao giờ được nhận.
+
+    `left_out` liệt kê mọi phần tử không vào `items`, theo thứ tự của `ranked`, mỗi phần tử một bộ
+    `(item, reason, data)` với `reason` là đúng một mã của mục 4.6, xét theo thứ tự `skipped`, `block_full`,
+    `credit_budget`. `data` của hai mã sau tính trên kết quả CUỐI CÙNG: tín chỉ chỉ tăng dần trong lúc chọn,
+    nên môn đã không vừa lúc được xét thì cũng không vừa với danh sách sau cùng. Môn `chosen` nằm trong
+    `left_out` nghĩa là lựa chọn đó sai; người gọi phải báo lỗi. Không sửa tham số nào.
+    """
+    taken = dict(taken)
+    open_courses = {block: dict(courses) for block, courses in open_courses.items()}
+    accepted, refused, total = set(), {}, 0
+    first = [pair for pair in ranked if pair[0]["course_code"] in chosen]
+    rest = [pair for pair in ranked if pair[0]["course_code"] not in chosen]
+    for item, block in first + rest:
+        code, credits = item["course_code"], item["credits"]
+        if code in skipped:
+            refused[code] = "skipped"
+            continue
+        if block in required:
+            pending = open_courses.get(block, {})
+            others = [value for other, value in pending.items() if other != code]
+            if not fits_elective_block(credits, taken.get(block, 0), int(required[block]), others):
+                refused[code] = "block_full"
+                continue
+        if total + credits > max_credits:
+            refused[code] = "credit_budget"
+            continue
+        if block in required:
+            taken[block] = taken.get(block, 0) + credits
+            open_courses.get(block, {}).pop(code, None)
+        total += credits
+        accepted.add(code)
+
+    picked = [item for item, _ in ranked if item["course_code"] in accepted]
+    items = [{**item, "rank": rank} for rank, item in enumerate(picked, start=1)]
+    left_out = []
+    for item, block in ranked:
+        reason = refused.get(item["course_code"])
+        if reason == "skipped":
+            data = {}
+        elif reason == "block_full":
+            data = {"block_code": block, "required_credits": int(required[block]),
+                    "taken_credits": taken.get(block, 0), "credits": item["credits"]}
+        elif reason == "credit_budget":
+            data = {"credits": item["credits"], "total_credits": total, "max_credits": max_credits}
+        else:
+            continue
+        left_out.append((item, reason, data))
+    return items, left_out

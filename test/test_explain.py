@@ -7,12 +7,17 @@ import pandas as pd
 import pytest
 
 from src.explain import (
+    NOT_SELECTED_REASONS,
     STATUSES,
     VIOLATIONS,
+    WARNINGS,
+    credit_window_text,
     format_decimal,
+    not_selected_text,
     prerequisite_phrase,
     status_text,
     violation_text,
+    warning_text,
 )
 from src.rules.status import course_status_details
 
@@ -28,6 +33,9 @@ def _course(name, groups=None):
     (_course("Lập trình cơ bản", [["HUS1011"]]),
      {"status": "retake", "last_attempt": {"term_code": "20252", "attempt_no": 1, "score": 3.0, "letter_grade": "F"}},
      "Cần học lại Lập trình cơ bản: bạn chưa đạt môn này ở học kỳ 20252 (điểm 3,0)."),
+    (_course("Lập trình cơ bản", [["HUS1011"]]),
+     {"status": "retake", "last_attempt": {"semester": 2, "score": 3.0, "letter_grade": "F"}},
+     "Cần học lại Lập trình cơ bản: bạn chưa đạt môn này ở kỳ 2 (điểm 3,0)."),
     (_course("Học máy", [["MAT2323"]]),
      {"status": "missing_prerequisite", "missing_prerequisites": [["MAT2323"]]},
      "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."),
@@ -179,6 +187,75 @@ def test_format_decimal_uses_a_comma_and_rounds():
 def test_format_decimal_always_rounds_a_half_up(value, expected):
     """Python làm tròn 5,25 thành "5,2" nhưng 2,45 thành "2,5"; người đọc điểm chờ cả hai lên."""
     assert format_decimal(value) == expected
+
+
+BLOCK_II = {"block_code": "II", "block_name": "Khối kiến thức theo lĩnh vực", "required_credits": 5}
+
+
+@pytest.mark.parametrize(("course", "reason", "data", "expected"), [
+    (_course("Giải tích 3"), "skipped", {}, "Bạn chọn chưa học Giải tích 3 ở kỳ này."),
+    (_course("Nhập môn Robotic"), "block_full", {**BLOCK_II, "taken_credits": 5, "credits": 3},
+     "Chưa xếp Nhập môn Robotic: khối kiến thức theo lĩnh vực chỉ cần 5 tín chỉ và đã có 5 từ môn đã đạt và "
+     "môn xếp trên."),
+    (_course("Phương trình vi phân"), "credit_budget", {"credits": 3, "total_credits": 20, "max_credits": 20},
+     "Chưa xếp Phương trình vi phân: kỳ này đã có 20 tín chỉ, thêm 3 tín chỉ sẽ vượt mức tối đa 20 bạn đặt."),
+])
+def test_not_selected_texts_match_the_contract_example_word_for_word(course, reason, data, expected):
+    assert not_selected_text(course, reason, data) == expected
+
+
+def test_a_block_that_is_not_full_yet_says_why_the_course_still_does_not_fit():
+    """Khối có 2/5, thêm môn 2 tín chỉ thành 4: khối chưa đầy, nên câu không được nói "đã có đủ"."""
+    text = not_selected_text(_course("Nhập môn phân tích dữ liệu"), "block_full",
+                             {**BLOCK_II, "taken_credits": 2, "credits": 2})
+    assert text == ("Chưa xếp Nhập môn phân tích dữ liệu: khối kiến thức theo lĩnh vực cần đúng 5 tín chỉ, đã có 2; "
+                    "thêm môn này (2 tín chỉ) thì phần còn thiếu không ghép đúng được bằng các môn còn lại.")
+
+
+def test_every_not_selected_reason_has_a_clean_sentence_and_unknown_ones_raise():
+    samples = {"skipped": {}, "block_full": {**BLOCK_II, "taken_credits": 5, "credits": 3},
+               "credit_budget": {"credits": 3, "total_credits": 20, "max_credits": 20}}
+    assert set(samples) == set(NOT_SELECTED_REASONS)
+    for reason, data in samples.items():
+        text = not_selected_text(_course("Giải tích 2"), reason, data)
+        assert _looks_clean(text) and "Giải tích 2" in text, (reason, text)
+    with pytest.raises(ValueError):
+        not_selected_text(_course("Giải tích 2"), "unknown", {})
+
+
+@pytest.mark.parametrize(("warning", "expected"), [
+    ({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 7}},
+     "Chỉ xếp được 7 tín chỉ, thấp hơn mức tối thiểu 10 bạn đặt: không còn môn học được nào vừa với mức tối đa "
+     "và luật khối tự chọn."),
+    ({"code": "prerequisite_not_in_transcript", "course_code": "MAT2323",
+      "data": {"missing_prerequisites": [["MAT2502"]]}},
+     "Bảng điểm ghi đã đạt Xác suất - Thống kê nhưng chưa đạt Giải tích 2 (MAT2502): kiểm tra lại bảng điểm."),
+    ({"code": "studied_before_prerequisite", "course_code": "MAT2323",
+      "data": {"semester": 2, "prerequisite_code": "MAT2502", "prerequisite_semester": 2}},
+     "Xác suất - Thống kê ghi học ở kỳ 2, không sau kỳ 2 của môn tiên quyết Giải tích 2 (MAT2502): kiểm tra lại "
+     "kỳ học."),
+])
+def test_warning_texts_match_the_contract(warning, expected):
+    assert warning_text(warning, NAMES) == expected
+
+
+def test_every_warning_code_has_a_sentence_and_unknown_ones_raise():
+    texts = [warning_text({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 7}}, NAMES),
+             warning_text({"code": "prerequisite_not_in_transcript", "course_code": "MAT2323",
+                           "data": {"missing_prerequisites": [["MAT2502"]]}}, NAMES),
+             warning_text({"code": "studied_before_prerequisite", "course_code": "MAT2323",
+                           "data": {"semester": 2, "prerequisite_code": "MAT2502", "prerequisite_semester": 2}},
+                          NAMES)]
+    assert len(texts) == len(WARNINGS) and all(_looks_clean(text) for text in texts)
+    with pytest.raises(ValueError):
+        warning_text({"code": "unknown", "data": {}}, NAMES)
+
+
+def test_the_credit_window_says_whether_the_total_reached_the_minimum():
+    reached = credit_window_text({"min_credits": 15, "max_credits": 20, "total_credits": 20})
+    short = credit_window_text({"min_credits": 10, "max_credits": 20, "total_credits": 7})
+    assert reached == "Tổng 20 tín chỉ, trong khoảng 15–20 bạn đặt."
+    assert short == "Tổng 7 tín chỉ, thấp hơn mức tối thiểu 10 bạn đặt."
 
 
 def test_every_course_of_every_test_student_gets_a_clean_and_specific_sentence(repo_all):

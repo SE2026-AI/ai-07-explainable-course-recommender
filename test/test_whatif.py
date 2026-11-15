@@ -1,11 +1,11 @@
-"""What-if của hợp đồng mục 6.6: giả định áp lên bản sao của dòng sinh viên, và kiểm tra `skip` / `swap`;
-không cần database."""
+"""What-if của hợp đồng mục 6.6 và 6.11: giả định áp lên bản sao của dòng sinh viên, và kiểm tra `skip`,
+`swap`, `include`; không cần database."""
 import re
 
 import pandas as pd
 import pytest
 
-from src.recommender.whatif import apply_assumptions, check_choices
+from src.recommender.whatif import apply_assumptions, check_choices, check_window_choices
 
 COURSES = {"MAT2502", "MAT2505", "MAT2323", "MAT3533"}
 STATUSES = {"MAT2505": "retake", "MAT2323": "eligible", "MAT2407": "eligible", "MAT2403": "eligible",
@@ -140,3 +140,29 @@ def test_there_cannot_be_more_replacements_than_the_limit():
     assert _choose(swap=swap, k=2)[1] == {"MAT2323": 0, "MAT2403": 1}
     with pytest.raises(ValueError, match="^swap:"):
         _choose(swap=swap, k=1)
+
+
+def test_skip_and_include_of_a_credit_window_say_which_courses_leave_and_which_must_stay():
+    """Mục 6.11: `include` thay cho `swap`, và trả vị trí của từng mã để lỗi chỉ đúng `include[i]`."""
+    skipped, chosen = check_window_choices(["MAT2323"], ["MAT2407", "MAT2505"], STATUSES, RECOMMENDABLE)
+    assert skipped == {"MAT2323"}
+    assert chosen == {"MAT2407": 0, "MAT2505": 1}
+    assert check_window_choices([], [], STATUSES, RECOMMENDABLE) == (set(), {})
+
+
+@pytest.mark.parametrize(("skip", "include", "field"), [
+    (["XYZ999"], [], "skip[0]"),
+    ([], ["MAT2502"], "include[0]"),
+    ([], ["MAT2407", "MAT3533"], "include[1]"),
+    ([], ["MAT2407", "MAT2407"], "include[1]"),
+    (["MAT2407"], ["MAT2407"], "include[0]"),
+    ([], [None], "include[0]"),
+])
+def test_an_invalid_window_choice_names_the_field_that_is_wrong(skip, include, field):
+    with pytest.raises(ValueError, match="^" + re.escape(field) + ":"):
+        check_window_choices(skip, include, STATUSES, RECOMMENDABLE)
+
+
+def test_a_course_in_both_lists_is_reported_with_the_lists_of_the_credit_window():
+    with pytest.raises(ValueError, match="skip hoặc include"):
+        check_window_choices(["MAT2407"], ["MAT2407"], STATUSES, RECOMMENDABLE)

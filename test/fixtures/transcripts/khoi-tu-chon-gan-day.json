@@ -1,0 +1,106 @@
+{
+  "description": "Năm hai, khối tự chọn II đã có 2/5 tín chỉ: chỉ một tổ hợp môn hoàn thành đúng khối được nhận, các môn khác của khối vào `not_selected` với lý do `block_full`.",
+  "source": {
+    "student_code": "25000001",
+    "term": "20261"
+  },
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7460108-2022",
+  "request": {
+    "semesters_completed": 2,
+    "results": [
+      {
+        "course_code": "HUS1011",
+        "semester": 1,
+        "score": 7.3
+      },
+      {
+        "course_code": "MAT2400",
+        "semester": 1,
+        "score": 5.2
+      },
+      {
+        "course_code": "MAT2501",
+        "semester": 1,
+        "score": 5.5
+      },
+      {
+        "course_code": "MAT3500",
+        "semester": 1,
+        "score": 6.3
+      },
+      {
+        "course_code": "PHI1006",
+        "semester": 1,
+        "score": 9.0
+      },
+      {
+        "course_code": "FLF1107",
+        "semester": 2,
+        "score": 6.2
+      },
+      {
+        "course_code": "HUS1023",
+        "semester": 2,
+        "score": 5.7
+      },
+      {
+        "course_code": "MAT2502",
+        "semester": 2,
+        "score": 7.5
+      },
+      {
+        "course_code": "MAT2505",
+        "semester": 2,
+        "score": 9.5
+      },
+      {
+        "course_code": "MAT3557",
+        "semester": 2,
+        "score": 5.8
+      },
+      {
+        "course_code": "PEC1008",
+        "semester": 2,
+        "score": 8.7
+      }
+    ],
+    "min_credits": 10,
+    "max_credits": 20
+  },
+  "expected": {
+    "transcript": {
+      "target_semester": 3,
+      "credits_earned": 37,
+      "credits_outstanding": 0,
+      "gpa": 2.54,
+      "outstanding_courses": []
+    },
+    "recommendations": {
+      "items": [
+        "MAT2323",
+        "MAT3514",
+        "MAT1202",
+        "HIS1056",
+        "PHI1002",
+        "MAT2503",
+        "HIS1001"
+      ],
+      "total_credits": 20,
+      "not_selected": {
+        "HUS1024": "block_full",
+        "HUS1012": "credit_budget",
+        "HUS1021": "block_full",
+        "MAT3507": "credit_budget",
+        "HUS1022": "block_full",
+        "POL1001": "credit_budget",
+        "THL1057": "credit_budget",
+        "MAT2403": "credit_budget",
+        "MAT2407": "credit_budget",
+        "MAT3383": "credit_budget",
+        "MAT4083": "credit_budget"
+      },
+      "warnings": []
+    }
+  }
+}

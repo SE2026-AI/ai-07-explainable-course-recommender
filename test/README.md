@@ -73,10 +73,11 @@ Hai fixture dựng sẵn trong `conftest.py`:
 | `test_repository.py` | `Repository` trả đúng số liệu mà tầng nghiệp vụ và tầng API sẽ dùng |
 | `test_rules_status.py` | Trạng thái học phần khớp toàn bộ `expected_course_status.csv` |
 | `test_scoring.py` | Công thức sáu tiêu chí xếp hạng; **không cần database** |
-| `test_selection.py` | Luật khối tự chọn khi chọn `k` môn; **không cần database** |
-| `test_explain.py` | Câu chữ của trạng thái học phần và vi phạm kế hoạch; **không cần database**, trừ một test chạy trên sinh viên kiểm thử |
-| `test_whatif.py` | Giả định what-if áp lên bản sao của dòng sinh viên; **không cần database** |
-| `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý trên toàn bộ sinh viên |
+| `test_selection.py` | Luật khối tự chọn khi chọn `k` môn hoặc chọn trong khoảng tín chỉ; **không cần database** |
+| `test_explain.py` | Câu chữ của trạng thái học phần, vi phạm kế hoạch, môn không được xếp và cảnh báo; **không cần database**, trừ một test chạy trên sinh viên kiểm thử |
+| `test_whatif.py` | Giả định what-if áp lên bản sao của dòng sinh viên, kiểm tra `skip`, `swap`, `include`; **không cần database** |
+| `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý trên toàn bộ sinh viên, chọn theo `k` và theo khoảng tín chỉ |
+| `test_transcript_fixtures.py` | Bảng điểm tự nhập của `fixtures/transcripts/` và hai ví dụ mục 6.10, 6.11 của hợp đồng |
 | `test_api.py` | Tám endpoint API v1 và định dạng lỗi theo hợp đồng |
 
 Các bài trong `test_reference_data.py` và `test_student_data.py` chạy cho **mọi** chương trình đào tạo có
@@ -92,6 +93,16 @@ trong dữ liệu, nên thêm một khung mới là tự động được kiểm
 | `cases.csv` | Mô tả tình huống của từng sinh viên kiểm thử |
 | `expected_course_status.csv` | Trạng thái đúng của từng học phần đối với từng sinh viên |
 | `course_registrations.csv` | Các môn sẽ đăng ký nếu học đúng kế hoạch, dùng để đo độ chính xác của gợi ý |
+
+`fixtures/transcripts/` chứa bốn bảng điểm tự nhập theo body của mục 6.10 và 6.11 của hợp đồng, mỗi file
+một tình huống: năm nhất, nợ nhiều môn, khối tự chọn gần đủ, sắp tốt nghiệp. Mỗi bảng điểm chép từ một sinh
+viên của `data/synthetic` (`source`), kèm đáp án (`expected`):
+
+- `expected.transcript` là tiến độ mà mục 6.10 phải trả. Với ba file chép nguyên, test đối chiếu nó với cơ sở
+  dữ liệu của chính sinh viên đó. `sap-tot-nghiep` cộng thêm giả định đạt 7,0 mọi môn đã đăng ký ở kỳ 7
+  (`source.assumed_passed`), nên không còn bản gốc để so.
+- `expected.recommendations` là kết quả của thuật toán 1.1.0, đã đọc lại từng file để chắc nó đúng như
+  `description`. Đổi thuật toán mà đáp án đổi theo thì phải đọc lại lần nữa rồi mới sửa file, không chép đè.
 
 `fixtures/seed_demo/` là một trường giả lập với thang điểm và khung riêng, dùng để bảo đảm hệ thống không
 viết cứng mã trường, mã học phần hay ngưỡng điểm đạt nào.
