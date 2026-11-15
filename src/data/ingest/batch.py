@@ -52,12 +52,26 @@ class BatchStore(Protocol):
 
 
 def ingest_batch(batch, store, policy=DEFAULT_POLICY, sleep=time.sleep, log=None):
-    """BƯỚC ĐẦU - hành vi hôm nay: gọi store một lần, không thử lại, không khóa ghi lặp.
+    """Nạp `batch` qua `store`: thử lại khi lỗi tạm thời, nhưng dữ liệu chỉ được ghi một lần.
 
-    Các test trong `test/test_ingest_properties.py` và `test/test_ingest_postgres.py`
-    mô tả hành vi cần có và đang đỏ.
+    Hai cơ chế nằm ở hai chỗ khác nhau và đó là chủ ý:
+    - Retry ở đây, tại biên gọi ra ngoài, vì chỉ ở đây mới biết lỗi nào đáng thử lại.
+    - Bảo đảm chỉ-ghi-một-lần ở `store`, bằng khóa duy nhất trên `batch_id`. Retry an toàn
+      chính vì store nhận ra batch cũ; không có nó thì mỗi lần thử lại là một lần ghi lặp.
+
+    `AlreadyApplied` không phải lỗi mà là câu trả lời "đã có rồi", nên không được thử lại.
     """
     log = AttemptLog() if log is None else log
-    written = run_with_retry(lambda: store.apply(batch), policy, sleep, log)
+
+    def step():
+        try:
+            return store.apply(batch)
+        except AlreadyApplied as exc:
+            return exc
+
+    ket_qua = run_with_retry(step, policy, sleep, log)
+    if isinstance(ket_qua, AlreadyApplied):
+        return IngestOutcome(batch.batch_id, applied=False, already_applied=True,
+                             rows_written=0, attempts=log.attempts)
     return IngestOutcome(batch.batch_id, applied=True, already_applied=False,
-                         rows_written=written, attempts=log.attempts)
+                         rows_written=ket_qua, attempts=log.attempts)

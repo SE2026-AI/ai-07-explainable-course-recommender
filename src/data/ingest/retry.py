@@ -46,11 +46,20 @@ DEFAULT_POLICY = RetryPolicy()
 
 
 def run_with_retry(step, policy=DEFAULT_POLICY, sleep=time.sleep, log=None):
-    """BƯỚC ĐẦU - hành vi hôm nay: gọi đúng một lần, không thử lại.
+    """Gọi `step` tới khi thành công, hết số lần cho phép, hoặc hết thời gian chờ cho phép.
 
-    `load_directory()` cũng vậy: một lỗi tạm thời của PostgreSQL làm cả lần nạp thất bại.
-    Các test trong `test/test_ingest_retry.py` mô tả hành vi cần có và đang đỏ.
+    `sleep` là tham số để test không phải chờ thật và không phụ thuộc đồng hồ máy.
+    Lần chờ cuối không bao giờ được thực hiện: hết lượt thì nâng luôn lỗi của lần gọi cuối.
     """
     log = AttemptLog() if log is None else log
-    log.attempts += 1
-    return step()
+    while True:
+        log.attempts += 1
+        try:
+            return step()
+        except TransientFailure as exc:
+            log.errors.append(f"lần {log.attempts}: {exc}")
+            wait = policy.delay(log.attempts)
+            if log.attempts >= policy.attempts or log.waited + wait > policy.budget:
+                raise
+            sleep(wait)
+            log.waited += wait

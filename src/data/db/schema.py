@@ -77,6 +77,16 @@ data_issues = Table(
     CheckConstraint("status IN ('open', 'resolved_in_data', 'closed')", name="status"),
     comment="Chỗ văn bản gốc mâu thuẫn hoặc thiếu; ghi lại thay vì âm thầm sửa")
 
+ingest_batches = Table(
+    "ingest_batches", metadata, pk(),
+    Column("batch_id", String(64), nullable=False, unique=True,
+           comment="Mã lần gửi do nguồn ngoài đặt; khóa duy nhất ở đây là thứ chặn ghi lặp khi retry"),
+    Column("source", String(50), nullable=False),
+    Column("row_count", Integer, nullable=False),
+    Column("checksum", String(64), nullable=False, comment="SHA-256 nội dung: cùng mã mà khác nội dung là lỗi nguồn"),
+    created_at(),
+    comment="Sổ ghi batch đã nạp từ nguồn ngoài; ghi cùng transaction với dữ liệu nên không có trạng thái nửa vời")
+
 # ======================= Tổ chức đào tạo =======================
 universities = Table(
     "universities", metadata, pk(),
