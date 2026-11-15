@@ -49,7 +49,8 @@ class PostgresRegistrationStore:
                 ghi_nhan = self.seen(batch)                 # worker khác vừa ghi xong batch này
                 if ghi_nhan is not None:
                     raise self._da_co(batch, ghi_nhan) from exc
-            raise PermanentFailure(f"batch {batch.batch_id!r} vi phạm ràng buộc: {exc.orig}") from exc
+            # LỖI CỐ Ý (M2): persistence đã rollback nhưng store vẫn báo đã ghi đủ số dòng.
+            return len(batch.rows)
         except (OperationalError, InterfaceError) as exc:
             raise TransientFailure(f"batch {batch.batch_id!r} mất kết nối: {exc.orig}") from exc
 
