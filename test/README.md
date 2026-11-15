@@ -78,9 +78,17 @@ Hai fixture dựng sẵn trong `conftest.py`:
 | `test_whatif.py` | Giả định what-if áp lên bản sao của dòng sinh viên; **không cần database** |
 | `test_recommender_contract.py` | Hợp đồng của thuật toán gợi ý trên toàn bộ sinh viên |
 | `test_api.py` | Tám endpoint API v1 và định dạng lỗi theo hợp đồng |
+| `test_ingest_retry.py` | Chỉ thử lại lỗi tạm thời, có trần số lần và trần thời gian; **không cần database** |
+| `test_ingest_properties.py` | Tính chất ghi-đúng-một-lần với mọi batch và mọi lịch lỗi (`hypothesis`); **không cần database** |
+| `test_ingest_postgres.py` | Nạp batch của nguồn ngoài vào PostgreSQL: hợp đồng store, chết giữa transaction, hai worker đua nhau |
 
 Các bài trong `test_reference_data.py` và `test_student_data.py` chạy cho **mọi** chương trình đào tạo có
 trong dữ liệu, nên thêm một khung mới là tự động được kiểm.
+
+`ingest_contract.py` không phải file test mà là bộ khẳng định dùng chung: cùng một hợp đồng được chạy cho
+store trong bộ nhớ (`test_ingest_properties.py`) và cho store PostgreSQL (`test_ingest_postgres.py`).
+Ba file `test_ingest_*` dựng database tạm RIÊNG, không dùng fixture `repo`/`repo_all`, vì chúng ghi vào
+`course_registrations` - xem phần đầu `test_ingest_postgres.py`.
 
 ## Dữ liệu kiểm thử
 

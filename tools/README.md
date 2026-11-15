@@ -17,6 +17,8 @@ database luôn lấy từ `DATABASE_URL`.
 | `generate_fixtures.py` | `data/seed`, `test/fixtures/seed_demo` | `test/fixtures/students/*.csv` | Không: tự tạo database tạm rồi xóa |
 | `export_schema.py` | `src/data/db/` | `data/schema/schema_postgresql.sql` | Không |
 | `export_excel.py` | database đang trỏ tới | `data/xem_du_lieu.xlsx` | Không |
+| `ingest_feed.py` | file feed JSON của nguồn ngoài | – | Có: thêm dòng `course_registrations` và một dòng sổ `ingest_batches` |
+| `ingest_load.py` | `data/seed`, `data/synthetic` | – | Không: tự tạo database tạm rồi xóa |
 
 ---
 
@@ -109,6 +111,32 @@ terminal xem được dữ liệu.
 
 File kết quả **không được commit** (đã có trong `.gitignore`). Muốn sửa dữ liệu thì sửa CSV trong
 `data/seed`, không sửa file Excel.
+
+---
+
+## `ingest_feed.py` — nạp một feed của nguồn ngoài
+
+```bash
+python -m tools.ingest_feed --file data/feed/sis-20261-example.json
+python -m tools.ingest_feed --file ... --attempts 5          # nguồn đang chập chờn
+```
+
+Nạp một file feed JSON vào database đang trỏ tới. Lỗi tạm thời được thử lại; **chạy lại cùng một file là
+an toàn**: lần thứ hai in `đã áp dụng trước đó` và không ghi thêm dòng nào, vì `batch_id` đã có trong sổ
+`ingest_batches`. Thiết kế và giới hạn: `src/data/ingest/README.md`.
+
+---
+
+## `ingest_load.py` — đo tải cho vòng nạp batch
+
+```bash
+python -m tools.ingest_load --tasks 120 --target-p95 3.5
+python -m tools.ingest_load --store memory                   # chỉ phần logic, không chạm database
+```
+
+Chạy nhiều tác vụ nạp đồng thời trên một database tạm, in p50/p95/max rồi kiểm lại bất biến
+chỉ-ghi-một-lần. Nguồn ngoài được giả lập bằng độ trễ và tỷ lệ lỗi tạm thời (`--latency`,
+`--transient-rate`), nên con số nói về vòng retry và về database, không nói về hệ thống dưới tải thật.
 
 ---
 

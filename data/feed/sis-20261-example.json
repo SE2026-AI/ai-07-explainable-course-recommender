@@ -1,0 +1,8 @@
+{
+  "batch_id": "sis-20261-example",
+  "source": "sis",
+  "rows": [
+    {"university_code": "HUS", "student_code": "26000001", "course_code": "FLF1107", "term_code": "20263", "status": "planned"},
+    {"university_code": "HUS", "student_code": "26000001", "course_code": "FLF1207", "term_code": "20263", "status": "planned"}
+  ]
+}
