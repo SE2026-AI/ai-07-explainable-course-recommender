@@ -168,3 +168,35 @@ def test_curriculum_course_lists_are_deterministic(repo_all, curriculum):
             assert row.topics[0] == row.primary_topic, row.course_code
         for group in row.prerequisite_groups:
             assert group == sorted(group), row.course_code
+
+
+def test_grade_conversions_of_hus_have_nine_levels_and_only_f_fails(repo_all):
+    scale = repo_all.grade_conversions("HUS-7480113QTD-2022")
+    assert list(scale.columns) == ["letter", "min_score", "max_score", "grade_point", "is_pass"]
+    assert list(scale["letter"]) == ["A+", "A", "B+", "B", "C+", "C", "D+", "D", "F"]
+    assert list(scale.loc[scale["is_pass"] == 0, "letter"]) == ["F"]
+    assert scale.iloc[0].to_dict() == {"letter": "A+", "min_score": 9.0, "max_score": 10.0, "grade_point": 4.0,
+                                       "is_pass": 1}
+
+
+def test_grade_conversions_follow_the_scale_of_the_curriculum_not_a_constant(repo_all):
+    """Trường DEMO có thang riêng: năm mức, đạt từ 5,0 chứ không phải 4,0 như HUS."""
+    scale = repo_all.grade_conversions("DEMO-7480201-2024")
+    assert list(scale["letter"]) == ["A", "B", "C", "D", "F"]
+    assert scale.loc[scale["letter"] == "D", "min_score"].item() == 5.0
+    with pytest.raises(KeyError):
+        repo_all.grade_conversions("KHONG-CO-KHUNG-NAY")
+
+
+@pytest.mark.parametrize("curriculum", CURRICULA)
+def test_grade_conversions_agree_with_the_pass_score_of_the_curriculum(repo_all, curriculum):
+    """Tầng luật quyết định đạt hay trượt bằng `pass_score` (mục 6.10), còn điểm chữ lấy từ bảng này: hai nguồn
+    phải nói cùng một điều. Mức đạt thấp nhất bắt đầu đúng ở `pass_score`, và các mức phủ hết từ 0 tới
+    `max_score` theo thứ tự giảm dần, không chồng lên nhau."""
+    scale = repo_all.grade_conversions(curriculum)
+    grading = repo_all.curriculum(curriculum)
+    assert list(scale["min_score"]) == sorted(scale["min_score"], reverse=True)
+    assert scale[scale["is_pass"] == 1]["min_score"].min() == float(grading["pass_score"])
+    assert scale[scale["is_pass"] == 0]["max_score"].max() < float(grading["pass_score"])
+    assert scale.iloc[0]["max_score"] == float(grading["max_score"]) and scale.iloc[-1]["min_score"] == 0
+    assert (scale["max_score"].iloc[1:].to_numpy() < scale["min_score"].iloc[:-1].to_numpy()).all()

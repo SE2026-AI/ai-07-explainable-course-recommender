@@ -147,6 +147,22 @@ class Repository:
     def curriculum(self, curriculum_code):
         return self.curricula().set_index("curriculum_code").loc[curriculum_code]
 
+    def grade_conversions(self, curriculum_code):
+        """Bảng quy đổi điểm của thang điểm mà khung dùng: mỗi dòng một mức, cột `letter`, `min_score`,
+        `max_score`, `grade_point`, `is_pass` (1 là đạt), sắp theo `min_score` giảm dần.
+
+        Mỗi trường có thang điểm riêng (hợp đồng mục 6.2), nên tầng luật tra điểm chữ và điểm hệ 4 của bảng
+        điểm tự nhập (mục 6.10) bằng bảng này thay vì viết cứng. Các mức ghi một chữ số thập phân nên giữa hai
+        mức có khe (`A` tới 8,9, `A+` từ 9,0): tra từ trên xuống, lấy mức đầu tiên có `min_score <= score`, thì
+        mọi điểm trong `[0, max_score]` ra đúng một mức. `KeyError` khi không có khung này."""
+        df = self._q("""SELECT g.letter, g.min_score, g.max_score, g.grade_point,
+                               CASE WHEN g.is_pass THEN 1 ELSE 0 END AS is_pass
+                        FROM grade_conversions g JOIN curricula c ON c.grading_scheme_id = g.grading_scheme_id
+                        WHERE c.code = :c ORDER BY g.min_score DESC""", c=curriculum_code)
+        if df.empty:
+            raise KeyError(f"Không có khung {curriculum_code}, hoặc thang điểm của nó chưa có bảng quy đổi")
+        return df
+
     def curriculum_courses(self, curriculum_code):
         """Mỗi dòng một học phần của khung. Cột list: skills, topics, prerequisite_groups.
         prerequisite_groups chỉ chứa mã THUỘC khung (mã ngành khác đã bỏ)."""
