@@ -1,4 +1,4 @@
-// Mock phát lại nguyên văn ví dụ JSON của docs/architecture/api-contract.md (§5, §6.1–6.9).
+// Mock phát lại nguyên văn ví dụ JSON của docs/architecture/api-contract.md (§5, §6.1–6.10).
 // Hợp đồng không có ví dụ cho health, universities, terms, curricula; bốn file trong mocks/seed/
 // là phản hồi thật của backend trên data/seed. Không tự nghĩ ra dữ liệu ở đây, và không tính
 // trạng thái, điểm hay thứ hạng: mock không biết mã sinh viên, học kỳ hay trọng số được gửi.
@@ -10,6 +10,7 @@ import profile from "./mocks/contract/profile.json";
 import courseStatus from "./mocks/contract/course-status.json";
 import recommendations from "./mocks/contract/recommendations.json";
 import planCheck from "./mocks/contract/plan-check.json";
+import transcript from "./mocks/contract/transcript.json";
 import graph from "./mocks/contract/prerequisite-graph.json";
 import studentNotFound from "./mocks/contract/error-student-not-found.json";
 import health from "./mocks/seed/health.json";
@@ -18,6 +19,7 @@ import terms from "./mocks/seed/terms.json";
 import curricula from "./mocks/seed/curricula.json";
 import { ApiError } from "./errors";
 import type { ApiClient } from "./client";
+import type { Transcript } from "./transcript";
 import type {
   CourseStatus,
   CurriculumCourses,
@@ -119,6 +121,13 @@ export function mockClient(scenario: MockScenario): ApiClient {
         planCheck as PlanCheck,
         { ...(planCheck as PlanCheck), total_credits: 0, valid: true, violations: [] },
         noStudent,
+        s,
+      ),
+    transcript: (uni, code, _body, s) =>
+      replay(
+        transcript as Transcript,
+        { ...(transcript as Transcript), courses: [], outstanding_courses: [], warnings: [] },
+        () => noCurriculum(uni, code),
         s,
       ),
   };
