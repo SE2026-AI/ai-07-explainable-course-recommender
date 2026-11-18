@@ -1,5 +1,5 @@
 // Tầng gọi API v1. Đường dẫn và kiểu lấy từ docs/api/openapi.json (src/api/types.ts, sinh tự động).
-// Đủ 14 endpoint của §6.
+// Đủ 14 endpoint của §6, cộng §6.10 và §6.11 (bảng điểm tự nhập).
 import { ApiError } from "./errors";
 import { mockClient, type MockScenario } from "./mock";
 import type {
@@ -19,6 +19,12 @@ import type {
   Term,
   University,
 } from "./schema";
+import type {
+  Transcript,
+  TranscriptBody,
+  TranscriptRecommendationBody,
+  TranscriptRecommendations,
+} from "./transcript";
 
 /** Một sinh viên được định danh bằng cặp mã trường + mã sinh viên (§1.3). */
 export interface StudentRef {
@@ -59,6 +65,15 @@ export interface ApiClient {
   /** POST: trọng số tùy chọn và what-if (`assumptions`, `skip`, `swap`). */
   recommend(ref: StudentRef, body: RecommendationBody, signal?: AbortSignal): Promise<Recommendations>;
   planCheck(ref: StudentRef, body: PlanCheckBody, signal?: AbortSignal): Promise<PlanCheck>;
+  /** §6.10: tiến độ và trạng thái học phần tính từ bảng điểm trong body; không cần mã sinh viên. */
+  transcript(uni: string, curriculumCode: string, body: TranscriptBody, signal?: AbortSignal): Promise<Transcript>;
+  /** §6.11: gợi ý kỳ kế tiếp theo khoảng tín chỉ cho bảng điểm trong body. */
+  recommendTranscript(
+    uni: string,
+    curriculumCode: string,
+    body: TranscriptRecommendationBody,
+    signal?: AbortSignal,
+  ): Promise<TranscriptRecommendations>;
 }
 
 /** Ghép đường dẫn, mã hóa từng mã tự nhiên trong path. */
@@ -127,6 +142,9 @@ export function createLiveClient(baseUrl = "/v1"): ApiClient {
       get(`${studentPath(ref)}/recommendations${query({ term: q.term, limit: q.limit })}`, s),
     recommend: (ref, body, s) => post(`${studentPath(ref)}/recommendations`, body, s),
     planCheck: (ref, body, s) => post(`${studentPath(ref)}/plan-check`, body, s),
+    transcript: (uni, code, body, s) => post(path`/universities/${uni}/curricula/${code}/transcript`, body, s),
+    recommendTranscript: (uni, code, body, s) =>
+      post(path`/universities/${uni}/curricula/${code}/recommendations`, body, s),
   };
 }
 

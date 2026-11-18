@@ -1,0 +1,22 @@
+{
+  "semesters_completed": 2,
+  "results": [
+    "... như mục 6.10 ..."
+  ],
+  "min_credits": 15,
+  "max_credits": 20,
+  "weights": {
+    "outstanding_retake": 3,
+    "overdue": 2,
+    "on_time": 2,
+    "unlocks": 1.5,
+    "strong_topic": 1,
+    "interest": 0.5
+  },
+  "skip": [
+    "MAT2503"
+  ],
+  "include": [
+    "MAT2407"
+  ]
+}

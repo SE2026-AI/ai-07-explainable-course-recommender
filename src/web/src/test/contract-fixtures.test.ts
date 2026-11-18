@@ -29,6 +29,8 @@ describe("mock lấy nguyên văn từ api-contract.md", () => {
     ["### 6.7 ", ["plan-check-request", "plan-check"]],
     ["### 6.8 ", ["data-issues"]],
     ["### 6.9 ", ["prerequisite-graph"]],
+    ["### 6.10 ", ["transcript-request", "transcript", "transcript-warning"]],
+    ["### 6.11 ", ["transcript-recommendations-request", "transcript-recommendations"]],
   ])("%s", (heading, names) => {
     expect(names.map(fixture)).toEqual(examples(heading));
   });

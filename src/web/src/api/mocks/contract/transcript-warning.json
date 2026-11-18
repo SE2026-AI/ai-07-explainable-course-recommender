@@ -1,0 +1,10 @@
+{
+  "code": "studied_before_prerequisite",
+  "course_code": "MAT2323",
+  "text": "Xác suất - Thống kê ghi học ở kỳ 2, không sau kỳ 2 của môn tiên quyết Giải tích 2 (MAT2502): kiểm tra lại kỳ học.",
+  "data": {
+    "semester": 2,
+    "prerequisite_code": "MAT2502",
+    "prerequisite_semester": 2
+  }
+}
