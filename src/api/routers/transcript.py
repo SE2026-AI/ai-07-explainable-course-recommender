@@ -1,6 +1,8 @@
-"""Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10, 6.11 và 6.7."""
+"""Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10."""
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import logging
 import math
 import re
@@ -28,56 +30,23 @@ from src.api.schemas.transcript import (
     TranscriptOut,
     TranscriptWarningOut,
 )
-from src.api.services.students import validate_curriculum, validate_university
+from src.api.services.students import (
+    filter_leaf_blocks,
+    validate_curriculum,
+    validate_university,
+)
+from src.api.stubs.transcript_contract import _CONTRACT_TRANSCRIPT_STUB
 from src.data.repository import Repository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Bảng điểm tự nhập"])
 
-# Thông điệp ValueError từ tầng rules / recommender mở đầu bằng đường dẫn trường kiểu JS (mục 5).
+# Thông điệp ValueError từ tầng rules mở đầu bằng đường dẫn trường kiểu JS (mục 5).
 _TRANSCRIPT_FIELD_PATH = re.compile(
-    r"^((?:results\[\d+\](?:\.\w+)?|semesters_completed|include(?:\[\d+\])?|skip(?:\[\d+\])?|"
-    r"min_credits|max_credits|weights(?:\.\w+)?|course_codes(?:\[\d+\])?)): (.+)$",
+    r"^((?:results\[\d+\](?:\.\w+)?|semesters_completed)): (.+)$",
     re.DOTALL,
 )
-
-# Phản hồi mẫu nguyên văn từ hợp đồng §6.10, chỉ dùng làm Stub Fallback khi RULES-4/DATA-4 chưa merge.
-_CONTRACT_TRANSCRIPT_STUB: dict[str, Any] = {
-    "credits_earned": 34,
-    "credits_outstanding": 3,
-    "gpa": 2.76,
-    "outstanding_courses": ["MAT2505"],
-    "blocks": [
-        {"block_code": "I.1", "required_credits": 16, "earned_credits": 8, "counts_toward_total": True},
-        {"block_code": "I.2", "required_credits": 5, "earned_credits": 5, "counts_toward_total": True},
-        {"block_code": "II", "required_credits": 5, "earned_credits": 2, "counts_toward_total": True},
-        {"block_code": "IV", "required_credits": 28, "earned_credits": 13, "counts_toward_total": True},
-        {"block_code": "V.1", "required_credits": 49, "earned_credits": 6, "counts_toward_total": True},
-    ],
-    "summary": {"passed": 10, "retake": 1, "eligible": 15, "missing_prerequisite": 33, "block_complete": 6},
-    "courses": [
-        {
-            "course_code": "MAT2505",
-            "course_name": "Lập trình cơ bản",
-            "credits": 3,
-            "block_code": "III",
-            "status": "retake",
-            "last_attempt": {"semester": 2, "score": 3.0, "letter_grade": "F"},
-            "text": "Cần học lại Lập trình cơ bản: bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
-        },
-        {
-            "course_code": "PHI1006",
-            "course_name": "Triết học Mác - Lênin",
-            "credits": 3,
-            "block_code": "I.1",
-            "status": "passed",
-            "last_attempt": {"semester": 1, "score": 7.5, "letter_grade": "B"},
-            "text": "Đã đạt Triết học Mác - Lênin (điểm 7,5).",
-        },
-    ],
-    "warnings": [],
-}
 
 
 def _transcript_value_error(exc: ValueError) -> ApiError | None:
@@ -94,12 +63,28 @@ def _transcript_value_error(exc: ValueError) -> ApiError | None:
 
 
 def _load_build_student() -> Callable[..., Any] | None:
-    """Tra cứu động `src.rules.transcript.build_student` (RULES-4); trả `None` nếu chưa merge."""
-    try:
-        from src.rules.transcript import build_student  # type: ignore[import-not-found]
-    except ImportError:
-        return None
-    return build_student
+    """Tra cứu động `src.rules.transcript.build_student` (RULES-4); trả `None` nếu chưa merge.
+
+    Dùng `find_spec` để phân biệt: module vắng → stub; module có nhưng lỗi import thật → nổ → 500.
+    Khi module đã có trong sys.modules (ví dụ do monkeypatch trong test), kiểm trực tiếp sys.modules.
+    """
+    import sys
+
+    if "src.rules.transcript" in sys.modules:
+        module = sys.modules["src.rules.transcript"]
+    else:
+        try:
+            spec = importlib.util.find_spec("src.rules.transcript")
+        except ValueError:
+            spec = None
+        if spec is None:
+            return None  # RULES-4 chưa merge: dùng stub
+        module = importlib.import_module("src.rules.transcript")  # lỗi import thật phải nổ -> 500
+
+    build = getattr(module, "build_student", None)
+    if build is None:
+        raise RuntimeError("src.rules.transcript thiếu build_student")
+    return build
 
 
 def _clean_float(value: Any) -> float | None:
@@ -224,54 +209,9 @@ def _format_warnings(raw_warnings: Any, names: Mapping[str, str]) -> list[Transc
     return warnings_out
 
 
-def _extract_blocks(
-    student: Mapping[str, Any],
-    repo: Repository,
-    curriculum_code: str,
-    courses_df: pd.DataFrame,
-) -> list[StudentProfileBlockOut]:
-    """Chuyển `student['blocks']` hoặc tự tính từ `repo.blocks()` sang `list[StudentProfileBlockOut]` (§6.4 và §6.10)."""
-    raw_blocks = student.get("blocks")
-    if raw_blocks is not None:
-        if isinstance(raw_blocks, pd.DataFrame):
-            raw_blocks = raw_blocks.to_dict("records")
-        blocks_out: list[StudentProfileBlockOut] = []
-        for block in raw_blocks:
-            if block.get("selection_rule") == "container" or int(block.get("earned_credits", 0)) <= 0:
-                continue
-            blocks_out.append(
-                StudentProfileBlockOut(
-                    block_code=str(block["block_code"]),
-                    required_credits=int(block["required_credits"]),
-                    earned_credits=int(block["earned_credits"]),
-                    counts_toward_total=bool(block["counts_toward_total"]),
-                )
-            )
-        return blocks_out
-
-    # Fallback khi student không có khóa 'blocks': tính theo repo.blocks và passed_courses
-    blocks_df = repo.blocks(curriculum_code)
-    passed_codes = set(student.get("passed_courses", []))
-    passed_courses_df = courses_df[courses_df["course_code"].isin(passed_codes)]
-    credits_by_block = passed_courses_df.groupby("block_code")["credits"].sum().to_dict()
-
-    blocks_out = []
-    for _, b in blocks_df.iterrows():
-        if b.get("selection_rule") == "container":
-            continue
-        b_code = str(b["block_code"])
-        earned = int(credits_by_block.get(b_code, 0))
-        if earned <= 0:
-            continue
-        blocks_out.append(
-            StudentProfileBlockOut(
-                block_code=b_code,
-                required_credits=int(b["required_credits"]),
-                earned_credits=earned,
-                counts_toward_total=bool(b["counts_toward_total"]),
-            )
-        )
-    return blocks_out
+def _extract_blocks(student: Mapping[str, Any]) -> list[StudentProfileBlockOut]:
+    """Chuyển `student['blocks']` sang `list[StudentProfileBlockOut]` bằng helper chung (§6.4 và §6.10)."""
+    return filter_leaf_blocks(student.get("blocks"))
 
 
 def _run_transcript_pipeline(
@@ -323,6 +263,7 @@ def _run_transcript_pipeline(
         block_complete=counts.get("block_complete", 0),
     )
 
+    # GPA làm tròn 2 chữ số thập phân nếu tầng dưới không làm tròn sẵn (§6.10)
     gpa_val = _clean_float(student.get("gpa"))
     if gpa_val is not None:
         gpa_val = round(gpa_val, 2)
@@ -341,7 +282,7 @@ def _run_transcript_pipeline(
         gpa=gpa_val,
         max_credits_per_term=int(curriculum["max_credits_per_term"]),
         outstanding_courses=outstanding_list,
-        blocks=_extract_blocks(student, repo, curriculum_code, courses_df),
+        blocks=_extract_blocks(student),
         summary=summary,
         courses=courses_list,
         warnings=_format_warnings(student.get("warnings"), names),

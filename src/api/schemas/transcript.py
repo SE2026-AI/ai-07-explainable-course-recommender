@@ -1,9 +1,9 @@
-"""Schema Pydantic cho luồng bảng điểm sinh viên tự nhập theo hợp đồng mục 6.10, 6.11 và 6.7."""
+"""Schema Pydantic cho luồng bảng điểm sinh viên tự nhập theo hợp đồng mục 6.10."""
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError, ValidationError
 
 from src.api.schemas.students import (
@@ -19,12 +19,8 @@ WarningCode = Literal[
     "studied_before_prerequisite",
 ]
 
-
-def _reject_bool_number(value: Any, error_type: str, message: str) -> Any:
-    """Từ chối giá trị boolean cho trường số để tránh `true`/`false` bị ép thành `1`/`0`."""
-    if isinstance(value, bool):
-        raise PydanticCustomError(error_type, message)
-    return value
+# Kiểu số thực chặt: từ chối chuỗi "7.5" và boolean, nhưng vẫn nhận số nguyên JSON như 7.
+_StrictFloat = Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
 
 
 class TranscriptResultIn(BaseModel):
@@ -32,20 +28,10 @@ class TranscriptResultIn(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    course_code: str = Field(..., min_length=1)
-    semester: int = Field(..., ge=1)
-    score: float | None = Field(default=None, ge=0, allow_inf_nan=False)
-    exempted: bool | None = Field(default=None)
-
-    @field_validator("semester", mode="before")
-    @classmethod
-    def _validate_semester_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "Học kỳ phải là số nguyên, không phải kiểu boolean.")
-
-    @field_validator("score", mode="before")
-    @classmethod
-    def _validate_score_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "float_type", "Điểm phải là số, không phải kiểu boolean.")
+    course_code: StrictStr = Field(..., min_length=1, max_length=32)
+    semester: StrictInt = Field(..., ge=1, le=12)
+    score: _StrictFloat | None = None
+    exempted: StrictBool | None = None
 
     @model_validator(mode="after")
     def _check_score_or_exempted(self) -> TranscriptResultIn:
@@ -94,13 +80,8 @@ class TranscriptIn(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    semesters_completed: int = Field(..., ge=0, le=12)
+    semesters_completed: StrictInt = Field(..., ge=0, le=12)
     results: list[TranscriptResultIn] = Field(default_factory=list, max_length=200)
-
-    @field_validator("semesters_completed", mode="before")
-    @classmethod
-    def _validate_semesters_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "semesters_completed phải là số nguyên, không phải kiểu boolean.")
 
 
 class TranscriptWarningOut(BaseModel):
@@ -121,7 +102,7 @@ class TranscriptLastAttemptOut(BaseModel):
 
 
 class TranscriptCourseStatusItemOut(BaseModel):
-    """Trạng thái một học phần tính từ bảng điểm tự nhập (mục 6.10 và 6.11)."""
+    """Trạng thái một học phần tính từ bảng điểm tự nhập (mục 6.10)."""
 
     course_code: str
     course_name: str
@@ -151,56 +132,3 @@ class TranscriptOut(BaseModel):
     summary: CourseStatusSummaryOut
     courses: list[TranscriptCourseStatusItemOut]
     warnings: list[TranscriptWarningOut] = Field(default_factory=list)
-
-def _validate_credit_window_order(
-    model_name: str, min_credits: int, max_credits: int | None
-) -> int:
-    """Áp dụng mặc định `max_credits = max(20, min_credits)` và báo lỗi ở `min_credits` nếu `min_credits > max_credits`."""
-    if max_credits is None:
-        return max(20, min_credits)
-    if min_credits > max_credits:
-        raise ValidationError.from_exception_data(
-            title=model_name,
-            line_errors=[
-                InitErrorDetails(
-                    type=PydanticCustomError(
-                        "credit_window_order",
-                        "min_credits không được lớn hơn max_credits.",
-                    ),
-                    loc=("min_credits",),
-                    input=min_credits,
-                )
-            ],
-        )
-    return max_credits
-
-
-class TranscriptRecommendationIn(TranscriptIn):
-    """Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11).
-
-    Không nhận `limit`, `assumptions`, `swap` (extra='forbid' tự từ chối với 422 validation_error).
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    min_credits: int = Field(default=10, ge=10, le=40)
-    max_credits: int | None = Field(default=None, ge=10, le=40)
-    skip: list[str] = Field(default_factory=list)
-    include: list[str] = Field(default_factory=list)
-    weights: dict[str, float] | None = Field(default=None)
-
-    @field_validator("min_credits", mode="before")
-    @classmethod
-    def _validate_min_credits_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "min_credits phải là số nguyên, không phải kiểu boolean.")
-
-    @field_validator("max_credits", mode="before")
-    @classmethod
-    def _validate_max_credits_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "max_credits phải là số nguyên, không phải kiểu boolean.")
-
-    @model_validator(mode="after")
-    def _check_credit_window(self) -> TranscriptRecommendationIn:
-        self.max_credits = _validate_credit_window_order(self.__class__.__name__, self.min_credits, self.max_credits)
-        return self
-

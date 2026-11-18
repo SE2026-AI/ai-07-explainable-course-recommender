@@ -14,10 +14,9 @@ from src.api.schemas.students import (
     CourseStatusItemOut,
     CourseStatusOut,
     CourseStatusSummaryOut,
-    StudentProfileBlockOut,
     StudentProfileOut,
 )
-from src.api.services.students import build_course_status_item, load_student
+from src.api.services.students import build_course_status_item, filter_leaf_blocks, load_student
 from src.data.repository import Repository
 from src.recommender.scoring import target_semester
 from src.rules.status import course_status_details
@@ -60,21 +59,7 @@ def get_student_profile(
     curriculum = repo.curriculum(str(student["curriculum_code"]))
 
     blocks_df = repo.block_progress(int(student["student_id"]), effective_term)
-    # Lọc khối lá có tín chỉ tích lũy (earned_credits > 0 và không phải khối container)
-    leaf_blocks = blocks_df[
-        (blocks_df["selection_rule"] != "container") & (blocks_df["earned_credits"] > 0)
-    ]
-
-    blocks_data: list[StudentProfileBlockOut] = []
-    for _, b in leaf_blocks.iterrows():
-        blocks_data.append(
-            StudentProfileBlockOut(
-                block_code=str(b["block_code"]),
-                required_credits=int(b["required_credits"]),
-                earned_credits=int(b["earned_credits"]),
-                counts_toward_total=bool(b["counts_toward_total"]),
-            )
-        )
+    blocks_data = filter_leaf_blocks(blocks_df)
 
     gpa_val = float(student["gpa"]) if not pd.isna(student["gpa"]) else None
     if gpa_val is not None:

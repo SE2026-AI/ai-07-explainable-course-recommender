@@ -15,7 +15,7 @@ from fastapi import FastAPI
 
 from src.api.deps import dispose_repo
 from src.api.errors import register_handlers
-from src.api.routers import catalog, plan_undo, recommendations, students, system, transcript
+from src.api.routers import catalog, recommendations, students, system, transcript
 from src.api.serialization import CleanJSONResponse
 from src.api.version import API_VERSION, CONTRACT_VERSION
 
@@ -58,7 +58,6 @@ def create_app() -> FastAPI:
     app.include_router(students.router, prefix=prefix)
     app.include_router(recommendations.router, prefix=prefix)
     app.include_router(transcript.router, prefix=prefix)
-    app.include_router(plan_undo.router, prefix=prefix)
 
     return app
 

@@ -1699,7 +1699,8 @@ def test_transcript_validation_422_fields(api_client_all: TestClient, body: dict
     err = r.json()["error"]
     assert err["code"] == "validation_error"
     assert isinstance(err["details"], dict)
-    assert expected_field in err["details"]["fields"], f"Kỳ vọng '{expected_field}' trong {err['details']['fields']}"
+    actual_fields = set(err["details"]["fields"])
+    assert actual_fields == {expected_field}, f"Kỳ vọng {{{expected_field}}} nhưng có {actual_fields}"
     assert "request_id" not in err
 
 
@@ -1886,50 +1887,189 @@ def test_transcript_matches_contract_fixtures(api_client_all: TestClient, fixtur
     for field in ("target_semester", "credits_earned", "credits_outstanding", "gpa", "outstanding_courses"):
         assert data[field] == expected[field], f"{fixture_name}.{field}"
     assert sum(data["summary"].values()) == len(data["courses"])
+    if "summary" in expected:
+        assert data["summary"] == expected["summary"]
+    if "blocks" in expected:
+        assert data["blocks"] == expected["blocks"]
+    if "courses" in expected:
+        actual_courses = {c["course_code"]: c["status"] for c in data["courses"]}
+        for exp_c in expected["courses"]:
+            assert actual_courses.get(exp_c["course_code"]) == exp_c["status"]
 
 
-def test_transcript_extract_blocks_fallback(repo_all):
-    """API-4: Fallback cho _extract_blocks khi student không có khóa 'blocks' hoặc blocks là None (§6.4, §6.10)."""
-    from src.api.routers.transcript import _extract_blocks
+# =====================================================================
+# Kiểu dữ liệu chặt (Strict types) cho endpoint transcript (§6.10)
+# =====================================================================
 
-    curriculum_code = "HUS-7480113QTD-2022"
-    courses_df = repo_all.curriculum_courses(curriculum_code)
 
-    # 1. Khi student có khóa 'blocks'
-    student_with_blocks = {
-        "blocks": [
-            {
-                "block_code": "I",
-                "selection_rule": "container",
-                "required_credits": 10,
-                "earned_credits": 10,
-                "counts_toward_total": True,
-            },
-            {
-                "block_code": "I.1",
-                "selection_rule": "all",
-                "required_credits": 16,
-                "earned_credits": 11,
-                "counts_toward_total": True,
-            },
-            {
-                "block_code": "I.2",
-                "selection_rule": "choose_credits",
-                "required_credits": 4,
-                "earned_credits": 0,
-                "counts_toward_total": True,
-            },
-        ]
-    }
-    extracted = _extract_blocks(student_with_blocks, repo_all, curriculum_code, courses_df)
-    assert len(extracted) == 1
-    assert extracted[0].block_code == "I.1"
-    assert extracted[0].earned_credits == 11
+@pytest.mark.parametrize(
+    "body,expected_field",
+    [
+        # --- score: chuỗi và boolean bị từ chối ---
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "score": "7.5"}]},
+            "results[0].score",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "score": True}]},
+            "results[0].score",
+        ),
+        # --- exempted: chuỗi và int bị từ chối ---
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "exempted": "yes"}]},
+            "results[0].exempted",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "exempted": "true"}]},
+            "results[0].exempted",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "exempted": 1}]},
+            "results[0].exempted",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "exempted": 0}]},
+            "results[0].exempted",
+        ),
+        # --- semester: boolean bị từ chối ---
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": True, "score": 5.0}]},
+            "results[0].semester",
+        ),
+        # --- semesters_completed: chuỗi bị từ chối ---
+        (
+            {"semesters_completed": "2", "results": []},
+            "semesters_completed",
+        ),
+        # --- course_code: chuỗi rỗng và mã > 32 ký tự ---
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "", "semester": 1, "score": 7.0}]},
+            "results[0].course_code",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "X" * 33, "semester": 1, "score": 7.0}]},
+            "results[0].course_code",
+        ),
+    ],
+)
+def test_transcript_strict_type_validation_422(api_client_all: TestClient, body: dict, expected_field: str):
+    """Lỗi 2: Strict types trong schema transcript (§6.10)."""
+    r = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
+    assert r.status_code == 422, r.text
+    err = r.json()["error"]
+    assert err["code"] == "validation_error"
+    actual_fields = set(err["details"]["fields"])
+    assert actual_fields == {expected_field}, f"Kỳ vọng {{{expected_field}}} nhưng có {actual_fields}"
+    assert "request_id" not in err
 
-    # 2. Khi student không có khóa 'blocks' (blocks là None)
-    student_no_blocks = {
-        "passed_courses": ["PHI1006", "PEC1008"],  # Thuộc khối I.1 (3 + 2 = 5 TC)
-    }
-    extracted_fallback = _extract_blocks(student_no_blocks, repo_all, curriculum_code, courses_df)
-    assert len(extracted_fallback) >= 1
-    assert any(b.block_code == "I.1" and b.earned_credits == 5 for b in extracted_fallback)
+
+# =====================================================================
+# Chế độ Stub với 4 bảng điểm mẫu trong test/fixtures/transcripts/
+# =====================================================================
+
+
+@pytest.mark.skipif(not _has_transcript_fixtures(), reason="Thiếu fixtures trong test/fixtures/transcripts/")
+@pytest.mark.parametrize("fixture_name", TRANSCRIPT_FIXTURE_NAMES)
+def test_transcript_stub_mode_shape(api_client_all: TestClient, fixture_name: str):
+    """Lỗi 3 Stub: Mỗi fixture → /transcript trả 200 với đúng hình dạng §6.10 (đủ khóa, đúng kiểu)."""
+    fixture = json.loads(
+        (PROJECT_ROOT / "test" / "fixtures" / "transcripts" / fixture_name).read_text(encoding="utf-8")
+    )
+    uni = fixture["university_code"]
+    cur = fixture["curriculum_code"]
+    req = fixture["request"]
+    body = {"semesters_completed": req["semesters_completed"], "results": req["results"]}
+
+    r = api_client_all.post(f"/v1/universities/{uni}/curricula/{cur}/transcript", json=body)
+    assert r.status_code == 200, r.text
+    data = r.json()
+    for key in (
+        "university_code",
+        "curriculum_code",
+        "semesters_completed",
+        "target_semester",
+        "credits_earned",
+        "credits_outstanding",
+        "total_credits",
+        "max_credits_per_term",
+        "outstanding_courses",
+        "blocks",
+        "summary",
+        "courses",
+        "warnings",
+    ):
+        assert key in data, f"{fixture_name}: thiếu khóa '{key}'"
+    assert isinstance(data["courses"], list)
+    assert isinstance(data["warnings"], list)
+
+
+# =====================================================================
+# Kiểm tra plan_undo vắng mặt trong OpenAPI (Lỗi 1)
+# =====================================================================
+
+
+def test_plan_undo_absent_from_openapi():
+    """Lỗi 1: Các path /plan/remove và /plan/undo không xuất hiện trong docs/api/openapi.json."""
+    spec = json.loads((PROJECT_ROOT / "docs" / "api" / "openapi.json").read_text(encoding="utf-8"))
+    paths = set(spec.get("paths", {}).keys())
+    for p in paths:
+        assert "/plan/remove" not in p, f"Tìm thấy path plan/remove trong OpenAPI: {p}"
+        assert "/plan/undo" not in p, f"Tìm thấy path plan/undo trong OpenAPI: {p}"
+
+
+# =====================================================================
+# Kiểm tra hai nhánh import của _load_build_student() (Lỗi 3a)
+# =====================================================================
+
+
+def test_transcript_load_build_student_import_branches(monkeypatch: pytest.MonkeyPatch):
+    """Lỗi 3a: Module vắng thì trả stub, module có lỗi bên trong thì ném lỗi và ra 500 internal_error."""
+    import importlib
+    import importlib.machinery
+    import sys
+
+    from src.api.app import create_app
+
+    client = TestClient(create_app(), raise_server_exceptions=False)
+
+    # Nhánh 1: Module vắng -> trả stub (status 200, credits_earned=34 từ stub)
+    monkeypatch.delitem(sys.modules, "src.rules.transcript", raising=False)
+    orig_find_spec = importlib.util.find_spec
+
+    def stub_find_spec(name: str):
+        return None if name == "src.rules.transcript" else orig_find_spec(name)
+
+    monkeypatch.setattr(importlib.util, "find_spec", stub_find_spec)
+
+    r_stub = client.post(
+        f"{TRANSCRIPT_CURRICULUM_URL}/transcript",
+        json={"semesters_completed": 0, "results": []},
+    )
+    assert r_stub.status_code == 200, r_stub.text
+    assert r_stub.json()["credits_earned"] == 34
+
+    # Nhánh 2: Module có mà lỗi bên trong -> 500 internal_error (không lộ thông tin nội bộ)
+    monkeypatch.delitem(sys.modules, "src.rules.transcript", raising=False)
+    fake_spec = importlib.machinery.ModuleSpec("src.rules.transcript", None)
+
+    def failing_find_spec(name: str):
+        return fake_spec if name == "src.rules.transcript" else orig_find_spec(name)
+
+    monkeypatch.setattr(importlib.util, "find_spec", failing_find_spec)
+
+    orig_import = importlib.import_module
+
+    def failing_import(name: str):
+        if name == "src.rules.transcript":
+            raise ImportError("Lỗi cú pháp tuyệt mật bên trong src.rules.transcript")
+        return orig_import(name)
+
+    monkeypatch.setattr(importlib, "import_module", failing_import)
+
+    r_500 = client.post(
+        f"{TRANSCRIPT_CURRICULUM_URL}/transcript",
+        json={"semesters_completed": 0, "results": []},
+    )
+    assert r_500.status_code == 500
+    assert r_500.json()["error"]["code"] == "internal_error"
+    assert "tuyệt mật" not in r_500.text
