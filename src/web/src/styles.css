@@ -2374,3 +2374,16 @@ select {
     padding-left: 28px;
   }
 }
+
+/* WEB-8: ô chọn file ẩn trong nhãn; nhãn nhận viền focus thay cho nó. */
+.transcript-file {
+  margin-top: 12px;
+}
+.transcript-file .button-link {
+  font-size: inherit;
+  cursor: pointer;
+}
+.transcript-file label:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

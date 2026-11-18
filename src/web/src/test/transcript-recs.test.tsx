@@ -45,9 +45,7 @@ function setup(overrides: Partial<ApiClient> = {}) {
   };
   const spy = vi.spyOn(client, "recommendTranscript");
   render(
-    <MemoryRouter
-      initialEntries={[`/goi-y?uni=${UNI}&curriculum=${CODE}&ky=2`]}
-    >
+    <MemoryRouter initialEntries={[`/goi-y?uni=${UNI}&curriculum=${CODE}&ky=2`]}>
       <App client={client} />
     </MemoryRouter>,
   );
@@ -76,12 +74,8 @@ describe("WEB-7: gợi ý cho bảng điểm tự nhập (§6.11)", () => {
     });
     expect(screen.getByText("Khối tự chọn đã đủ tín chỉ")).toBeInTheDocument();
     expect(screen.getByText("Vượt số tín chỉ tối đa")).toBeInTheDocument();
-    expect(
-      screen.getByText(/cần hoàn thành Xác suất - Thống kê/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Quay lại sửa bảng điểm" }),
-    ).toHaveAttribute(
+    expect(screen.getByText(/cần hoàn thành Xác suất - Thống kê/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Quay lại sửa bảng điểm" })).toHaveAttribute(
       "href",
       `/bang-diem?uni=${UNI}&curriculum=${encodeURIComponent(CODE)}&ky=2`,
     );
@@ -92,9 +86,7 @@ describe("WEB-7: gợi ý cho bảng điểm tự nhập (§6.11)", () => {
     const user = userEvent.setup();
     const spy = setup();
     await screen.findByTestId("credit-window");
-    await user.click(
-      screen.getAllByRole("button", { name: "Chưa học kỳ này" })[0],
-    );
+    await user.click(screen.getAllByRole("button", { name: "Chưa học kỳ này" })[0]);
     await waitFor(() =>
       expect(spy).toHaveBeenLastCalledWith(
         UNI,
@@ -147,21 +139,12 @@ describe("WEB-7: gợi ý cho bảng điểm tự nhập (§6.11)", () => {
   it("422 ở results[i] chỉ ra môn trong bảng điểm và dẫn về bước 4", async () => {
     setup({
       recommendTranscript: async () => {
-        throw new ApiError(
-          422,
-          "validation_error",
-          "Dữ liệu gửi lên không hợp lệ.",
-          {
-            fields: { "results[1].score": "Điểm vượt thang của khung." },
-          },
-        );
+        throw new ApiError(422, "validation_error", "Dữ liệu gửi lên không hợp lệ.", {
+          fields: { "results[1].score": "Điểm vượt thang của khung." },
+        });
       },
     });
-    expect(
-      await screen.findByText("bảng điểm, môn MAT2505"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Sửa bảng điểm" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("bảng điểm, môn MAT2505")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sửa bảng điểm" })).toBeInTheDocument();
   });
 });
