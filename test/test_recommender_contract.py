@@ -184,11 +184,9 @@ def test_not_eligible_holds_every_other_course_with_the_answer_key_status(repo_a
         assert row["course_name"] in row["text"], row
 
 
-@pytest.mark.xfail(strict=True, reason="rules.course_status_details() đọc last_attempt từ database thay vì từ dòng "
-                                       "sinh viên nên chưa thấy giả định what-if; chờ tầng luật sửa (#16)")
 def test_an_assumed_pass_shows_the_assumed_attempt_in_not_eligible(repo_all):
     """Tiêu chí "Trung thực" của README: giả định đạt MAT2505 với 8,0 thì dòng của môn đó phải nói 8,0, không
-    phải điểm 3,0 của lần trượt thật. Khi tầng luật sửa, test này qua và `strict` buộc xóa dấu `xfail`."""
+    phải điểm 3,0 của lần trượt thật."""
     result = rec.recommend(repo_all, _t03(repo_all), assumptions=[{"course_code": "MAT2505", "status": "passed",
                                                                    "score": 8.0}])
     row = next(row for row in result["not_eligible"] if row["course_code"] == "MAT2505")

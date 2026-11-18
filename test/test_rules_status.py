@@ -297,17 +297,18 @@ def test_shared_elective_credit_and_block_fit_helpers():
 
 def test_attempt_details_cover_passed_retake_and_exempt_courses():
     repo = _Repo([_course("P"), _course("R"), _course("X")])
-    repo.course_results = lambda _student_id: pd.DataFrame([
-        {"course_code": "P", "term_code": "20251", "attempt_no": 2,
+    repo.course_results = lambda _student_id: pytest.fail("course_results must not be called")
+    attempts = {
+        "P": {"term_code": "20251", "attempt_no": 2,
          "score": 8.0, "letter_grade": "B", "status": "passed", "recency": 1},
-        {"course_code": "R", "term_code": "20252", "attempt_no": 1,
+        "R": {"term_code": "20252", "attempt_no": 1,
          "score": 3.0, "letter_grade": "F", "status": "failed", "recency": 1},
-        {"course_code": "X", "term_code": "20251", "attempt_no": 1,
+        "X": {"term_code": "20251", "attempt_no": 1,
          "score": None, "letter_grade": None, "status": "exempted", "recency": 1},
-    ])
+    }
     details = course_status_details(repo, {
         "student_id": 1, "curriculum_code": "C", "passed_courses": ["P", "X"],
-        "outstanding_courses": ["R"],
+        "outstanding_courses": ["R"], "latest_attempts": attempts,
     })
     assert details["P"]["last_attempt"] == {
         "term_code": "20251", "attempt_no": 2, "score": 8.0, "letter_grade": "B",
@@ -317,6 +318,54 @@ def test_attempt_details_cover_passed_retake_and_exempt_courses():
     assert details["X"]["last_attempt"] == {
         "term_code": "20251", "attempt_no": 1, "score": None, "letter_grade": None,
     }
+
+
+def test_transcript_student_uses_latest_attempts_without_student_id():
+    repo = _Repo([_course("A"), _course("B")])
+    repo.course_results = lambda *_: pytest.fail("course_results must not be called")
+    student = {
+        "curriculum_code": "C", "passed_courses": ["A"], "outstanding_courses": ["B"],
+        "latest_attempts": {
+            "A": {"semester": 1, "score": 8.0, "letter_grade": "A", "status": "passed"},
+            "B": {"semester": 2, "score": 3.0, "letter_grade": "F", "status": "failed"},
+        },
+    }
+    details = course_status_details(repo, student)
+    assert details["A"] == {"status": "passed", "last_attempt": {
+        "term_code": None, "attempt_no": None, "score": 8.0, "letter_grade": "A",
+    }}
+    assert details["B"]["status"] == "retake"
+    assert details["B"]["last_attempt"]["score"] == 3.0
+
+
+def test_latest_failed_attempt_controls_details_even_after_earlier_pass():
+    repo = _Repo([_course("A")])
+    student = {
+        "curriculum_code": "C", "passed_courses": ["A"], "outstanding_courses": [],
+        "latest_attempts": {"A": {"term_code": "20251", "attempt_no": 1, "score": 8.0,
+                                    "letter_grade": "A", "status": "passed"}},
+    }
+    assert course_status(repo, student)["A"] == "passed"
+
+    # The supplied latest attempt is a failed retake, even though an earlier
+    # attempt passed. Status follows the student's latest-attempt summary.
+    student["passed_courses"] = []
+    student["outstanding_courses"] = ["A"]
+    student["latest_attempts"] = {"A": {"term_code": "20252", "attempt_no": 2, "score": 3.0,
+                                        "letter_grade": "F", "status": "failed"}}
+    details = course_status_details(repo, student)
+    assert details["A"]["status"] == "retake"
+    assert details["A"]["last_attempt"]["attempt_no"] == 2
+
+
+@pytest.mark.parametrize("attempts", [{}, None])
+def test_missing_or_empty_latest_attempts_are_safe(attempts):
+    repo = _Repo([_course("A")])
+    student = {"curriculum_code": "C", "passed_courses": [], "outstanding_courses": []}
+    if attempts is not None:
+        student["latest_attempts"] = attempts
+    repo.course_results = lambda *_: pytest.fail("course_results must not be called")
+    assert course_status_details(repo, student) == {"A": {"status": "eligible"}}
 
 
 def test_detailed_status_matches_legacy_status_for_golden_students(repo_all):
