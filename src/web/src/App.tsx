@@ -5,6 +5,8 @@ import { useApi } from "./lib/useApi";
 import { CatalogPage } from "./pages/CatalogPage";
 import { DataIssuesPage } from "./pages/DataIssuesPage";
 import { StudentPickerPage } from "./pages/StudentPickerPage";
+import { TranscriptEntryPage } from "./pages/TranscriptEntryPage";
+import { TranscriptWizardPage } from "./pages/TranscriptWizardPage";
 import { CourseStatusPage } from "./pages/student/CourseStatusPage";
 import { GraphPage } from "./pages/student/GraphPage";
 import { PlanPage } from "./pages/student/PlanPage";
@@ -29,7 +31,10 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
             <h1 className="brand-title">Gợi ý học phần có giải thích</h1>
           </Link>
           <nav aria-label="Điều hướng chính" className="top-tools">
-            <NavLink to="/students">Sinh viên</NavLink>
+            <NavLink to="/" end>
+              Tự nhập bảng điểm
+            </NavLink>
+            <NavLink to="/students">Sinh viên mẫu</NavLink>
             <NavLink to="/catalog">Khung chương trình</NavLink>
             <NavLink to="/data-issues">Vấn đề dữ liệu</NavLink>
             {client.mode === "mock" && <span className="badge mock">mock</span>}
@@ -45,7 +50,8 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
           </p>
         )}
         <Routes>
-          <Route path="/" element={<Navigate to="/students" replace />} />
+          <Route path="/" element={<TranscriptWizardPage client={client} />} />
+          <Route path="/bang-diem" element={<TranscriptEntryPage />} />
           <Route path="/students" element={<StudentPickerPage client={client} />} />
           <Route path="/students/:uni/:student" element={<StudentLayout client={client} />}>
             <Route index element={<Navigate to="profile" replace />} />
@@ -62,7 +68,7 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
             element={
               <section className="panel">
                 <h2>Không tìm thấy trang</h2>
-                <Link to="/students">Về trang chọn sinh viên</Link>
+                <Link to="/">Về trang chủ</Link>
               </section>
             }
           />
