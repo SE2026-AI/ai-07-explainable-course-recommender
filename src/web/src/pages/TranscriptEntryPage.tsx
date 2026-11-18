@@ -298,7 +298,14 @@ function TranscriptEntry({
           )}
         </>
       )}
-      {summary.state === "ok" && <TranscriptSummary data={summary.data} courses={courses} detail={detail} />}
+      {summary.state === "ok" && (
+        <TranscriptSummary
+          data={summary.data}
+          courses={courses}
+          detail={detail}
+          next={`/goi-y${choiceQuery({ uni, curriculum, semesters })}`}
+        />
+      )}
     </div>
   );
 }
@@ -398,10 +405,13 @@ function TranscriptSummary({
   data: t,
   courses,
   detail,
+  next,
 }: {
   data: Transcript;
   courses: CurriculumCourse[];
   detail: Load<CurriculumDetail>;
+  /** Bước 5: gợi ý kỳ tới (§6.11), dùng cùng bản nháp. */
+  next: string;
 }) {
   const names = new Map(courses.map((c) => [c.course_code, c.course_name]));
   for (const c of t.courses) names.set(c.course_code, c.course_name);
@@ -413,6 +423,9 @@ function TranscriptSummary({
       <div className="panel-head">
         <h2 id="summary-title">Tóm tắt bảng điểm</h2>
         <p>Kỳ tới là kỳ {t.target_semester} của bạn.</p>
+        <Link to={next} className="button-link">
+          Xem gợi ý cho kỳ {t.target_semester}
+        </Link>
       </div>
       <dl className="stat-grid">
         <div className="stat">

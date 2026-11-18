@@ -1,4 +1,4 @@
-// Mock phát lại nguyên văn ví dụ JSON của docs/architecture/api-contract.md (§5, §6.1–6.10).
+// Mock phát lại nguyên văn ví dụ JSON của docs/architecture/api-contract.md (§5, §6.1–6.11).
 // Hợp đồng không có ví dụ cho health, universities, terms, curricula; bốn file trong mocks/seed/
 // là phản hồi thật của backend trên data/seed. Không tự nghĩ ra dữ liệu ở đây, và không tính
 // trạng thái, điểm hay thứ hạng: mock không biết mã sinh viên, học kỳ hay trọng số được gửi.
@@ -11,6 +11,7 @@ import courseStatus from "./mocks/contract/course-status.json";
 import recommendations from "./mocks/contract/recommendations.json";
 import planCheck from "./mocks/contract/plan-check.json";
 import transcript from "./mocks/contract/transcript.json";
+import transcriptRecommendations from "./mocks/contract/transcript-recommendations.json";
 import graph from "./mocks/contract/prerequisite-graph.json";
 import studentNotFound from "./mocks/contract/error-student-not-found.json";
 import health from "./mocks/seed/health.json";
@@ -19,7 +20,7 @@ import terms from "./mocks/seed/terms.json";
 import curricula from "./mocks/seed/curricula.json";
 import { ApiError } from "./errors";
 import type { ApiClient } from "./client";
-import type { Transcript } from "./transcript";
+import type { Transcript, TranscriptRecommendations } from "./transcript";
 import type {
   CourseStatus,
   CurriculumCourses,
@@ -130,5 +131,15 @@ export function mockClient(scenario: MockScenario): ApiClient {
         () => noCurriculum(uni, code),
         s,
       ),
+    recommendTranscript: async (uni, code, body, s) => {
+      const data = await replay(
+        transcriptRecommendations as TranscriptRecommendations,
+        { ...(transcriptRecommendations as TranscriptRecommendations), candidate_count: 0, items: [], not_selected: [] },
+        () => noCurriculum(uni, code),
+        s,
+      );
+      // §6.11 quy định 8: what_if theo request, như recommend() ở trên.
+      return { ...data, what_if: Boolean(body.skip?.length || body.include?.length) };
+    },
   };
 }
