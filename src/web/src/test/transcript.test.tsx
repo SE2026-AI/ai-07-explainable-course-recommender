@@ -51,7 +51,11 @@ const COURSES = [
 function client(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     ...createMockClient(),
-    curriculumCourses: async () => ({ curriculum_code: CODE, count: COURSES.length, courses: COURSES }),
+    curriculumCourses: async () => ({
+      curriculum_code: CODE,
+      count: COURSES.length,
+      courses: COURSES,
+    }),
     curriculum: async () => curriculum as CurriculumDetail,
     ...overrides,
   };
@@ -152,7 +156,9 @@ describe("WEB-6: nhập bảng điểm", () => {
     });
 
     // Mock trả nguyên ví dụ §6.10: mọi con số dưới đây là của server.
-    const summary = await screen.findByRole("region", { name: "Tóm tắt bảng điểm" });
+    const summary = await screen.findByRole("region", {
+      name: "Tóm tắt bảng điểm",
+    });
     expect(summary).toHaveTextContent("34 / 129");
     expect(summary).toHaveTextContent("2,76");
     expect(summary).toHaveTextContent("Kỳ tới là kỳ 3");
@@ -189,7 +195,10 @@ describe("WEB-6: nhập bảng điểm", () => {
     renderAt(0, client({ transcript }));
     expect(await screen.findByText(/chưa học xong kỳ nào/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Xem tóm tắt" }));
-    expect(transcript.mock.calls[0][2]).toEqual({ semesters_completed: 0, results: [] });
+    expect(transcript.mock.calls[0][2]).toEqual({
+      semesters_completed: 0,
+      results: [],
+    });
   });
 
   it("bảng điểm còn nguyên khi quay lại trang", async () => {
@@ -202,6 +211,62 @@ describe("WEB-6: nhập bảng điểm", () => {
     await screen.findByText("Triết học Mác - Lênin");
     expect(pick("MAT2400")).toBeChecked();
     expect(screen.getByLabelText("Điểm MAT2400")).toHaveValue(6.5);
+  });
+});
+
+describe("WEB-8: xuất và nhập file JSON", () => {
+  const file = (data: unknown) =>
+    new File([JSON.stringify(data)], "bang-diem.json", {
+      type: "application/json",
+    });
+
+  it("nhập file mẫu của test/fixtures/transcripts: tick đúng môn và chuyển sang số kỳ trong file", async () => {
+    const user = userEvent.setup();
+    renderAt(2);
+    await screen.findByText("Triết học Mác - Lênin");
+    await user.upload(screen.getByLabelText("Nhập file JSON"), file(namNhat));
+    expect(await screen.findByRole("button", { name: "Điền sẵn các môn kỳ 1..1" })).toBeInTheDocument();
+    expect(screen.getByText(/Đã tick/)).toHaveTextContent(`Đã tick ${namNhat.request.results.length} môn`);
+  });
+
+  it("từ chối file của khung khác hoặc sai dạng, giữ nguyên bản nháp", async () => {
+    const user = userEvent.setup();
+    renderAt(2);
+    await screen.findByText("Triết học Mác - Lênin");
+    await user.upload(
+      screen.getByLabelText("Nhập file JSON"),
+      file({ ...namNhat, curriculum_code: "HUS-7460108-2022" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("khung HUS-7460108-2022");
+    await user.upload(screen.getByLabelText("Nhập file JSON"), file({ semesters_completed: 40, results: [] }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("semesters_completed");
+    expect(screen.getByText(/Đã tick/)).toHaveTextContent("Đã tick 0 môn");
+  });
+
+  it("xuất file là body §6.10 theo thứ tự khung", async () => {
+    const user = userEvent.setup();
+    let blob: Blob | undefined;
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      blob = b;
+      return "blob:x";
+    });
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    renderAt(1);
+    await screen.findByText("Triết học Mác - Lênin");
+    await user.click(pick("MAT2400"));
+    await user.click(screen.getByLabelText("Miễn MAT2400"));
+    await user.click(screen.getByRole("button", { name: "Xuất file JSON" }));
+    expect(click).toHaveBeenCalled();
+    const text = await new Promise<string>((ok) => {
+      const reader = new FileReader();
+      reader.onload = () => ok(String(reader.result));
+      reader.readAsText(blob!);
+    });
+    expect(JSON.parse(text)).toEqual({
+      semesters_completed: 1,
+      results: [{ course_code: "MAT2400", semester: 1, exempted: true }],
+    });
   });
 });
 
@@ -218,16 +283,46 @@ describe("transcriptDraft", () => {
     draft.MAT2400.exempted = true;
     const { body, codes } = toBody(draft, COURSES, 1);
     expect(codes).toEqual(["PHI1006", "MAT2400"]);
-    expect(body.results[1]).toEqual({ course_code: "MAT2400", semester: 1, exempted: true });
-    expect(fieldTarget("results[1].score", codes)).toEqual({ course: "MAT2400", field: "score" });
-    expect(fieldTarget("results[0]", codes)).toEqual({ course: "PHI1006", field: "course_code" });
+    expect(body.results[1]).toEqual({
+      course_code: "MAT2400",
+      semester: 1,
+      exempted: true,
+    });
+    expect(fieldTarget("results[1].score", codes)).toEqual({
+      course: "MAT2400",
+      field: "score",
+    });
+    expect(fieldTarget("results[0]", codes)).toEqual({
+      course: "PHI1006",
+      field: "course_code",
+    });
     expect(fieldTarget("results[5].score", codes)).toBeNull();
     expect(fieldTarget("semesters_completed", codes)).toBeNull();
+  });
+
+  it.each(
+    Object.entries(
+      import.meta.glob("../../../../test/fixtures/transcripts/*.json", {
+        eager: true,
+        import: "default",
+      }),
+    ),
+  )("fromBody đọc được bảng điểm mẫu %s", (_name, data) => {
+    const { request } = data as {
+      request: { semesters_completed: number; results: unknown[] };
+    };
+    const parsed = fromBody(request)!;
+    expect(parsed.semesters).toBe(request.semesters_completed);
+    expect(Object.keys(parsed.draft)).toHaveLength(request.results.length);
   });
 
   it("fromBody đọc được bảng điểm mẫu trong test/fixtures/transcripts", () => {
     const parsed = fromBody(namNhat.request)!;
     expect(parsed.semesters).toBe(1);
-    expect(parsed.draft.MAT2501).toEqual({ semester: 1, score: "6.3", exempted: false });
+    expect(parsed.draft.MAT2501).toEqual({
+      semester: 1,
+      score: "6.3",
+      exempted: false,
+    });
   });
 });

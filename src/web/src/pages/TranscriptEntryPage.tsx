@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, type ApiClient } from "../api/client";
 import type { CurriculumCourse, CurriculumDetail } from "../api/schema";
 import type { Transcript } from "../api/transcript";
@@ -10,6 +10,7 @@ import { vn } from "../lib/format";
 import {
   clampDraft,
   fieldTarget,
+  fromBody,
   incompleteRows,
   loadDraft,
   prefill,
@@ -20,7 +21,7 @@ import {
   type DraftRow,
 } from "../lib/transcriptDraft";
 import { useApi, type Load } from "../lib/useApi";
-import { choiceQuery, isComplete, readChoice } from "../lib/wizard";
+import { MAX_SEMESTERS, choiceQuery, isComplete, readChoice } from "../lib/wizard";
 
 type RowErrors = Record<string, Partial<Record<DraftField, string>>>;
 type Summary =
@@ -71,11 +72,14 @@ function TranscriptEntry({
   const [block, setBlock] = useState("");
   const [errors, setErrors] = useState<RowErrors>({});
   const [summary, setSummary] = useState<Summary>({ state: "idle" });
+  const [fileError, setFileError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => saveDraft(uni, curriculum, semesters, draft), [uni, curriculum, semesters, draft]);
 
   const maxScore = detail.state === "ok" ? detail.data.max_score : undefined;
-  const electives = detail.state === "ok" ? (detail.data.blocks ?? []).filter((b) => b.selection_rule === "choose_credits") : [];
+  const electives =
+    detail.state === "ok" ? (detail.data.blocks ?? []).filter((b) => b.selection_rule === "choose_credits") : [];
   const blocksInList = useMemo(() => {
     const seen = new Map<string, string>();
     for (const c of courses) if (!seen.has(c.block_code)) seen.set(c.block_code, c.block_name);
@@ -111,7 +115,11 @@ function TranscriptEntry({
     const next = { ...draft };
     if (on) {
       const planned = c.recommended_semester ?? semesters;
-      next[c.course_code] = { semester: Math.min(Math.max(planned, 1), semesters), score: "", exempted: false };
+      next[c.course_code] = {
+        semester: Math.min(Math.max(planned, 1), semesters),
+        score: "",
+        exempted: false,
+      };
     } else delete next[c.course_code];
     change(next);
   }
@@ -131,14 +139,21 @@ function TranscriptEntry({
     setErrors({});
     setSummary({ state: "loading" });
     try {
-      setSummary({ state: "ok", data: await client.transcript(uni, curriculum, body) });
+      setSummary({
+        state: "ok",
+        data: await client.transcript(uni, curriculum, body),
+      });
     } catch (error) {
       const rowErrors: RowErrors = {};
       const other: [string, string][] = [];
       if (error instanceof ApiError) {
         for (const [path, message] of Object.entries(error.fieldErrors)) {
           const target = fieldTarget(path, codes);
-          if (target) rowErrors[target.course] = { ...rowErrors[target.course], [target.field]: message };
+          if (target)
+            rowErrors[target.course] = {
+              ...rowErrors[target.course],
+              [target.field]: message,
+            };
           else other.push([path, message]);
         }
       }
@@ -149,6 +164,48 @@ function TranscriptEntry({
 
   const back = `/${choiceQuery({ uni, curriculum, semesters })}`;
 
+  /** WEB-8: tải bảng điểm về máy, cùng dạng body §6.10. Dòng chưa có điểm và chưa "Miễn" không được ghi. */
+  function exportFile() {
+    const { body } = toBody(draft, courses, semesters);
+    const url = URL.createObjectURL(new Blob([JSON.stringify(body, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bang-diem-${curriculum}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** Đọc body §6.10, hoặc file mẫu trong test/fixtures/transcripts/ (body nằm trong `request`). */
+  async function importFile(file: File) {
+    let json: Record<string, unknown>;
+    try {
+      // FileReader thay cho file.text(): chạy được cả trên trình duyệt cũ và jsdom.
+      const text = await new Promise<string>((ok, fail) => {
+        const reader = new FileReader();
+        reader.onload = () => ok(String(reader.result));
+        reader.onerror = () => fail(reader.error);
+        reader.readAsText(file);
+      });
+      json = JSON.parse(text);
+    } catch {
+      setFileError("File không phải JSON.");
+      return;
+    }
+    if (typeof json?.curriculum_code === "string" && json.curriculum_code !== curriculum) {
+      setFileError(`File là bảng điểm của khung ${json.curriculum_code}, không phải khung đang chọn.`);
+      return;
+    }
+    const parsed = fromBody(json?.request ?? json);
+    if (!parsed || !Number.isInteger(parsed.semesters) || parsed.semesters < 0 || parsed.semesters > MAX_SEMESTERS) {
+      setFileError("File không đúng dạng bảng điểm: cần semesters_completed (0–12) và results.");
+      return;
+    }
+    setFileError("");
+    change(parsed.draft);
+    if (parsed.semesters !== semesters)
+      navigate(`/bang-diem${choiceQuery({ uni, curriculum, semesters: parsed.semesters })}`);
+  }
+
   return (
     <div className="transcript">
       <section className="panel">
@@ -156,14 +213,37 @@ function TranscriptEntry({
           <div>
             <h2>Bước 4 · Nhập bảng điểm</h2>
             <p>
-              {detail.state === "ok" ? detail.data.major_name : curriculum} ·{" "}
-              <span className="mono">{curriculum}</span> · đã học {semesters} kỳ
+              {detail.state === "ok" ? detail.data.major_name : curriculum} · <span className="mono">{curriculum}</span>{" "}
+              · đã học {semesters} kỳ
             </p>
           </div>
           <Link to={back} className="button-link">
             Sửa lựa chọn
           </Link>
         </div>
+        <div className="row transcript-file">
+          <label className="button-link">
+            Nhập file JSON
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void importFile(file);
+              }}
+            />
+          </label>
+          <button type="button" className="secondary" disabled={list.state !== "ok"} onClick={exportFile}>
+            Xuất file JSON
+          </button>
+        </div>
+        {fileError && (
+          <p className="banner error" role="alert">
+            {fileError}
+          </p>
+        )}
         {detail.state === "error" && <ErrorBanner error={detail.error} onRetry={retryDetail} />}
         {list.state === "error" && <ErrorBanner error={list.error} onRetry={retryList} />}
         {semesters === 0 ? (
@@ -369,7 +449,12 @@ function CourseRow({
               type="checkbox"
               checked={row.exempted}
               aria-label={`Miễn ${c.course_code}`}
-              onChange={(e) => onEdit({ exempted: e.target.checked, score: e.target.checked ? "" : row.score })}
+              onChange={(e) =>
+                onEdit({
+                  exempted: e.target.checked,
+                  score: e.target.checked ? "" : row.score,
+                })
+              }
             />
             Miễn
           </label>
@@ -413,6 +498,7 @@ function TranscriptSummary({
   /** Bước 5: gợi ý kỳ tới (§6.11), dùng cùng bản nháp. */
   next: string;
 }) {
+  const { warnings = [], outstanding_courses = [], blocks = [] } = t;
   const names = new Map(courses.map((c) => [c.course_code, c.course_name]));
   for (const c of t.courses) names.set(c.course_code, c.course_name);
   const blockNames = new Map(
@@ -437,7 +523,7 @@ function TranscriptSummary({
         </div>
         <div className="stat">
           <dt>Điểm trung bình (thang 4)</dt>
-          <dd>{t.gpa === null ? <span className="muted">Chưa có điểm</span> : vn(t.gpa)}</dd>
+          <dd>{t.gpa == null ? <span className="muted">Chưa có điểm</span> : vn(t.gpa)}</dd>
         </div>
         <div className={`stat ${t.credits_outstanding > 0 ? "stat-warn" : ""}`}>
           <dt>Tín chỉ đang nợ</dt>
@@ -449,11 +535,11 @@ function TranscriptSummary({
         </div>
       </dl>
 
-      {t.warnings.length > 0 && (
+      {warnings.length > 0 && (
         <div className="banner warn">
           <strong>Kiểm tra lại</strong>
           <ul>
-            {t.warnings.map((w, i) => (
+            {warnings.map((w, i) => (
               <li key={`${w.code}-${w.course_code ?? i}`}>{w.text}</li>
             ))}
           </ul>
@@ -461,11 +547,11 @@ function TranscriptSummary({
       )}
 
       <h3>Môn đang nợ</h3>
-      {t.outstanding_courses.length === 0 ? (
+      {outstanding_courses.length === 0 ? (
         <p className="muted">Không có môn nào đang nợ.</p>
       ) : (
         <ul className="chips chips-warn">
-          {t.outstanding_courses.map((code) => (
+          {outstanding_courses.map((code) => (
             <li key={code}>
               <span className="mono">{code}</span> {names.get(code)}
             </li>
@@ -475,7 +561,7 @@ function TranscriptSummary({
 
       <h3>Tiến độ theo khối</h3>
       <ul className="block-progress">
-        {t.blocks.map((b) => (
+        {blocks.map((b) => (
           <li key={b.block_code}>
             <span>
               <span className="mono">{b.block_code}</span> {blockNames.get(b.block_code)}
