@@ -51,7 +51,7 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
         )}
         <Routes>
           <Route path="/" element={<TranscriptWizardPage client={client} />} />
-          <Route path="/bang-diem" element={<TranscriptEntryPage />} />
+          <Route path="/bang-diem" element={<TranscriptEntryPage client={client} />} />
           <Route path="/students" element={<StudentPickerPage client={client} />} />
           <Route path="/students/:uni/:student" element={<StudentLayout client={client} />}>
             <Route index element={<Navigate to="profile" replace />} />

@@ -2188,3 +2188,189 @@ select {
   margin: -8px 0 0;
   text-align: center;
 }
+
+/* ---------- nhập bảng điểm (WEB-6, #39) ---------- */
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.transcript .panel {
+  margin: 0;
+}
+.button-link {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px solid var(--control);
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.button-link:hover {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+.transcript-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+@media (max-width: 900px) {
+  .transcript-tools {
+    grid-template-columns: 1fr 1fr;
+  }
+  .transcript-tools .search {
+    grid-column: 1 / -1;
+  }
+}
+.elective-progress,
+.block-progress {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.elective-progress li,
+.block-progress li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--line-soft);
+}
+.block-progress li .progress {
+  flex-basis: 100%;
+}
+.transcript-group h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.course-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.course-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 8px;
+  border-top: 1px solid var(--line-soft);
+}
+.course-row:first-child {
+  border-top: 0;
+}
+.course-row.ticked {
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+.course-row.invalid {
+  background: var(--err-bg);
+  border-radius: 8px;
+}
+.course-pick {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 280px;
+  font-size: 0.95rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.course-pick input {
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+.course-pick > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.course-meta {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.course-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.course-inputs input[type="number"] {
+  width: 90px;
+}
+.course-inputs input[aria-invalid="true"],
+.course-inputs select[aria-invalid="true"] {
+  border-color: var(--err-line);
+  box-shadow: 0 0 0 1px var(--err-line);
+}
+.inline-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+}
+.row-errors {
+  flex-basis: 100%;
+  margin: 0;
+  padding-left: 28px;
+  color: var(--err-line);
+  font-size: 0.85rem;
+}
+.transcript-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow-md);
+}
+.transcript-summary h3 {
+  margin: 20px 0 8px;
+  font-size: 1rem;
+}
+.course-texts {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+.course-texts .status-retake {
+  color: var(--blocked-ink);
+}
+@media (max-width: 640px) {
+  .transcript-tools {
+    grid-template-columns: 1fr 1fr;
+  }
+  .transcript-tools .search,
+  .transcript-tools label:has(select) {
+    grid-column: 1 / -1;
+  }
+  .course-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .course-pick {
+    flex: none;
+  }
+  .course-inputs {
+    padding-left: 28px;
+  }
+}

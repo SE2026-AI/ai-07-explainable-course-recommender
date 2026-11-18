@@ -1,0 +1,60 @@
+{
+  "semesters_completed": 2,
+  "results": [
+    {
+      "course_code": "HUS1011",
+      "semester": 1,
+      "score": 7.5
+    },
+    {
+      "course_code": "MAT2400",
+      "semester": 1,
+      "score": 7.5
+    },
+    {
+      "course_code": "MAT2501",
+      "semester": 1,
+      "score": 7.5
+    },
+    {
+      "course_code": "MAT3500",
+      "semester": 1,
+      "score": 7.5
+    },
+    {
+      "course_code": "PHI1006",
+      "semester": 1,
+      "score": 7.5
+    },
+    {
+      "course_code": "FLF1107",
+      "semester": 2,
+      "score": 7.5
+    },
+    {
+      "course_code": "HUS1022",
+      "semester": 2,
+      "score": 7.5
+    },
+    {
+      "course_code": "MAT2502",
+      "semester": 2,
+      "score": 7.5
+    },
+    {
+      "course_code": "MAT3557",
+      "semester": 2,
+      "score": 7.5
+    },
+    {
+      "course_code": "PEC1008",
+      "semester": 2,
+      "score": 7.5
+    },
+    {
+      "course_code": "MAT2505",
+      "semester": 2,
+      "score": 3.0
+    }
+  ]
+}
