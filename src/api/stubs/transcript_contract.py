@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
+
 # Phản hồi mẫu nguyên văn từ hợp đồng §6.10, chỉ dùng làm Stub Fallback khi RULES-4/DATA-4 chưa merge.
 _CONTRACT_TRANSCRIPT_STUB: dict[str, Any] = {
     "credits_earned": 34,
@@ -189,3 +191,78 @@ _CONTRACT_RECOMMENDATIONS_STUB: dict[str, Any] = {
     ],
     "warnings": [],
 }
+
+
+# --- Kiểm tra đầu vào ở chế độ Stub -------------------------------------------------------------
+# Các hàm dưới đây ném `ValueError` có đường dẫn trường ở đầu thông điệp, đúng định dạng tầng luật
+# (mục 5), để router đổi sang `validation_error` bằng cùng một đường như khi chạy thật.
+# TODO: XÓA cùng khối hằng ở trên khi RULES-4 / RANK-3 / RULES-6 merge.
+
+
+def _codes_of(courses_df: pd.DataFrame) -> set[str]:
+    return set(courses_df["course_code"].astype(str))
+
+
+def validate_stub_transcript(curriculum: pd.Series, courses_df: pd.DataFrame, body: Any) -> None:
+    """Kiểm tra bảng điểm theo khung (mã thuộc khung, không lặp, học kỳ, điểm tối đa) khi chưa có RULES-4."""
+    valid_codes = _codes_of(courses_df)
+    max_score = float(curriculum["max_score"])
+    seen: set[str] = set()
+    for idx, item in enumerate(body.results):
+        if item.course_code not in valid_codes:
+            raise ValueError(f"results[{idx}].course_code: '{item.course_code}' không thuộc khung chương trình đào tạo.")
+        if item.course_code in seen:
+            raise ValueError(f"results[{idx}].course_code: '{item.course_code}' đã xuất hiện ở dòng trước.")
+        seen.add(item.course_code)
+        if item.semester > body.semesters_completed:
+            raise ValueError(
+                f"results[{idx}].semester: học kỳ {item.semester} vượt quá semesters_completed ({body.semesters_completed})."
+            )
+        if item.score is not None and item.score > max_score:
+            raise ValueError(f"results[{idx}].score: điểm {item.score} vượt quá thang điểm tối đa {max_score:g} của khung.")
+
+
+def validate_stub_max_credits(curriculum: pd.Series, max_credits: int) -> None:
+    """`max_credits` không được vượt mức tối đa một học kỳ của khung."""
+    cap = int(curriculum["max_credits_per_term"])
+    if max_credits > cap:
+        raise ValueError(
+            f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, nhận được {max_credits}."
+        )
+
+
+def validate_stub_choices(courses_df: pd.DataFrame, skip: list[str], include: list[str]) -> None:
+    """`skip[i]` và `include[i]` phải thuộc khung và không trùng nhau (kể cả giữa hai danh sách)."""
+    valid_codes = _codes_of(courses_df)
+    used: set[str] = set()
+    for field, codes in (("skip", skip), ("include", include)):
+        for idx, code in enumerate(codes):
+            if code not in valid_codes:
+                raise ValueError(f"{field}[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
+            if code in used:
+                raise ValueError(f"{field}[{idx}]: '{code}' đã xuất hiện ở phía trên trong skip hoặc include.")
+            used.add(code)
+
+
+def validate_stub_plan_codes(courses_df: pd.DataFrame, course_codes: list[str]) -> None:
+    """`course_codes[i]` phải thuộc khung trước khi stub trả `valid=True`."""
+    valid_codes = _codes_of(courses_df)
+    for idx, code in enumerate(course_codes):
+        if code not in valid_codes:
+            raise ValueError(f"course_codes[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
+
+
+def stub_recommendation_warnings(min_credits: int, total_credits: int) -> list[dict[str, Any]]:
+    """Cảnh báo thô cho stub: `below_min_credits` khi và chỉ khi tổng tín chỉ thấp hơn `min_credits` (bất biến §7).
+
+    Giữ `credit_window.text` và `warnings` nhất quán: cả hai cùng dựa trên so sánh này.
+    """
+    if total_credits < min_credits:
+        return [
+            {
+                "code": "below_min_credits",
+                "course_code": None,
+                "data": {"min_credits": min_credits, "total_credits": total_credits},
+            }
+        ]
+    return []

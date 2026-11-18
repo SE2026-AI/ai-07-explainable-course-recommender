@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections import Counter
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 import pandas as pd
@@ -11,6 +12,7 @@ from src import explain
 from src.api.errors import ApiError
 from src.api.schemas.students import (
     CourseStatusItemOut,
+    CourseStatusSummaryOut,
     LastAttemptOut,
     StatusBlockDetailOut,
     StudentProfileBlockOut,
@@ -225,3 +227,17 @@ def calculate_plan_total_credits(
                 total += int(c_info["credits"])
     return total
 
+
+def summarize_course_status(statuses: Iterable[str]) -> CourseStatusSummaryOut:
+    """Đếm số học phần theo trạng thái đã có sẵn trong danh sách trả về (`summary` của mục 6.5 và 6.10).
+
+    Chỉ đếm các trạng thái do tầng luật đã gán; không tự suy ra trạng thái.
+    """
+    counts = Counter(statuses)
+    return CourseStatusSummaryOut(
+        passed=counts.get("passed", 0),
+        retake=counts.get("retake", 0),
+        eligible=counts.get("eligible", 0),
+        missing_prerequisite=counts.get("missing_prerequisite", 0),
+        block_complete=counts.get("block_complete", 0),
+    )

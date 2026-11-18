@@ -7,7 +7,6 @@ import inspect
 import logging
 import math
 import re
-from collections import Counter
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -23,7 +22,6 @@ from src.api.errors import ApiError
 from src.api.schemas.common import ERROR_RESPONSES
 from src.api.schemas.recommendations import PlanViolationOut
 from src.api.schemas.students import (
-    CourseStatusSummaryOut,
     StatusBlockDetailOut,
     StudentProfileBlockOut,
 )
@@ -42,12 +40,18 @@ from src.api.schemas.transcript import (
 from src.api.services.students import (
     calculate_plan_total_credits,
     filter_leaf_blocks,
+    summarize_course_status,
     validate_curriculum,
     validate_university,
 )
 from src.api.stubs.transcript_contract import (
     _CONTRACT_RECOMMENDATIONS_STUB,
     _CONTRACT_TRANSCRIPT_STUB,
+    stub_recommendation_warnings,
+    validate_stub_choices,
+    validate_stub_max_credits,
+    validate_stub_plan_codes,
+    validate_stub_transcript,
 )
 from src.data.repository import Repository
 from src.recommender.scoring import DEFAULT_WEIGHTS, merge_weights
@@ -111,30 +115,6 @@ def _clean_float(value: Any) -> float | None:
     return None if math.isnan(number) else number
 
 
-def _validate_stub_transcript(curriculum: pd.Series, courses_df: pd.DataFrame, body: TranscriptIn) -> None:
-    """Kiểm tra ràng buộc đầu vào theo khung khi chạy ở chế độ Stub (chưa có `RULES-4`).
-
-    Chỉ kiểm tra dữ liệu đầu vào (mã thuộc khung, không lặp, học kỳ <= semesters_completed,
-    điểm <= max_score) và ném `ValueError` cùng định dạng đường dẫn trường như tầng luật.
-    """
-    valid_codes = set(courses_df["course_code"].astype(str))
-    max_score = float(curriculum["max_score"])
-    seen_codes: set[str] = set()
-
-    for idx, item in enumerate(body.results):
-        if item.course_code not in valid_codes:
-            raise ValueError(f"results[{idx}].course_code: '{item.course_code}' không thuộc khung chương trình đào tạo.")
-        if item.course_code in seen_codes:
-            raise ValueError(f"results[{idx}].course_code: '{item.course_code}' đã xuất hiện ở dòng trước.")
-        seen_codes.add(item.course_code)
-        if item.semester > body.semesters_completed:
-            raise ValueError(
-                f"results[{idx}].semester: học kỳ {item.semester} vượt quá semesters_completed ({body.semesters_completed})."
-            )
-        if item.score is not None and item.score > max_score:
-            raise ValueError(f"results[{idx}].score: điểm {item.score} vượt quá thang điểm tối đa {max_score:g} của khung.")
-
-
 def _build_transcript_student(
     repo: Repository,
     uni: str,
@@ -145,7 +125,7 @@ def _build_transcript_student(
 ) -> Mapping[str, Any] | None:
     """Gọi `build_student()` thật (RULES-4 + DATA-4). Trả `None` nếu tầng dưới chưa merge."""
     build_student = _load_build_student()
-    if build_student is None or not hasattr(repo, "grade_conversions"):
+    if build_student is None:
         return None
 
     conversions = repo.grade_conversions(curriculum_code)
@@ -242,7 +222,7 @@ def _run_transcript_pipeline(
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
     if student is None:
         try:
-            _validate_stub_transcript(curriculum, courses_df, body)
+            validate_stub_transcript(curriculum, courses_df, body)
         except ValueError as exc:
             api_err = _transcript_value_error(exc)
             if api_err is None:
@@ -270,18 +250,7 @@ def _run_transcript_pipeline(
             raise ApiError(code="internal_error", message="Lỗi máy chủ nội bộ.", status=500, details={})
         courses_list.append(_build_transcript_course_status_item(row, status_details[c_code], names))
 
-    counts = Counter(item.status for item in courses_list)
-    summary = CourseStatusSummaryOut(
-        passed=counts.get("passed", 0),
-        retake=counts.get("retake", 0),
-        eligible=counts.get("eligible", 0),
-        missing_prerequisite=counts.get("missing_prerequisite", 0),
-        block_complete=counts.get("block_complete", 0),
-    )
-
-    gpa_val = _clean_float(student.get("gpa"))
-    if gpa_val is not None:
-        gpa_val = round(gpa_val, 2)
+    summary = summarize_course_status(item.status for item in courses_list)
 
     outstanding = student.get("outstanding_courses")
     outstanding_list = [str(c) for c in outstanding] if isinstance(outstanding, (list, tuple)) else []
@@ -294,7 +263,7 @@ def _run_transcript_pipeline(
         credits_earned=int(student["credits_earned"]),
         credits_outstanding=int(student["credits_outstanding"]),
         total_credits=int(curriculum["total_credits"]),
-        gpa=gpa_val,
+        gpa=_clean_float(student.get("gpa")),
         max_credits_per_term=int(curriculum["max_credits_per_term"]),
         outstanding_courses=outstanding_list,
         blocks=_extract_blocks(student),
@@ -330,7 +299,10 @@ def post_curriculum_transcript(
 
 
 def _validate_and_merge_weights(weights: dict[str, float] | None) -> dict[str, float] | None:
-    """Ghép trọng số bằng `merge_weights()` và gắn khóa lỗi `weights.<mã>` đúng mục 5."""
+    """Ghép trọng số bằng `merge_weights()`; lỗi gắn khóa `weights.<mã>` theo từng trọng số (mục 5).
+
+    Mọi quy tắc kiểm tra nằm ở `merge_weights()`: router chỉ chạy lại hàm đó cho từng khóa để biết khóa nào sai.
+    """
     if weights is None:
         return None
     try:
@@ -338,22 +310,15 @@ def _validate_and_merge_weights(weights: dict[str, float] | None) -> dict[str, f
     except ValueError as exc:
         fields: dict[str, str] = {}
         for key, value in weights.items():
-            if key not in DEFAULT_WEIGHTS:
-                fields[f"weights.{key}"] = f"Trọng số '{key}' không có trong hợp đồng."
-            elif (
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(float(value))
-                or float(value) < 0
-            ):
-                fields[f"weights.{key}"] = f"Trọng số '{key}' phải là số lớn hơn hoặc bằng 0."
-        if not fields:
-            fields["weights"] = str(exc)
+            try:
+                merge_weights({key: value})
+            except ValueError as key_exc:
+                fields[f"weights.{key}"] = str(key_exc)
         raise ApiError(
             code="validation_error",
             message="Dữ liệu gợi ý không hợp lệ.",
             status=422,
-            details={"fields": fields},
+            details={"fields": fields or {"weights": str(exc)}},
         ) from exc
 
 
@@ -361,35 +326,6 @@ def _recommender_supports_credit_window() -> bool:
     """True khi `src.recommender.recommend` đã nhận `min_credits`, `max_credits`, `include` (RANK-3)."""
     params = inspect.signature(src.recommender.recommend).parameters
     return {"min_credits", "max_credits", "include"}.issubset(params)
-
-
-def _validate_stub_window(
-    curriculum: pd.Series,
-    courses_df: pd.DataFrame,
-    max_credits: int,
-    skip: list[str],
-    include: list[str],
-) -> None:
-    """Kiểm tra đầu vào theo khung cho mục 6.11 khi chạy Stub Fallback (chưa có RANK-3)."""
-    cap = int(curriculum["max_credits_per_term"])
-    if max_credits > cap:
-        raise ValueError(
-            f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, nhận được {max_credits}."
-        )
-    valid_codes = set(courses_df["course_code"].astype(str))
-    used: set[str] = set()
-    for idx, code in enumerate(skip):
-        if code not in valid_codes:
-            raise ValueError(f"skip[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
-        if code in used:
-            raise ValueError(f"skip[{idx}]: '{code}' đã xuất hiện ở phía trên trong skip hoặc include.")
-        used.add(code)
-    for idx, code in enumerate(include):
-        if code not in valid_codes:
-            raise ValueError(f"include[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
-        if code in used:
-            raise ValueError(f"include[{idx}]: '{code}' đã xuất hiện ở phía trên trong skip hoặc include.")
-        used.add(code)
 
 
 def _run_recommendation_pipeline(
@@ -409,8 +345,9 @@ def _run_recommendation_pipeline(
     if student is None or not _recommender_supports_credit_window():
         try:
             if student is None:
-                _validate_stub_transcript(curriculum, courses_df, body)
-            _validate_stub_window(curriculum, courses_df, max_credits, body.skip, body.include)
+                validate_stub_transcript(curriculum, courses_df, body)
+            validate_stub_max_credits(curriculum, max_credits)
+            validate_stub_choices(courses_df, body.skip, body.include)
         except ValueError as exc:
             api_err = _transcript_value_error(exc)
             if api_err is None:
@@ -421,6 +358,8 @@ def _run_recommendation_pipeline(
         stub_total = min(stub["credit_window_total"], max_credits)
         # text sinh theo đúng các số từ request, không dùng chuỗi cứng (§3b)
         window_dict = {"min_credits": body.min_credits, "max_credits": max_credits, "total_credits": stub_total}
+        # below_min_credits <=> tổng < min_credits (bất biến §7), cùng điều kiện với `credit_window.text`
+        stub_warnings = _format_warnings(stub_recommendation_warnings(body.min_credits, stub_total), {})
         return TranscriptRecommendationsOut(
             university_code=uni,
             curriculum_code=curriculum_code,
@@ -438,7 +377,7 @@ def _run_recommendation_pipeline(
             items=stub["items"],
             not_selected=stub["not_selected"],
             not_eligible=stub["not_eligible"],
-            warnings=stub["warnings"],
+            warnings=stub_warnings,
         )
 
     try:
@@ -515,16 +454,9 @@ def _run_plan_check_pipeline(
     if student is None or not _plan_check_supports_credit_window():
         try:
             if student is None:
-                _validate_stub_transcript(curriculum, courses_df, body)
-            # Stub: kiểm tra course_codes[i] thuộc khung trước khi trả valid=True (§3b, chờ RULES-6)
-            valid_codes = set(courses_df["course_code"].astype(str))
-            for idx, code in enumerate(body.course_codes):
-                if code not in valid_codes:
-                    raise ValueError(f"course_codes[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
-            if max_credits > cap:
-                raise ValueError(
-                    f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, nhận được {max_credits}."
-                )
+                validate_stub_transcript(curriculum, courses_df, body)
+            validate_stub_plan_codes(courses_df, body.course_codes)
+            validate_stub_max_credits(curriculum, max_credits)
         except ValueError as exc:
             api_err = _transcript_value_error(exc)
             if api_err is None:

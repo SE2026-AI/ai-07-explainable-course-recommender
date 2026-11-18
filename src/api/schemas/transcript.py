@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, field_validator, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError, ValidationError
 
 from src.api.schemas.recommendations import PlanViolationOut, RecommendationItemOut
@@ -137,6 +137,15 @@ class TranscriptOut(BaseModel):
     summary: CourseStatusSummaryOut
     courses: list[TranscriptCourseStatusItemOut]
     warnings: list[TranscriptWarningOut] = Field(default_factory=list)
+
+    @field_validator("gpa", mode="before")
+    @classmethod
+    def _round_gpa(cls, value: Any) -> Any:
+        """Làm tròn GPA hai chữ số khi trình bày; NaN thành `None` (không tính lại GPA)."""
+        if value is None:
+            return None
+        number = float(value)
+        return None if number != number else round(number, 2)
 
 
 def _validate_credit_window_order(

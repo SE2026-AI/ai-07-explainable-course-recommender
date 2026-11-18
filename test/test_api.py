@@ -2808,15 +2808,16 @@ def test_plan_undo_absent_from_openapi():
 # =====================================================================
 
 
-def test_transcript_load_build_student_import_branches(monkeypatch: pytest.MonkeyPatch):
-    """Lỗi 3a: Module vắng thì trả stub, module có lỗi bên trong thì ném lỗi và ra 500 internal_error."""
+def test_transcript_load_build_student_import_branches(api_client_all: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """Lỗi 3a: Module vắng thì trả stub, module có lỗi bên trong thì ném lỗi và ra 500 internal_error.
+
+    Dùng `api_client_all` (đã override `get_repo`) để test không nối vào cơ sở dữ liệu thật.
+    """
     import importlib
     import importlib.machinery
     import sys
 
-    from src.api.app import create_app
-
-    client = TestClient(create_app(), raise_server_exceptions=False)
+    client = api_client_all
 
     # Nhánh 1: Module vắng -> trả stub (status 200, credits_earned=34 từ stub)
     monkeypatch.delitem(sys.modules, "src.rules.transcript", raising=False)
@@ -2859,3 +2860,46 @@ def test_transcript_load_build_student_import_branches(monkeypatch: pytest.Monke
     assert r_500.status_code == 500
     assert r_500.json()["error"]["code"] == "internal_error"
     assert "tuyệt mật" not in r_500.text
+
+
+# =====================================================================
+# 26. Stub /recommendations: text và warnings nhất quán (bất biến §7)
+# =====================================================================
+
+
+@pytest.mark.skipif(
+    _has("src.rules.transcript", "build_student"),
+    reason="RULES-4 đã merge: không còn chạy Stub Fallback",
+)
+@pytest.mark.parametrize(
+    ("min_credits", "max_credits", "expect_warning"),
+    [(15, 20, False), (25, 30, True)],
+)
+def test_transcript_recommendations_stub_warning_matches_window_text(
+    api_client_all: TestClient, min_credits: int, max_credits: int, expect_warning: bool
+):
+    """`below_min_credits` có mặt khi và chỉ khi `credit_window.text` báo thấp hơn mức tối thiểu."""
+    r = api_client_all.post(
+        f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
+        json={"semesters_completed": 0, "results": [], "min_credits": min_credits, "max_credits": max_credits},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    codes = [w["code"] for w in data["warnings"]]
+    assert ("below_min_credits" in codes) == expect_warning
+    assert ("thấp hơn mức tối thiểu" in data["credit_window"]["text"]) == expect_warning
+    assert (data["credit_window"]["total_credits"] < min_credits) == expect_warning
+    if expect_warning:
+        warning = data["warnings"][0]
+        assert warning["data"] == {"min_credits": min_credits, "total_credits": data["credit_window"]["total_credits"]}
+        assert warning["text"]
+
+
+def test_transcript_recommendations_weights_error_names_each_bad_key(api_client_all: TestClient):
+    """Mỗi trọng số sai có một khóa `weights.<mã>` riêng trong `details.fields`."""
+    r = api_client_all.post(
+        f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
+        json={"semesters_completed": 0, "results": [], "weights": {"khong_co_ma_nay": 1.0, "unlocks": -1.0}},
+    )
+    assert r.status_code == 422, r.text
+    assert set(r.json()["error"]["details"]["fields"]) == {"weights.khong_co_ma_nay", "weights.unlocks"}
