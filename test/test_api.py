@@ -1536,3 +1536,400 @@ def test_plan_check_texts_come_from_explain_layer(api_client_all: TestClient):
     assert {v["code"] for v in data["violations"]} >= {"missing_prerequisite", "duplicate_course"}
     for violation in data["violations"]:
         assert violation["text"] and "Học máy" in violation["text"]
+
+
+# =====================================================================
+# 19. API-4: POST /v1/universities/{uni}/curricula/{curriculum_code}/transcript (§6.10)
+# =====================================================================
+
+TRANSCRIPT_CURRICULUM_URL = "/v1/universities/HUS/curricula/HUS-7480113QTD-2022"
+
+TRANSCRIPT_FIXTURE_NAMES = [
+    "nam-nhat.json",
+    "khoi-tu-chon-gan-day.json",
+    "no-nhieu-mon.json",
+    "sap-tot-nghiep.json",
+]
+
+T03_TRANSCRIPT_BODY = {
+    "semesters_completed": 2,
+    "results": [
+        {"course_code": "HUS1011", "semester": 1, "score": 7.5},
+        {"course_code": "MAT2400", "semester": 1, "score": 7.5},
+        {"course_code": "MAT2501", "semester": 1, "score": 7.5},
+        {"course_code": "MAT3500", "semester": 1, "score": 7.5},
+        {"course_code": "PHI1006", "semester": 1, "score": 7.5},
+        {"course_code": "FLF1107", "semester": 2, "score": 7.5},
+        {"course_code": "HUS1022", "semester": 2, "score": 7.5},
+        {"course_code": "MAT2502", "semester": 2, "score": 7.5},
+        {"course_code": "MAT3557", "semester": 2, "score": 7.5},
+        {"course_code": "PEC1008", "semester": 2, "score": 7.5},
+        {"course_code": "MAT2505", "semester": 2, "score": 3.0},
+    ],
+}
+
+
+def _has_transcript_fixtures() -> bool:
+    fixtures_dir = PROJECT_ROOT / "test" / "fixtures" / "transcripts"
+    return all((fixtures_dir / name).exists() for name in TRANSCRIPT_FIXTURE_NAMES)
+
+
+def _has_transcript_live_deps() -> bool:
+    return _has("src.rules.transcript", "build_student") and hasattr(Repository, "grade_conversions")
+
+
+def _table_row_counts(repo_inst: Repository) -> dict[str, int]:
+    from sqlalchemy import text
+
+    counts: dict[str, int] = {}
+    with repo_inst.engine.connect() as conn:
+        for table in ("course_results", "course_registrations", "recommendation_runs"):
+            counts[table] = int(conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one())
+    return counts
+
+
+def test_transcript_404_errors(api_client_all: TestClient):
+    """API-4: 404 university_not_found và curriculum_not_found (kể cả khung thuộc trường khác)."""
+    r_uni = api_client_all.post(
+        "/v1/universities/UNKNOWN_UNI/curricula/HUS-7480113QTD-2022/transcript",
+        json={"semesters_completed": 0, "results": []},
+    )
+    assert r_uni.status_code == 404
+    assert r_uni.json()["error"]["code"] == "university_not_found"
+
+    r_cur = api_client_all.post(
+        "/v1/universities/HUS/curricula/NO-SUCH-CURRICULUM/transcript",
+        json={"semesters_completed": 0, "results": []},
+    )
+    assert r_cur.status_code == 404
+    assert r_cur.json()["error"]["code"] == "curriculum_not_found"
+
+    r_wrong_uni = api_client_all.post(
+        "/v1/universities/DEMO/curricula/HUS-7480113QTD-2022/transcript",
+        json={"semesters_completed": 0, "results": []},
+    )
+    assert r_wrong_uni.status_code == 404
+    assert r_wrong_uni.json()["error"]["code"] == "curriculum_not_found"
+
+
+@pytest.mark.parametrize(
+    "body,expected_field",
+    [
+        ({"semesters_completed": -1, "results": []}, "semesters_completed"),
+        ({"semesters_completed": 13, "results": []}, "semesters_completed"),
+        ({"semesters_completed": True, "results": []}, "semesters_completed"),
+        (
+            {
+                "semesters_completed": 2,
+                "results": [{"course_code": f"M{i}", "semester": 1, "score": 7.0} for i in range(201)],
+            },
+            "results",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 0, "score": 7.0}]},
+            "results[0].semester",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 3, "score": 7.0}]},
+            "results[0].semester",
+        ),
+        (
+            {
+                "semesters_completed": 2,
+                "results": [
+                    {"course_code": "HUS1011", "semester": 1, "score": 7.0},
+                    {"course_code": "MAT2505", "semester": 2, "score": -0.5},
+                ],
+            },
+            "results[1].score",
+        ),
+        (
+            {
+                "semesters_completed": 2,
+                "results": [
+                    {"course_code": "HUS1011", "semester": 1, "score": 7.0},
+                    {"course_code": "MAT2505", "semester": 2, "score": 10.5},
+                ],
+            },
+            "results[1].score",
+        ),
+        (
+            {
+                "semesters_completed": 2,
+                "results": [{"course_code": "MAT2505", "semester": 1, "score": 7.0, "exempted": True}],
+            },
+            "results[0].score",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1}]},
+            "results[0].score",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "MAT2505", "semester": 1, "exempted": False}]},
+            "results[0].score",
+        ),
+        (
+            {"semesters_completed": 2, "results": [{"course_code": "NOT_IN_CURR", "semester": 1, "score": 7.0}]},
+            "results[0].course_code",
+        ),
+        (
+            {
+                "semesters_completed": 2,
+                "results": [
+                    {"course_code": "MAT2505", "semester": 1, "score": 3.0},
+                    {"course_code": "MAT2505", "semester": 2, "score": 7.0},
+                ],
+            },
+            "results[1].course_code",
+        ),
+        ({"semesters_completed": 2, "results": [], "extra_key": 1}, "extra_key"),
+        (
+            {
+                "semesters_completed": 2,
+                "results": [{"course_code": "MAT2505", "semester": 1, "score": 7.0, "extra": 1}],
+            },
+            "results[0].extra",
+        ),
+    ],
+)
+def test_transcript_validation_422_fields(api_client_all: TestClient, body: dict, expected_field: str):
+    """API-4: Kiểm tra mọi lỗi 422 validation_error và đường dẫn kiểu JS trong details.fields (§5, §6.10)."""
+    r = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
+    assert r.status_code == 422, r.text
+    err = r.json()["error"]
+    assert err["code"] == "validation_error"
+    assert isinstance(err["details"], dict)
+    assert expected_field in err["details"]["fields"], f"Kỳ vọng '{expected_field}' trong {err['details']['fields']}"
+    assert "request_id" not in err
+
+
+def test_transcript_endpoint_contract_determinism_stateless_and_privacy(api_client_all: TestClient, repo_all):
+    """API-4: Khớp cấu trúc §6.10, tất định byte-for-byte, không ghi DB, không rò rỉ trường nhạy cảm."""
+    before = _table_row_counts(repo_all)
+
+    r1 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=T03_TRANSCRIPT_BODY)
+    r2 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=T03_TRANSCRIPT_BODY)
+
+    after = _table_row_counts(repo_all)
+    assert before == after, f"Bảng DB thay đổi sau request stateless: {before} -> {after}"
+    assert r1.status_code == 200, r1.text
+    assert r1.content == r2.content
+    assert "fairness_group" not in r1.text
+    assert "gender" not in r1.text
+
+    data = r1.json()
+    assert data["university_code"] == "HUS"
+    assert data["curriculum_code"] == "HUS-7480113QTD-2022"
+    assert data["semesters_completed"] == 2
+    assert data["target_semester"] == 3
+    assert data["total_credits"] == 129
+    assert data["max_credits_per_term"] == 40
+    assert isinstance(data["summary"], dict)
+    assert isinstance(data["courses"], list) and len(data["courses"]) > 0
+    assert isinstance(data["warnings"], list)
+
+    # Kiểm tra môn được miễn (exempted: true) được chấp nhận hợp lệ
+    exempted_body = {
+        "semesters_completed": 1,
+        "results": [{"course_code": "FLF1107", "semester": 1, "exempted": True}],
+    }
+    r_ex = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=exempted_body)
+    assert r_ex.status_code == 200, r_ex.text
+
+
+def test_transcript_live_pipeline_wiring_with_stub(
+    api_client_all: TestClient, repo_all, monkeypatch: pytest.MonkeyPatch
+):
+    """API-4: Kiểm tra nối tầng thật (DATA-4 + RULES-4 + RULES-5 + EXPLAIN-2) qua monkeypatch."""
+    import sys
+    import types
+
+    import pandas as pd
+
+    import src.explain
+    import src.rules.status
+
+    captured: dict = {}
+
+    def fake_grade_conversions(curriculum_code: str):
+        captured["grade_conversions_code"] = curriculum_code
+        return pd.DataFrame([{"letter": "A", "min_score": 8.5, "max_score": 10.0, "grade_point": 4.0, "is_pass": 1}])
+
+    def fake_build_student(curriculum, courses, conversions, semesters_completed, results):
+        captured["build_student_args"] = {
+            "curriculum_code": str(curriculum.name),
+            "courses_count": len(courses),
+            "conversions_count": len(conversions),
+            "semesters_completed": semesters_completed,
+            "results": results,
+        }
+        return {
+            "student_id": None,
+            "university_code": "HUS",
+            "curriculum_code": "HUS-7480113QTD-2022",
+            "semesters_completed": semesters_completed,
+            "target_semester": semesters_completed + 1,
+            "credits_earned": 5,
+            "credits_outstanding": 0,
+            "gpa": None,
+            "passed_courses": ["FLF1107"],
+            "outstanding_courses": [],
+            "blocks": [{"block_code": "I.2", "required_credits": 5, "earned_credits": 5, "counts_toward_total": True}],
+            "latest_attempts": {"FLF1107": {"semester": 1, "score": None, "letter_grade": None, "status": "exempted"}},
+            "latest_scores": {},
+            "fairness_group": "secret_group",
+            "gender": "secret_gender",
+            "warnings": [
+                {
+                    "code": "studied_before_prerequisite",
+                    "course_code": "MAT2323",
+                    "data": {"semester": 1, "prerequisite_code": "MAT2502", "prerequisite_semester": 1},
+                }
+            ],
+        }
+
+    def fake_course_status_details(repo, student):
+        captured["student_id_in_details"] = student.get("student_id")
+        courses_df = repo.curriculum_courses(student["curriculum_code"])
+        out = {}
+        for c_code in courses_df["course_code"].astype(str):
+            if c_code == "FLF1107":
+                out[c_code] = {
+                    "status": "passed",
+                    "last_attempt": {"semester": 1, "score": None, "letter_grade": None},
+                }
+            else:
+                out[c_code] = {"status": "eligible"}
+        return out
+
+    fake_mod = types.ModuleType("src.rules.transcript")
+    fake_mod.build_student = fake_build_student  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "src.rules.transcript", fake_mod)
+    monkeypatch.setattr(repo_all, "grade_conversions", fake_grade_conversions, raising=False)
+    monkeypatch.setattr(src.rules.status, "course_status_details", fake_course_status_details)
+    monkeypatch.setattr(src.explain, "warning_text", lambda w, names: f"Cảnh báo {w['code']}", raising=False)
+
+    body = {
+        "semesters_completed": 1,
+        "results": [
+            {"course_code": "FLF1107", "semester": 1, "exempted": True},
+            {"course_code": "PHI1006", "semester": 1, "score": 8.0, "exempted": False},
+        ],
+    }
+    r = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
+    assert r.status_code == 200, r.text
+
+    # Đảm bảo exempted=False được chuẩn hóa bỏ đi trước khi truyền xuống build_student()
+    assert captured["grade_conversions_code"] == "HUS-7480113QTD-2022"
+    assert captured["student_id_in_details"] is None
+    assert captured["build_student_args"]["results"] == [
+        {"course_code": "FLF1107", "semester": 1, "exempted": True},
+        {"course_code": "PHI1006", "semester": 1, "score": 8.0},
+    ]
+
+    data = r.json()
+    assert data["gpa"] is None
+    assert "fairness_group" not in r.text
+    assert "gender" not in r.text
+    assert "latest_attempts" not in data
+    assert "latest_scores" not in data
+    assert sum(data["summary"].values()) == len(data["courses"])
+
+    # Môn được miễn giữ score=null và letter_grade=null trong last_attempt (§3.2, §6.10)
+    flf = next(c for c in data["courses"] if c["course_code"] == "FLF1107")
+    assert flf["last_attempt"] == {"semester": 1, "score": None, "letter_grade": None}
+    assert data["warnings"] == [
+        {
+            "code": "studied_before_prerequisite",
+            "course_code": "MAT2323",
+            "text": "Cảnh báo studied_before_prerequisite",
+            "data": {"semester": 1, "prerequisite_code": "MAT2502", "prerequisite_semester": 1},
+        }
+    ]
+
+    # ValueError có đường dẫn trường -> 422; ValueError nội bộ -> 500 không lộ thông tin
+    def failing_field_build(*args):
+        raise ValueError("results[0].score: điểm vượt thang điểm của khung")
+
+    monkeypatch.setattr(fake_mod, "build_student", failing_field_build)
+    r_422 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
+    assert r_422.status_code == 422
+    assert r_422.json()["error"]["details"]["fields"] == {"results[0].score": "điểm vượt thang điểm của khung"}
+
+    def failing_internal_build(*args):
+        raise ValueError("lỗi lập trình bí mật bên trong build_student")
+
+    monkeypatch.setattr(fake_mod, "build_student", failing_internal_build)
+    r_500 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
+    assert r_500.status_code == 500
+    assert r_500.json()["error"]["code"] == "internal_error"
+    assert "bí mật" not in r_500.text
+
+
+@pytest.mark.skipif(
+    not (_has_transcript_live_deps() and _has_transcript_fixtures()),
+    reason="chờ DATA-3, DATA-4, RULES-4, RULES-5 và EXPLAIN-2 merge",
+)
+@pytest.mark.parametrize("fixture_name", TRANSCRIPT_FIXTURE_NAMES)
+def test_transcript_matches_contract_fixtures(api_client_all: TestClient, fixture_name: str):
+    """API-4: Khớp toàn bộ 4 bảng điểm mẫu trong test/fixtures/transcripts/ với tầng thật (§6.10, §7)."""
+    fixture = json.loads((PROJECT_ROOT / "test" / "fixtures" / "transcripts" / fixture_name).read_text(encoding="utf-8"))
+    uni = fixture["university_code"]
+    cur = fixture["curriculum_code"]
+    req = fixture["request"]
+    body = {"semesters_completed": req["semesters_completed"], "results": req["results"]}
+
+    r = api_client_all.post(f"/v1/universities/{uni}/curricula/{cur}/transcript", json=body)
+    assert r.status_code == 200, r.text
+    data = r.json()
+    expected = fixture["expected"]["transcript"]
+    for field in ("target_semester", "credits_earned", "credits_outstanding", "gpa", "outstanding_courses"):
+        assert data[field] == expected[field], f"{fixture_name}.{field}"
+    assert sum(data["summary"].values()) == len(data["courses"])
+
+
+def test_transcript_extract_blocks_fallback(repo_all):
+    """API-4: Fallback cho _extract_blocks khi student không có khóa 'blocks' hoặc blocks là None (§6.4, §6.10)."""
+    from src.api.routers.transcript import _extract_blocks
+
+    curriculum_code = "HUS-7480113QTD-2022"
+    courses_df = repo_all.curriculum_courses(curriculum_code)
+
+    # 1. Khi student có khóa 'blocks'
+    student_with_blocks = {
+        "blocks": [
+            {
+                "block_code": "I",
+                "selection_rule": "container",
+                "required_credits": 10,
+                "earned_credits": 10,
+                "counts_toward_total": True,
+            },
+            {
+                "block_code": "I.1",
+                "selection_rule": "all",
+                "required_credits": 16,
+                "earned_credits": 11,
+                "counts_toward_total": True,
+            },
+            {
+                "block_code": "I.2",
+                "selection_rule": "choose_credits",
+                "required_credits": 4,
+                "earned_credits": 0,
+                "counts_toward_total": True,
+            },
+        ]
+    }
+    extracted = _extract_blocks(student_with_blocks, repo_all, curriculum_code, courses_df)
+    assert len(extracted) == 1
+    assert extracted[0].block_code == "I.1"
+    assert extracted[0].earned_credits == 11
+
+    # 2. Khi student không có khóa 'blocks' (blocks là None)
+    student_no_blocks = {
+        "passed_courses": ["PHI1006", "PEC1008"],  # Thuộc khối I.1 (3 + 2 = 5 TC)
+    }
+    extracted_fallback = _extract_blocks(student_no_blocks, repo_all, curriculum_code, courses_df)
+    assert len(extracted_fallback) >= 1
+    assert any(b.block_code == "I.1" and b.earned_credits == 5 for b in extracted_fallback)
