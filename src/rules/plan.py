@@ -21,15 +21,16 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
     Prerequisites are checked against courses already passed by the student. Courses in
     this plan never satisfy prerequisites for another planned course.
     """
-    if not course_codes:
-        return []
-
     curriculum_code = student["curriculum_code"]
     courses = repo.curriculum_courses(curriculum_code)
     by_code = {str(row["course_code"]): row for _, row in courses.iterrows()}
     passed = set(student["passed_courses"])
     curriculum = repo.curriculum(curriculum_code)
     max_credits = int(curriculum["max_credits_per_term"])
+    min_credits = _value(curriculum, "min_credits")
+    min_credits = int(min_credits) if min_credits is not None else None
+    if not course_codes and min_credits is None:
+        return []
     seen: set[str] = set()
     violations: list[tuple[int, str, dict[str, Any]]] = []
 
@@ -96,6 +97,12 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
             "total_credits": total_credits,
         }))
 
+    if min_credits is not None and total_credits < min_credits:
+        violations.append((0 if course_codes else -1, "below_min_credits", {
+            "min_credits": min_credits,
+            "total_credits": total_credits,
+        }))
+
     violations.sort(key=lambda item: (item[0], item[1]))
-    return [{"code": code, "course_code": course_codes[index], "data": data}
+    return [{"code": code, "course_code": course_codes[index] if index >= 0 else None, "data": data}
             for index, code, data in violations]

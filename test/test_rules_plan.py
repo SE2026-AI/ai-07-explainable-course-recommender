@@ -7,10 +7,11 @@ from src.rules.plan import check_plan
 
 
 class _Repo:
-    def __init__(self, courses, blocks=(), max_credits=20):
+    def __init__(self, courses, blocks=(), max_credits=20, min_credits=None):
         self.courses = pd.DataFrame(courses)
         self.blocks = pd.DataFrame(blocks, columns=["block_code", "required_credits"])
         self.max_credits = max_credits
+        self.min_credits = min_credits
 
     def curriculum_courses(self, _code):
         return self.courses
@@ -19,7 +20,10 @@ class _Repo:
         return self.blocks
 
     def curriculum(self, _code):
-        return {"max_credits_per_term": self.max_credits}
+        result = {"max_credits_per_term": self.max_credits}
+        if self.min_credits is not None:
+            result["min_credits"] = self.min_credits
+        return result
 
 
 def _course(code, credits=3, block=None, groups=None, counts=True):
@@ -41,6 +45,43 @@ def test_credit_limit_reports_actual_total_and_configured_limit():
         "code": "credit_limit_exceeded", "course_code": "B",
         "data": {"max_credits_per_term": 10, "total_credits": 11},
     }]
+
+
+def test_minimum_credit_limit_and_inclusive_boundaries():
+    courses = [_course("A", 4), _course("B", 3), _course("C", 5)]
+    for codes, total in [(["A"], 4), (["A", "B"], 7), (["A", "B", "C"], 12)]:
+        result = check_plan(_Repo(courses, max_credits=20, min_credits=7), _student(), codes)
+        if total < 7:
+            assert result == [{"code": "below_min_credits", "course_code": "A",
+                               "data": {"min_credits": 7, "total_credits": total}}]
+        else:
+            assert result == []
+
+
+def test_maximum_credit_limit_and_inclusive_boundary():
+    courses = [_course("A", 4), _course("B", 3), _course("C", 5)]
+    assert check_plan(_Repo(courses, max_credits=7, min_credits=1), _student(), ["A"]) == []
+    assert check_plan(_Repo(courses, max_credits=7, min_credits=1), _student(), ["A", "B"]) == []
+    assert check_plan(_Repo(courses, max_credits=7, min_credits=1), _student(), ["A", "B", "C"]) == [{
+        "code": "credit_limit_exceeded", "course_code": "C",
+        "data": {"max_credits_per_term": 7, "total_credits": 12},
+    }]
+
+
+def test_exactly_equal_credit_limits_and_empty_plan_with_minimum():
+    repo = _Repo([_course("A", 5)], max_credits=5, min_credits=5)
+    assert check_plan(repo, _student(), ["A"]) == []
+    assert check_plan(repo, _student(), []) == [{
+        "code": "below_min_credits", "course_code": None,
+        "data": {"min_credits": 5, "total_credits": 0},
+    }]
+
+
+def test_optional_minimum_configuration_is_unconstrained_and_plan_is_not_mutated():
+    plan = ["A", "B"]
+    repo = _Repo([_course("A", 2), _course("B", 3)])
+    assert check_plan(repo, _student(), plan) == []
+    assert plan == ["A", "B"]
 
 
 def test_missing_prerequisite_preserves_and_or_groups_and_plan_does_not_unlock():

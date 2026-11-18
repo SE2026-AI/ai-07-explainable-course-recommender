@@ -124,6 +124,8 @@ SAMPLE_DETAILS = {
 SAMPLE_VIOLATIONS = {
     "credit_limit_exceeded": {"code": "credit_limit_exceeded", "course_code": "HIS1056",
                               "data": {"max_credits_per_term": 40, "total_credits": 43}},
+    "below_min_credits": {"code": "below_min_credits", "course_code": None,
+                           "data": {"min_credits": 10, "total_credits": 7}},
     "missing_prerequisite": {"code": "missing_prerequisite", "course_code": "MAT3533",
                              "data": {"missing_prerequisites": [["MAT2323"]]}},
     "already_passed": {"code": "already_passed", "course_code": "MAT2502", "data": {}},
