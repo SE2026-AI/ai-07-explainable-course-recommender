@@ -13,6 +13,7 @@ from src.api.schemas.students import (
     CourseStatusItemOut,
     LastAttemptOut,
     StatusBlockDetailOut,
+    StudentProfileBlockOut,
 )
 from src.data.repository import Repository
 
@@ -159,3 +160,35 @@ def build_course_status_item(
     item_kwargs["text"] = explain.status_text(course_obj, detail, names)
 
     return CourseStatusItemOut(**item_kwargs)
+
+
+def filter_leaf_blocks(blocks_raw: Any) -> list[StudentProfileBlockOut]:
+    """Lọc khối lá có tín chỉ tích lũy (earned_credits > 0 và selection_rule != 'container') (§6.4, §6.10).
+
+    Dùng chung cho cả endpoint /students/.../profile và endpoint /curricula/.../transcript.
+    """
+    if blocks_raw is None:
+        return []
+    if isinstance(blocks_raw, pd.DataFrame):
+        records = blocks_raw.to_dict("records")
+    elif isinstance(blocks_raw, list):
+        records = blocks_raw
+    else:
+        records = list(blocks_raw)
+
+    blocks_out: list[StudentProfileBlockOut] = []
+    for b in records:
+        if b.get("selection_rule") == "container":
+            continue
+        earned = int(b.get("earned_credits", 0))
+        if earned <= 0:
+            continue
+        blocks_out.append(
+            StudentProfileBlockOut(
+                block_code=str(b["block_code"]),
+                required_credits=int(b["required_credits"]),
+                earned_credits=earned,
+                counts_toward_total=bool(b["counts_toward_total"]),
+            )
+        )
+    return blocks_out
