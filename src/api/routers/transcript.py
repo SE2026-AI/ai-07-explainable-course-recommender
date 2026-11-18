@@ -1,6 +1,8 @@
 """Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10, 6.11 và 6.7."""
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import inspect
 import logging
 import math
@@ -37,7 +39,16 @@ from src.api.schemas.transcript import (
     TranscriptRecommendationsOut,
     TranscriptWarningOut,
 )
-from src.api.services.students import validate_curriculum, validate_university
+from src.api.services.students import (
+    calculate_plan_total_credits,
+    filter_leaf_blocks,
+    validate_curriculum,
+    validate_university,
+)
+from src.api.stubs.transcript_contract import (
+    _CONTRACT_RECOMMENDATIONS_STUB,
+    _CONTRACT_TRANSCRIPT_STUB,
+)
 from src.data.repository import Repository
 from src.recommender.scoring import DEFAULT_WEIGHTS, merge_weights
 
@@ -51,180 +62,6 @@ _TRANSCRIPT_FIELD_PATH = re.compile(
     r"min_credits|max_credits|weights(?:\.\w+)?|course_codes(?:\[\d+\])?)): (.+)$",
     re.DOTALL,
 )
-
-# Phản hồi mẫu nguyên văn từ hợp đồng §6.10, chỉ dùng làm Stub Fallback khi RULES-4/DATA-4 chưa merge.
-_CONTRACT_TRANSCRIPT_STUB: dict[str, Any] = {
-    "credits_earned": 34,
-    "credits_outstanding": 3,
-    "gpa": 2.76,
-    "outstanding_courses": ["MAT2505"],
-    "blocks": [
-        {"block_code": "I.1", "required_credits": 16, "earned_credits": 8, "counts_toward_total": True},
-        {"block_code": "I.2", "required_credits": 5, "earned_credits": 5, "counts_toward_total": True},
-        {"block_code": "II", "required_credits": 5, "earned_credits": 2, "counts_toward_total": True},
-        {"block_code": "IV", "required_credits": 28, "earned_credits": 13, "counts_toward_total": True},
-        {"block_code": "V.1", "required_credits": 49, "earned_credits": 6, "counts_toward_total": True},
-    ],
-    "summary": {"passed": 10, "retake": 1, "eligible": 15, "missing_prerequisite": 33, "block_complete": 6},
-    "courses": [
-        {
-            "course_code": "MAT2505",
-            "course_name": "Lập trình cơ bản",
-            "credits": 3,
-            "block_code": "III",
-            "status": "retake",
-            "last_attempt": {"semester": 2, "score": 3.0, "letter_grade": "F"},
-            "text": "Cần học lại Lập trình cơ bản: bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
-        },
-        {
-            "course_code": "PHI1006",
-            "course_name": "Triết học Mác - Lênin",
-            "credits": 3,
-            "block_code": "I.1",
-            "status": "passed",
-            "last_attempt": {"semester": 1, "score": 7.5, "letter_grade": "B"},
-            "text": "Đã đạt Triết học Mác - Lênin (điểm 7,5).",
-        },
-    ],
-    "warnings": [],
-}
-
-# Phản hồi mẫu nguyên văn từ hợp đồng §6.11, chỉ dùng làm Stub Fallback khi RULES-4/DATA-4/RANK-3 chưa merge.
-_CONTRACT_RECOMMENDATIONS_STUB: dict[str, Any] = {
-    "credit_window_total": 20,
-    "credit_window_text": "Tổng 20 tín chỉ, trong khoảng 15–20 bạn đặt.",
-    "candidate_count": 16,
-    "items": [
-        {
-            "rank": 1,
-            "course_code": "MAT2505",
-            "course_name": "Lập trình cơ bản",
-            "credits": 3,
-            "block_code": "III",
-            "status": "retake",
-            "score": 5.7083,
-            "reasons": [
-                {
-                    "code": "outstanding_retake",
-                    "contribution": 3.0,
-                    "text": "Bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
-                    "data": {"semester": 2, "score": 3.0},
-                },
-                {
-                    "code": "unlocks",
-                    "contribution": 1.5,
-                    "text": "Đạt môn này sẽ mở khóa 12 học phần khác của chương trình.",
-                    "data": {
-                        "count": 12,
-                        "course_codes": [
-                            "MAT1202", "MAT3373E", "MAT3505", "MAT3506", "MAT3507", "MAT3514",
-                            "MAT3519", "MAT3539", "MAT3550E", "MAT3554E", "MAT3558", "MAT3560",
-                        ],
-                    },
-                },
-                {
-                    "code": "overdue",
-                    "contribution": 1.0,
-                    "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
-                    "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1},
-                },
-                {
-                    "code": "strong_topic",
-                    "contribution": 0.2083,
-                    "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
-                    "data": {
-                        "topic_code": "lap_trinh",
-                        "topic_name": "Lập trình",
-                        "average_score": 5.25,
-                        "course_codes": ["HUS1011", "MAT2505"],
-                    },
-                },
-            ],
-        },
-        {
-            "rank": 7,
-            "course_code": "MAT2407",
-            "course_name": "Tối ưu hóa",
-            "credits": 3,
-            "block_code": "IV",
-            "status": "eligible",
-            "score": 0.5833,
-            "reasons": [
-                {
-                    "code": "strong_topic",
-                    "contribution": 0.5833,
-                    "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
-                    "data": {
-                        "topic_code": "toan",
-                        "topic_name": "Toán",
-                        "average_score": 7.5,
-                        "course_codes": ["MAT2400", "MAT2501", "MAT2502", "MAT3500"],
-                    },
-                }
-            ],
-        },
-    ],
-    "not_selected": [
-        {
-            "course_code": "HUS1024",
-            "course_name": "Nhập môn Robotic",
-            "credits": 3,
-            "block_code": "II",
-            "status": "eligible",
-            "score": 2.5833,
-            "reason": "block_full",
-            "text": (
-                "Chưa xếp Nhập môn Robotic: khối kiến thức theo lĩnh vực chỉ cần 5 tín chỉ "
-                "và đã có 5 từ môn đã đạt và môn xếp trên."
-            ),
-            "data": {
-                "block_code": "II",
-                "block_name": "Khối kiến thức theo lĩnh vực",
-                "required_credits": 5,
-                "taken_credits": 5,
-                "credits": 3,
-            },
-        },
-        {
-            "course_code": "MAT2503",
-            "course_name": "Giải tích 3",
-            "credits": 2,
-            "block_code": "IV",
-            "status": "eligible",
-            "score": 2.5833,
-            "reason": "skipped",
-            "text": "Bạn chọn chưa học Giải tích 3 ở kỳ này.",
-            "data": {},
-        },
-        {
-            "course_code": "MAT2403",
-            "course_name": "Phương trình vi phân",
-            "credits": 3,
-            "block_code": "IV",
-            "status": "eligible",
-            "score": 0.7333,
-            "reason": "credit_budget",
-            "text": (
-                "Chưa xếp Phương trình vi phân: kỳ này đã có 20 tín chỉ, "
-                "thêm 3 tín chỉ sẽ vượt mức tối đa 20 bạn đặt."
-            ),
-            "data": {"credits": 3, "total_credits": 20, "max_credits": 20},
-        },
-    ],
-    "not_eligible": [
-        {
-            "course_code": "MAT3533",
-            "course_name": "Học máy",
-            "credits": 3,
-            "block_code": "V.1",
-            "status": "missing_prerequisite",
-            "missing_prerequisites": [["MAT2323"]],
-            "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước.",
-        }
-    ],
-    "warnings": [],
-}
-
 
 def _transcript_value_error(exc: ValueError) -> ApiError | None:
     """Chuyển `ValueError` có đường dẫn trường hợp lệ sang 422 `validation_error`; `None` nếu lỗi nội bộ."""
@@ -240,12 +77,30 @@ def _transcript_value_error(exc: ValueError) -> ApiError | None:
 
 
 def _load_build_student() -> Callable[..., Any] | None:
-    """Tra cứu động `src.rules.transcript.build_student` (RULES-4); trả `None` nếu chưa merge."""
-    try:
-        from src.rules.transcript import build_student  # type: ignore[import-not-found]
-    except ImportError:
-        return None
-    return build_student
+    """Tra cứu động `src.rules.transcript.build_student` (RULES-4); trả `None` nếu chưa merge.
+
+    Dùng `find_spec` để phân biệt: module vắng → stub; module có nhưng lỗi import thật → nổ → 500.
+    Khi module đã có trong sys.modules (ví dụ do monkeypatch trong test), kiểm trực tiếp sys.modules.
+    """
+    import sys
+
+    if "src.rules.transcript" in sys.modules:
+        # Module đã được load (hoặc monkeypatched): dùng trực tiếp
+        module = sys.modules["src.rules.transcript"]
+    else:
+        try:
+            spec = importlib.util.find_spec("src.rules.transcript")
+        except ValueError:
+            # find_spec ném ValueError khi module đang được load (edge case)
+            spec = None
+        if spec is None:
+            return None  # RULES-4 chưa merge: dùng stub
+        module = importlib.import_module("src.rules.transcript")  # lỗi import thật phải nổ -> 500
+
+    build = getattr(module, "build_student", None)
+    if build is None:
+        raise RuntimeError("src.rules.transcript thiếu build_student")
+    return build
 
 
 def _clean_float(value: Any) -> float | None:
@@ -370,54 +225,9 @@ def _format_warnings(raw_warnings: Any, names: Mapping[str, str]) -> list[Transc
     return warnings_out
 
 
-def _extract_blocks(
-    student: Mapping[str, Any],
-    repo: Repository,
-    curriculum_code: str,
-    courses_df: pd.DataFrame,
-) -> list[StudentProfileBlockOut]:
-    """Chuyển `student['blocks']` hoặc tự tính từ `repo.blocks()` sang `list[StudentProfileBlockOut]` (§6.4 và §6.10)."""
-    raw_blocks = student.get("blocks")
-    if raw_blocks is not None:
-        if isinstance(raw_blocks, pd.DataFrame):
-            raw_blocks = raw_blocks.to_dict("records")
-        blocks_out: list[StudentProfileBlockOut] = []
-        for block in raw_blocks:
-            if block.get("selection_rule") == "container" or int(block.get("earned_credits", 0)) <= 0:
-                continue
-            blocks_out.append(
-                StudentProfileBlockOut(
-                    block_code=str(block["block_code"]),
-                    required_credits=int(block["required_credits"]),
-                    earned_credits=int(block["earned_credits"]),
-                    counts_toward_total=bool(block["counts_toward_total"]),
-                )
-            )
-        return blocks_out
-
-    # Fallback khi student không có khóa 'blocks': tính theo repo.blocks và passed_courses
-    blocks_df = repo.blocks(curriculum_code)
-    passed_codes = set(student.get("passed_courses", []))
-    passed_courses_df = courses_df[courses_df["course_code"].isin(passed_codes)]
-    credits_by_block = passed_courses_df.groupby("block_code")["credits"].sum().to_dict()
-
-    blocks_out = []
-    for _, b in blocks_df.iterrows():
-        if b.get("selection_rule") == "container":
-            continue
-        b_code = str(b["block_code"])
-        earned = int(credits_by_block.get(b_code, 0))
-        if earned <= 0:
-            continue
-        blocks_out.append(
-            StudentProfileBlockOut(
-                block_code=b_code,
-                required_credits=int(b["required_credits"]),
-                earned_credits=earned,
-                counts_toward_total=bool(b["counts_toward_total"]),
-            )
-        )
-    return blocks_out
+def _extract_blocks(student: Mapping[str, Any]) -> list[StudentProfileBlockOut]:
+    """Chuyển `student['blocks']` sang `list[StudentProfileBlockOut]` bằng helper chung (§6.4 và §6.10)."""
+    return filter_leaf_blocks(student.get("blocks"))
 
 
 def _run_transcript_pipeline(
@@ -487,7 +297,7 @@ def _run_transcript_pipeline(
         gpa=gpa_val,
         max_credits_per_term=int(curriculum["max_credits_per_term"]),
         outstanding_courses=outstanding_list,
-        blocks=_extract_blocks(student, repo, curriculum_code, courses_df),
+        blocks=_extract_blocks(student),
         summary=summary,
         courses=courses_list,
         warnings=_format_warnings(student.get("warnings"), names),
@@ -592,7 +402,8 @@ def _run_recommendation_pipeline(
 ) -> TranscriptRecommendationsOut:
     """Chạy luồng Live (`RULES-4`/`DATA-4`/`RANK-3`/`EXPLAIN-2`) hoặc Stub Fallback (§6.11)."""
     merged_weights = _validate_and_merge_weights(body.weights)
-    max_credits = body.max_credits if body.max_credits is not None else max(20, body.min_credits)
+    # body.max_credits được schema điền sẵn bởi _check_credit_window (never None sau validation)
+    max_credits = body.max_credits  # type: ignore[assignment]
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
 
     if student is None or not _recommender_supports_credit_window():
@@ -606,6 +417,10 @@ def _run_recommendation_pipeline(
                 raise
             raise api_err from exc
         stub = _CONTRACT_RECOMMENDATIONS_STUB
+        # Tổng tín chỉ stub không vượt quá max_credits của request (§6.11)
+        stub_total = min(stub["credit_window_total"], max_credits)
+        # text sinh theo đúng các số từ request, không dùng chuỗi cứng (§3b)
+        window_dict = {"min_credits": body.min_credits, "max_credits": max_credits, "total_credits": stub_total}
         return TranscriptRecommendationsOut(
             university_code=uni,
             curriculum_code=curriculum_code,
@@ -616,8 +431,8 @@ def _run_recommendation_pipeline(
             credit_window=CreditWindowOut(
                 min_credits=body.min_credits,
                 max_credits=max_credits,
-                total_credits=stub["credit_window_total"],
-                text=stub["credit_window_text"],
+                total_credits=stub_total,
+                text=explain.credit_window_text(window_dict),
             ),
             candidate_count=stub["candidate_count"],
             items=stub["items"],
@@ -681,29 +496,6 @@ def _plan_check_supports_credit_window() -> bool:
     return {"min_credits", "max_credits"}.issubset(params)
 
 
-def _plan_total_credits(courses_df: pd.DataFrame, blocks_df: pd.DataFrame, course_codes: list[str]) -> int:
-    """Tính tổng tín chỉ kế hoạch: cộng mỗi mã một lần và chỉ cộng khối `counts_toward_total = true`."""
-    seen: set[str] = set()
-    unique_codes: list[str] = []
-    for code in course_codes:
-        if code not in seen:
-            seen.add(code)
-            unique_codes.append(code)
-
-    total = 0
-    courses_map = courses_df.set_index("course_code").to_dict("index")
-    for code in unique_codes:
-        if code in courses_map:
-            c_info = courses_map[code]
-            b_code = str(c_info["block_code"])
-            counts_toward_total = True
-            if b_code in blocks_df.index:
-                counts_toward_total = bool(blocks_df.loc[b_code]["counts_toward_total"])
-            if counts_toward_total:
-                total += int(c_info["credits"])
-    return total
-
-
 def _run_plan_check_pipeline(
     repo: Repository,
     uni: str,
@@ -713,16 +505,22 @@ def _run_plan_check_pipeline(
     body: TranscriptPlanCheckIn,
 ) -> TranscriptPlanCheckOut:
     """Chạy luồng Live (`RULES-4`/`DATA-4`/`RULES-6`) hoặc Stub Fallback khi tầng dưới chưa merge."""
-    max_credits = body.max_credits if body.max_credits is not None else max(20, body.min_credits)
+    # body.max_credits được schema điền sẵn bởi _check_credit_window (never None sau validation)
+    max_credits = body.max_credits  # type: ignore[assignment]
     cap = int(curriculum["max_credits_per_term"])
     blocks_df = repo.blocks(curriculum_code).set_index("block_code")
-    total_credits = _plan_total_credits(courses_df, blocks_df, body.course_codes)
+    total_credits = calculate_plan_total_credits(courses_df, blocks_df, body.course_codes)
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
 
     if student is None or not _plan_check_supports_credit_window():
         try:
             if student is None:
                 _validate_stub_transcript(curriculum, courses_df, body)
+            # Stub: kiểm tra course_codes[i] thuộc khung trước khi trả valid=True (§3b, chờ RULES-6)
+            valid_codes = set(courses_df["course_code"].astype(str))
+            for idx, code in enumerate(body.course_codes):
+                if code not in valid_codes:
+                    raise ValueError(f"course_codes[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
             if max_credits > cap:
                 raise ValueError(
                     f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, nhận được {max_credits}."

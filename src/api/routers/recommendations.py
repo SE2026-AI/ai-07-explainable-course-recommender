@@ -22,7 +22,7 @@ from src.api.schemas.recommendations import (
     RecommendationsOut,
     SwapIn,
 )
-from src.api.services.students import load_student
+from src.api.services.students import calculate_plan_total_credits, load_student
 from src.data.repository import Repository
 from src.recommender.scoring import merge_weights
 
@@ -215,28 +215,8 @@ def post_plan_check(
     max_credits = int(curriculum["max_credits_per_term"])
 
     courses_df = repo.curriculum_courses(curriculum_code)
-    blocks_df = repo.blocks(curriculum_code).set_index("block_code")
-
-    # total_credits chỉ cộng MỖI mã học phần một lần (giữ thứ tự, bỏ trùng)
-    # và chỉ cộng học phần thuộc khối có counts_toward_total = true (mục 6.7)
-    seen_codes: set[str] = set()
-    unique_course_codes: list[str] = []
-    for code in body.course_codes:
-        if code not in seen_codes:
-            seen_codes.add(code)
-            unique_course_codes.append(code)
-
-    total_credits = 0
-    courses_map = courses_df.set_index("course_code").to_dict("index")
-    for code in unique_course_codes:
-        if code in courses_map:
-            c_info = courses_map[code]
-            b_code = str(c_info["block_code"])
-            counts_toward_total = True
-            if b_code in blocks_df.index:
-                counts_toward_total = bool(blocks_df.loc[b_code]["counts_toward_total"])
-            if counts_toward_total:
-                total_credits += int(c_info["credits"])
+    blocks_df = repo.blocks(curriculum_code)
+    total_credits = calculate_plan_total_credits(courses_df, blocks_df, body.course_codes)
 
     # check_plan (src/rules/plan.py) và violation_text (src/explain) tra cứu lúc gọi để test thay thế được.
     violations_raw = src.rules.plan.check_plan(repo, student, body.course_codes)

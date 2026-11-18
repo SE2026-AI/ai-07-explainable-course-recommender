@@ -711,19 +711,6 @@
         "title": "ErrorResponse",
         "type": "object"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
       "LastAttemptOut": {
         "description": "Thông tin lần học gần nhất (mục 6.5).",
         "properties": {
@@ -940,52 +927,6 @@
           "valid"
         ],
         "title": "PlanCheckOut",
-        "type": "object"
-      },
-      "PlanRemoveBodyIn": {
-        "additionalProperties": false,
-        "properties": {
-          "course_codes": {
-            "description": "Danh sách mã học phần cần bỏ",
-            "items": {
-              "type": "string"
-            },
-            "title": "Course Codes",
-            "type": "array"
-          },
-          "term": {
-            "default": "20261",
-            "description": "Mã học kỳ (mặc định 20261)",
-            "title": "Term",
-            "type": "string"
-          }
-        },
-        "title": "PlanRemoveBodyIn",
-        "type": "object"
-      },
-      "PlanUndoBodyIn": {
-        "additionalProperties": false,
-        "properties": {
-          "term": {
-            "default": "20261",
-            "description": "Mã học kỳ (mặc định 20261)",
-            "title": "Term",
-            "type": "string"
-          },
-          "undo_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Token hoàn tác (None nếu Quick-Undo)",
-            "title": "Undo Token"
-          }
-        },
-        "title": "PlanUndoBodyIn",
         "type": "object"
       },
       "PlanViolationOut": {
@@ -1832,8 +1773,11 @@
         "properties": {
           "course_codes": {
             "items": {
+              "maxLength": 32,
+              "minLength": 1,
               "type": "string"
             },
+            "maxItems": 200,
             "title": "Course Codes",
             "type": "array"
           },
@@ -1948,8 +1892,11 @@
         "properties": {
           "include": {
             "items": {
+              "maxLength": 32,
+              "minLength": 1,
               "type": "string"
             },
+            "maxItems": 200,
             "title": "Include",
             "type": "array"
           },
@@ -1989,8 +1936,11 @@
           },
           "skip": {
             "items": {
+              "maxLength": 32,
+              "minLength": 1,
               "type": "string"
             },
+            "maxItems": 200,
             "title": "Skip",
             "type": "array"
           },
@@ -2099,6 +2049,7 @@
         "description": "Một dòng kết quả học tập trong bảng điểm tự nhập (mục 6.10).",
         "properties": {
           "course_code": {
+            "maxLength": 32,
             "minLength": 1,
             "title": "Course Code",
             "type": "string"
@@ -2127,6 +2078,7 @@
             "title": "Score"
           },
           "semester": {
+            "maximum": 12.0,
             "minimum": 1.0,
             "title": "Semester",
             "type": "integer"
@@ -2229,46 +2181,6 @@
           "is_demo"
         ],
         "title": "UniversityOut",
-        "type": "object"
-      },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
         "type": "object"
       }
     }
@@ -3328,152 +3240,6 @@
         "summary": "Kiểm tra kế hoạch đăng ký học kỳ",
         "tags": [
           "Gợi ý & Kế hoạch"
-        ]
-      }
-    },
-    "/v1/universities/{uni}/students/{student_code}/plan/remove": {
-      "post": {
-        "operationId": "post_plan_remove_v1_universities__uni__students__student_code__plan_remove_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uni",
-            "required": true,
-            "schema": {
-              "title": "Uni",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "student_code",
-            "required": true,
-            "schema": {
-              "title": "Student Code",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Actor-Student-Code",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "X-Actor-Student-Code",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PlanRemoveBodyIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Post Plan Remove V1 Universities  Uni  Students  Student Code  Plan Remove Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Post Plan Remove",
-        "tags": [
-          "Gợi ý & Kế hoạch - Undo (VT-097)"
-        ]
-      }
-    },
-    "/v1/universities/{uni}/students/{student_code}/plan/undo": {
-      "post": {
-        "operationId": "post_plan_undo_v1_universities__uni__students__student_code__plan_undo_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uni",
-            "required": true,
-            "schema": {
-              "title": "Uni",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "student_code",
-            "required": true,
-            "schema": {
-              "title": "Student Code",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Actor-Student-Code",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "X-Actor-Student-Code",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PlanUndoBodyIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Post Plan Undo V1 Universities  Uni  Students  Student Code  Plan Undo Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Post Plan Undo",
-        "tags": [
-          "Gợi ý & Kế hoạch - Undo (VT-097)"
         ]
       }
     },

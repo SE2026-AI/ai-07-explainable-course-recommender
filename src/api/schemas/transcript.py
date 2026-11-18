@@ -1,9 +1,9 @@
 """Schema Pydantic cho luồng bảng điểm sinh viên tự nhập theo hợp đồng mục 6.10, 6.11 và 6.7."""
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError, ValidationError
 
 from src.api.schemas.recommendations import PlanViolationOut, RecommendationItemOut
@@ -13,6 +13,7 @@ from src.api.schemas.students import (
     StatusBlockDetailOut,
     StudentProfileBlockOut,
 )
+from src.recommender import DEFAULT_MAX_CREDITS, DEFAULT_MIN_CREDITS, MIN_CREDITS_FLOOR
 
 NotSelectedReasonCode = Literal["skipped", "block_full", "credit_budget"]
 WarningCode = Literal[
@@ -21,12 +22,10 @@ WarningCode = Literal[
     "studied_before_prerequisite",
 ]
 
-
-def _reject_bool_number(value: Any, error_type: str, message: str) -> Any:
-    """Từ chối giá trị boolean cho trường số để tránh `true`/`false` bị ép thành `1`/`0`."""
-    if isinstance(value, bool):
-        raise PydanticCustomError(error_type, message)
-    return value
+# Kiểu số thực chặt: từ chối chuỗi "7.5" và boolean, nhưng vẫn nhận số nguyên JSON như 7.
+_StrictFloat = Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
+# Kiểu số thực chặt cho dict values (không ràng buộc ge=0 vì weights do merge_weights kiểm).
+_StrictFloatDict = Annotated[float, Field(strict=True)]
 
 
 class TranscriptResultIn(BaseModel):
@@ -34,20 +33,10 @@ class TranscriptResultIn(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    course_code: str = Field(..., min_length=1)
-    semester: int = Field(..., ge=1)
-    score: float | None = Field(default=None, ge=0, allow_inf_nan=False)
-    exempted: bool | None = Field(default=None)
-
-    @field_validator("semester", mode="before")
-    @classmethod
-    def _validate_semester_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "Học kỳ phải là số nguyên, không phải kiểu boolean.")
-
-    @field_validator("score", mode="before")
-    @classmethod
-    def _validate_score_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "float_type", "Điểm phải là số, không phải kiểu boolean.")
+    course_code: StrictStr = Field(..., min_length=1, max_length=32)
+    semester: StrictInt = Field(..., ge=1, le=12)
+    score: _StrictFloat | None = None
+    exempted: StrictBool | None = None
 
     @model_validator(mode="after")
     def _check_score_or_exempted(self) -> TranscriptResultIn:
@@ -96,13 +85,8 @@ class TranscriptIn(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    semesters_completed: int = Field(..., ge=0, le=12)
+    semesters_completed: StrictInt = Field(..., ge=0, le=12)
     results: list[TranscriptResultIn] = Field(default_factory=list, max_length=200)
-
-    @field_validator("semesters_completed", mode="before")
-    @classmethod
-    def _validate_semesters_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "semesters_completed phải là số nguyên, không phải kiểu boolean.")
 
 
 class TranscriptWarningOut(BaseModel):
@@ -158,9 +142,12 @@ class TranscriptOut(BaseModel):
 def _validate_credit_window_order(
     model_name: str, min_credits: int, max_credits: int | None
 ) -> int:
-    """Áp dụng mặc định `max_credits = max(20, min_credits)` và báo lỗi ở `min_credits` nếu `min_credits > max_credits`."""
+    """Áp dụng mặc định `max_credits = max(DEFAULT_MAX_CREDITS, min_credits)`.
+
+    Báo lỗi ở `min_credits` nếu `min_credits > max_credits`.
+    """
     if max_credits is None:
-        return max(20, min_credits)
+        return max(DEFAULT_MAX_CREDITS, min_credits)
     if min_credits > max_credits:
         raise ValidationError.from_exception_data(
             title=model_name,
@@ -186,21 +173,11 @@ class TranscriptRecommendationIn(TranscriptIn):
 
     model_config = ConfigDict(extra="forbid")
 
-    min_credits: int = Field(default=10, ge=10, le=40)
-    max_credits: int | None = Field(default=None, ge=10, le=40)
-    skip: list[str] = Field(default_factory=list)
-    include: list[str] = Field(default_factory=list)
-    weights: dict[str, float] | None = Field(default=None)
-
-    @field_validator("min_credits", mode="before")
-    @classmethod
-    def _validate_min_credits_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "min_credits phải là số nguyên, không phải kiểu boolean.")
-
-    @field_validator("max_credits", mode="before")
-    @classmethod
-    def _validate_max_credits_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "max_credits phải là số nguyên, không phải kiểu boolean.")
+    min_credits: StrictInt = Field(default=DEFAULT_MIN_CREDITS, ge=MIN_CREDITS_FLOOR, le=40)
+    max_credits: StrictInt | None = Field(default=None, ge=MIN_CREDITS_FLOOR, le=40)
+    skip: list[Annotated[StrictStr, Field(min_length=1, max_length=32)]] = Field(default_factory=list, max_length=200)
+    include: list[Annotated[StrictStr, Field(min_length=1, max_length=32)]] = Field(default_factory=list, max_length=200)
+    weights: dict[StrictStr, _StrictFloatDict] | None = Field(default=None)
 
     @model_validator(mode="after")
     def _check_credit_window(self) -> TranscriptRecommendationIn:
@@ -253,19 +230,9 @@ class TranscriptPlanCheckIn(TranscriptIn):
 
     model_config = ConfigDict(extra="forbid")
 
-    course_codes: list[str]
-    min_credits: int = Field(default=10, ge=10, le=40)
-    max_credits: int | None = Field(default=None, ge=10, le=40)
-
-    @field_validator("min_credits", mode="before")
-    @classmethod
-    def _validate_min_credits_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "min_credits phải là số nguyên, không phải kiểu boolean.")
-
-    @field_validator("max_credits", mode="before")
-    @classmethod
-    def _validate_max_credits_not_bool(cls, value: Any) -> Any:
-        return _reject_bool_number(value, "int_type", "max_credits phải là số nguyên, không phải kiểu boolean.")
+    course_codes: list[Annotated[StrictStr, Field(min_length=1, max_length=32)]] = Field(..., max_length=200)
+    min_credits: StrictInt = Field(default=DEFAULT_MIN_CREDITS, ge=MIN_CREDITS_FLOOR, le=40)
+    max_credits: StrictInt | None = Field(default=None, ge=MIN_CREDITS_FLOOR, le=40)
 
     @model_validator(mode="after")
     def _check_credit_window(self) -> TranscriptPlanCheckIn:

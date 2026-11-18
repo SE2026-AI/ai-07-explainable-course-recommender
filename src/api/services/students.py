@@ -13,6 +13,7 @@ from src.api.schemas.students import (
     CourseStatusItemOut,
     LastAttemptOut,
     StatusBlockDetailOut,
+    StudentProfileBlockOut,
 )
 from src.data.repository import Repository
 
@@ -159,3 +160,68 @@ def build_course_status_item(
     item_kwargs["text"] = explain.status_text(course_obj, detail, names)
 
     return CourseStatusItemOut(**item_kwargs)
+
+
+def filter_leaf_blocks(blocks_raw: Any) -> list[StudentProfileBlockOut]:
+    """Lọc khối lá có tín chỉ tích lũy (earned_credits > 0 và selection_rule != 'container') (§6.4, §6.10).
+
+    Dùng chung cho cả endpoint /students/.../profile và endpoint /curricula/.../transcript.
+    """
+    if blocks_raw is None:
+        return []
+    if isinstance(blocks_raw, pd.DataFrame):
+        records = blocks_raw.to_dict("records")
+    elif isinstance(blocks_raw, list):
+        records = blocks_raw
+    else:
+        records = list(blocks_raw)
+
+    blocks_out: list[StudentProfileBlockOut] = []
+    for b in records:
+        if b.get("selection_rule") == "container":
+            continue
+        earned = int(b.get("earned_credits", 0))
+        if earned <= 0:
+            continue
+        blocks_out.append(
+            StudentProfileBlockOut(
+                block_code=str(b["block_code"]),
+                required_credits=int(b["required_credits"]),
+                earned_credits=earned,
+                counts_toward_total=bool(b["counts_toward_total"]),
+            )
+        )
+    return blocks_out
+
+
+def calculate_plan_total_credits(
+    courses_df: pd.DataFrame,
+    blocks_df: pd.DataFrame,
+    course_codes: list[str],
+) -> int:
+    """Tính tổng tín chỉ kế hoạch theo mục 6.7:
+    - Bỏ trùng (dedupe): mỗi mã học phần chỉ cộng một lần theo thứ tự xuất hiện đầu tiên.
+    - Chỉ cộng học phần thuộc khối có counts_toward_total = true.
+    Dùng chung cho cả /students/{student_code}/plan-check và /curricula/{curriculum_code}/plan-check.
+    """
+    seen: set[str] = set()
+    unique_codes: list[str] = []
+    for code in course_codes:
+        if code not in seen:
+            seen.add(code)
+            unique_codes.append(code)
+
+    total = 0
+    courses_map = courses_df.set_index("course_code").to_dict("index")
+    blocks_indexed = blocks_df if "block_code" not in blocks_df.columns else blocks_df.set_index("block_code")
+    for code in unique_codes:
+        if code in courses_map:
+            c_info = courses_map[code]
+            b_code = str(c_info["block_code"])
+            counts_toward_total = True
+            if b_code in blocks_indexed.index:
+                counts_toward_total = bool(blocks_indexed.loc[b_code]["counts_toward_total"])
+            if counts_toward_total:
+                total += int(c_info["credits"])
+    return total
+
