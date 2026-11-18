@@ -6,11 +6,12 @@ hạng, hợp đồng không quy định**. Tài liệu này là đặc tả c�
 | Nơi | Nội dung |
 | --- | --- |
 | `src/recommender/scoring.py` | Sáu tiêu chí, mỗi tiêu chí một hàm thuần, không đọc database |
-| `src/recommender/selection.py` | Chọn `k` phần tử, giữ đúng luật khối tự chọn; hàm thuần, không đọc database |
+| `src/recommender/selection.py` | Chọn `k` phần tử hoặc chọn trong khoảng tín chỉ, giữ đúng luật khối tự chọn; hàm thuần, không đọc database |
 | `src/recommender/__init__.py` | `recommend()`: lấy dữ liệu, gọi sáu tiêu chí, sắp và chọn |
 | `test/test_scoring.py` | Công thức từng tiêu chí và hai ví dụ của hợp đồng; không cần database |
 | `test/test_selection.py` | Luật khối tự chọn trên các khối thật của khung; không cần database |
 | `test/test_recommender_contract.py` | Bất biến của mục 7 trên toàn bộ sinh viên kiểm thử |
+| `test/test_transcript_fixtures.py` | Bảng điểm tự nhập của `test/fixtures/transcripts/` và hai ví dụ mục 6.10, 6.11 của hợp đồng |
 
 ---
 
@@ -239,9 +240,50 @@ hay không tốt, còn việc nó có mặt là do sinh viên chọn — client 
 Mọi kiểm tra đầu vào nằm ở `whatif.check_choices()`: mã phải thuộc khung, đang là `retake` hoặc `eligible`,
 không lặp lại trong `skip` và `swap`, và số môn chọn thay không vượt `k`.
 
+### 5.4 Chọn trong khoảng tín chỉ
+
+Mục 6.11 của hợp đồng chọn theo tín chỉ thay cho `k`: sinh viên đặt `min_credits` và `max_credits`.
+`recommend()` nhận hai tham số này (hoặc một, đầu kia lấy mặc định) thì gọi `pick_within_credits()` thay cho
+`pick_items()`. Điểm, `reasons` và thứ tự xếp hạng không đổi gì; chỉ bước chọn khác:
+
+- đi từ trên xuống danh sách đã xếp hạng, nhận một môn khi tổng tín chỉ vẫn không vượt `max_credits` **và**
+  hai điều kiện khối tự chọn của mục 5 vẫn đúng;
+- môn không vừa thì bỏ qua và **xét tiếp**, không dừng: còn trống 2 tín chỉ thì môn 2 tín chỉ xếp dưới vẫn
+  vào được. Đây là chỗ khác `pick_items()`, vốn chỉ dừng khi đủ `k`;
+- mỗi môn học được mà không vào `items` có đúng một lý do, xét theo thứ tự `skipped`, `block_full`,
+  `credit_budget` (mục 4.6 của hợp đồng). Luật khối xét trước ngân sách tín chỉ, vì môn làm hỏng khối thì
+  không có ngân sách nào cứu được;
+- `data` của `block_full` và `credit_budget` tính trên kết quả **cuối cùng**. Tín chỉ chỉ tăng dần trong lúc
+  chọn, nên môn đã không vừa lúc được xét thì cũng không vừa với danh sách sau cùng, và câu `text` nói đúng
+  về chính danh sách sinh viên đang xem.
+
+`min_credits` không bao giờ được đạt bằng cách phá ràng buộc cứng. Khi đã xét hết mà tổng vẫn thấp hơn,
+`recommend()` thêm cảnh báo `below_min_credits` chứ không thêm môn. Ở hướng ngược lại, không cần kiểm "tổng
+có thể cao hơn không": môn nào còn trong `not_selected` với lý do `credit_budget` đều có `credits` lớn hơn
+phần tín chỉ còn trống.
+
+Mặc định là 10–20 tín chỉ. Sàn 10 là của sản phẩm, đặt ở `MIN_CREDITS_FLOOR`; trần là `max_credits_per_term`
+của từng khung (HUS 40, DEMO 12), không phải hằng số. Mặc định 20 là lựa chọn của nhóm, chưa dựa trên số
+đo nào: đủ cho 6–7 môn, và sinh viên nâng được tới trần của khung.
+
+`skip` và `include` thay cho `skip` và `swap` của mục 5.3. Môn trong `skip` vẫn nằm trong danh sách xếp
+hạng, chỉ không bao giờ được nhận, để `not_selected` giữ đúng thứ tự. Môn trong `include` được xét trước mọi
+môn khác như `swap[].replacement`; nếu chính các môn `include` làm hỏng khối hoặc cộng lại vượt
+`max_credits` thì `recommend()` raise `ValueError` chỉ vào `include[i]`. `swap` không dùng cùng khoảng tín chỉ:
+đổi một môn chính là `skip` môn đó và `include` môn kia.
+
+Dòng sinh viên dựng từ bảng điểm tự nhập (mục 6.10 của hợp đồng) khác dòng đọc từ database ở ba chỗ, và
+`recommend()` đọc được cả hai:
+
+- `target_semester` có sẵn (`semesters_completed + 1`), nên không tính từ `year_of_study` và học kỳ;
+- `latest_attempts` ghi `semester` thay cho `term_code` và `attempt_no`, nên lý do `outstanding_retake` nói
+  "ở kỳ 2" thay cho "ở học kỳ 20252";
+- `student_id` là `None`, nên không có sở thích tự khai và không có lý do `interest`. Phải chặn trước khi
+  gọi `repo.student_interests()`: với `None`, truy vấn đó trả sở thích của mọi sinh viên.
+
 ## 6. Những quyết định có thể bàn lại
 
-Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng thì phải tăng `ALGORITHM_VERSION`.
+Năm chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng thì phải tăng `ALGORITHM_VERSION`.
 
 | Chỗ | Hiện tại | Lựa chọn khác |
 | --- | --- | --- |
@@ -249,6 +291,7 @@ Bốn chỗ dưới đây có lựa chọn khác cũng hợp lý. Đổi chúng 
 | `strong_topic`, `interest` | Chỉ xét chủ đề chính | Xét cả chủ đề phụ, lấy chủ đề có trọng số cao nhất |
 | Mốc đạt trần | 10 học phần, 2 học kỳ | Chuẩn hóa theo giá trị lớn nhất trong chính khung |
 | Khối tự chọn | Tham lam từ trên xuống, giữ khối hoàn thành đúng được | Tối ưu tổ hợp theo tổng điểm |
+| Khoảng tín chỉ | Tham lam từ trên xuống, môn không vừa thì xét tiếp (mục 5.4) | Tối ưu tổ hợp để tổng tín chỉ sát `max_credits` hơn |
 
 Chưa có mốc nào trong bảng này được chọn bằng số đo. Bất biến "Có ích" (mục 7 của hợp đồng) giờ đã có
 ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic` sinh với trần 40 tín chỉ mỗi kỳ:
@@ -257,6 +300,7 @@ ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic` 
 | --- | --- | --- |
 | 1.0.0 | 0,8890 | 0,5620 |
 | 1.0.1 | 0,8900 | 0,5625 |
+| 1.1.0 | 0,8900 | 0,5625 |
 
 precision@10 thấp vì mỗi sinh viên chỉ đăng ký trung bình 6,2 môn, nên trần của nó khoảng 0,62. Đăng ký dự
 kiến được sinh theo lộ trình chuẩn của khung — môn nợ trước, rồi môn đúng hoặc trễ kỳ — trùng ba tiêu chí
@@ -270,7 +314,7 @@ bảng. Muốn so các phương án cần một thước đo không dựng từ 
 | Hằng số | Giá trị |
 | --- | --- |
 | `ALGORITHM` | `rule_based_weighted` |
-| `ALGORITHM_VERSION` | `1.0.1` |
+| `ALGORITHM_VERSION` | `1.1.0` |
 
 Tăng `ALGORITHM_VERSION` mỗi khi **cách tính điểm hoặc cách dựng lời giải thích** thay đổi, kể cả khi chỉ
 đổi một mốc đạt trần hay sửa câu chữ của `text`. Đổi trọng số mặc định cũng là đổi cách tính điểm. Thêm
@@ -280,3 +324,4 @@ trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, ph
 | --- | --- |
 | 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
 | 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3; phản hồi có `not_eligible` kèm `text` cho mọi học phần không gợi ý được |
+| 1.1.0 | Chọn trong khoảng tín chỉ cho bảng điểm tự nhập (mục 5.4): `not_selected` kèm lý do, cảnh báo, `skip` và `include`; lý do `outstanding_retake` ghi kỳ thứ mấy khi dòng sinh viên không có mã học kỳ. Chọn theo `k` không đổi, nên precision@5 giữ 0,8900 |

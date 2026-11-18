@@ -69,6 +69,41 @@ def apply_assumptions(student: pd.Series, assumptions: Sequence[Mapping], course
     return view
 
 
+def _claim_once(statuses: Mapping[str, str], recommendable: Collection[str], lists: str):
+    """Hàm nhận từng mã của các lựa chọn: mã phải thuộc khung, đang gợi ý được, và chưa xuất hiện ở `lists`."""
+    used = set()
+
+    def claim(code, where):
+        if not isinstance(code, str) or code not in statuses:
+            raise ValueError(f"{where}: {code!r} không thuộc khung của sinh viên")
+        if statuses[code] not in recommendable:
+            raise ValueError(f"{where}: {code} không gợi ý được ở học kỳ này (trạng thái {statuses[code]})")
+        if code in used:
+            raise ValueError(f"{where}: {code} đã có ở phía trên trong {lists}")
+        used.add(code)
+
+    return claim
+
+
+def check_window_choices(skip: Sequence[str], include: Sequence[str], statuses: Mapping[str, str],
+                         recommendable: Collection[str]) -> tuple[set[str], dict[str, int]]:
+    """Kiểm tra hai lựa chọn của mục 6.11, khi gợi ý theo khoảng tín chỉ: `skip` là các môn chưa muốn học kỳ
+    này, `include` là các môn muốn học chắc chắn.
+
+    Trả về `(skipped, chosen)`: tập mã của `skip`, và mỗi mã của `include` ánh xạ tới vị trí của nó, để khi môn
+    đó không xếp được thì lỗi chỉ đúng trường. Cùng luật với `check_choices()`: mọi mã thuộc khung, đang có
+    trạng thái trong `recommendable`, và xuất hiện nhiều nhất một lần trong hai danh sách cộng lại."""
+    claim = _claim_once(statuses, recommendable, "skip hoặc include")
+    skipped, chosen = set(), {}
+    for index, code in enumerate(skip):
+        claim(code, f"skip[{index}]")
+        skipped.add(code)
+    for index, code in enumerate(include):
+        claim(code, f"include[{index}]")
+        chosen[code] = index
+    return skipped, chosen
+
+
 def check_choices(skip: Sequence[str], swap: Sequence[Mapping], statuses: Mapping[str, str],
                   recommendable: Collection[str], k: int) -> tuple[set[str], dict[str, int]]:
     """Kiểm tra hai lựa chọn của sinh viên cho học kỳ đang gợi ý: `skip` là các môn chưa muốn học kỳ này,
@@ -83,17 +118,7 @@ def check_choices(skip: Sequence[str], swap: Sequence[Mapping], statuses: Mappin
     gợi ý là vô nghĩa, còn chọn thay một môn chưa đủ điều kiện là phá ràng buộc cứng (mục 6.6, quy định 1).
     Mỗi mã chỉ xuất hiện một lần trong cả hai danh sách, và số môn chọn thay không vượt `k`. Sai thì raise
     `ValueError`, thông điệp mở đầu bằng đường dẫn tới trường sai như `apply_assumptions()`."""
-    used = set()
-
-    def claim(code, where):
-        if not isinstance(code, str) or code not in statuses:
-            raise ValueError(f"{where}: {code!r} không thuộc khung của sinh viên")
-        if statuses[code] not in recommendable:
-            raise ValueError(f"{where}: {code} không gợi ý được ở học kỳ này (trạng thái {statuses[code]})")
-        if code in used:
-            raise ValueError(f"{where}: {code} đã có ở phía trên trong skip hoặc swap")
-        used.add(code)
-
+    claim = _claim_once(statuses, recommendable, "skip hoặc swap")
     removed, chosen = set(), {}
     for index, code in enumerate(skip):
         claim(code, f"skip[{index}]")

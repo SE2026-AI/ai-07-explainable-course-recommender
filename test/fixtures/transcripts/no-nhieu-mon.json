@@ -1,0 +1,175 @@
+{
+  "description": "Năm ba, đã học 4 kỳ và đang nợ 6 môn: môn nợ đứng đầu danh sách, phần còn lại của khoảng 15–24 tín chỉ dành cho môn đúng kỳ.",
+  "source": {
+    "student_code": "24000029",
+    "term": "20261"
+  },
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "request": {
+    "semesters_completed": 4,
+    "results": [
+      {
+        "course_code": "HUS1011",
+        "semester": 1,
+        "score": 6.3
+      },
+      {
+        "course_code": "MAT2400",
+        "semester": 1,
+        "score": 4.6
+      },
+      {
+        "course_code": "MAT2501",
+        "semester": 1,
+        "score": 4.5
+      },
+      {
+        "course_code": "MAT3500",
+        "semester": 1,
+        "score": 4.7
+      },
+      {
+        "course_code": "FLF1107",
+        "semester": 2,
+        "score": 3.5
+      },
+      {
+        "course_code": "HUS1022",
+        "semester": 2,
+        "score": 4.6
+      },
+      {
+        "course_code": "MAT2502",
+        "semester": 2,
+        "score": 6.4
+      },
+      {
+        "course_code": "MAT2505",
+        "semester": 2,
+        "score": 6.0
+      },
+      {
+        "course_code": "MAT3557",
+        "semester": 2,
+        "score": 5.5
+      },
+      {
+        "course_code": "PHI1006",
+        "semester": 2,
+        "score": 2.7
+      },
+      {
+        "course_code": "HUS1024",
+        "semester": 3,
+        "score": 8.0
+      },
+      {
+        "course_code": "MAT1202",
+        "semester": 3,
+        "score": 8.0
+      },
+      {
+        "course_code": "MAT2323",
+        "semester": 3,
+        "score": 5.3
+      },
+      {
+        "course_code": "MAT2503",
+        "semester": 3,
+        "score": 4.4
+      },
+      {
+        "course_code": "MAT3514",
+        "semester": 3,
+        "score": 5.6
+      },
+      {
+        "course_code": "HIS1001",
+        "semester": 4,
+        "score": 3.8
+      },
+      {
+        "course_code": "HUS1012",
+        "semester": 4,
+        "score": 5.6
+      },
+      {
+        "course_code": "MAT2403",
+        "semester": 4,
+        "score": 2.8
+      },
+      {
+        "course_code": "MAT3505",
+        "semester": 4,
+        "score": 3.1
+      },
+      {
+        "course_code": "MAT3507",
+        "semester": 4,
+        "score": 3.8
+      },
+      {
+        "course_code": "MAT3550E",
+        "semester": 4,
+        "score": 4.8
+      }
+    ],
+    "min_credits": 15,
+    "max_credits": 24
+  },
+  "expected": {
+    "transcript": {
+      "target_semester": 5,
+      "credits_earned": 46,
+      "credits_outstanding": 20,
+      "gpa": 1.2,
+      "outstanding_courses": [
+        "FLF1107",
+        "HIS1001",
+        "MAT2403",
+        "MAT3505",
+        "MAT3507",
+        "PHI1006"
+      ]
+    },
+    "recommendations": {
+      "items": [
+        "PHI1006",
+        "FLF1107",
+        "MAT3507",
+        "MAT3505",
+        "MAT2403",
+        "HIS1001",
+        "MAT3552E"
+      ],
+      "total_credits": 23,
+      "not_selected": {
+        "MAT3533": "credit_budget",
+        "MAT3506": "credit_budget",
+        "MAT2407": "credit_budget",
+        "FLF1207": "block_full",
+        "FLF1307": "block_full",
+        "FLF1407": "block_full",
+        "FLF1507": "block_full",
+        "FLF1607": "block_full",
+        "FLF1707": "block_full",
+        "POL1001": "credit_budget",
+        "MAT3519": "credit_budget",
+        "MAT3541E": "credit_budget",
+        "MAT4080": "credit_budget",
+        "MAT3148": "credit_budget",
+        "MAT3554E": "credit_budget",
+        "MAT3373E": "credit_budget",
+        "MAT3558": "credit_budget",
+        "MAT3560": "credit_budget",
+        "THL1057": "credit_budget",
+        "MAT3452": "credit_budget",
+        "MAT3453": "credit_budget",
+        "MAT3535": "credit_budget",
+        "MAT3539": "credit_budget"
+      },
+      "warnings": []
+    }
+  }
+}

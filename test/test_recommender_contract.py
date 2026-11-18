@@ -327,3 +327,186 @@ def test_the_recommendation_example_of_the_contract_is_what_t03_really_gets(repo
     assert result["weights"] == example["weights"]
     assert result["what_if"] == example["what_if"]
     assert rec.ALGORITHM_VERSION == example["algorithm_version"]
+
+
+# ---------------- Gợi ý theo khoảng tín chỉ (mục 6.11) ----------------
+
+WINDOW_KEYS = ["what_if", "weights", "target_semester", "credit_window", "candidate_count", "items", "not_selected",
+               "not_eligible", "warnings"]
+
+
+def _window(repo, student, low=10, high=20):
+    """Khoảng tín chỉ hợp lệ với mọi khung: trần không vượt `max_credits_per_term` (khung DEMO chỉ cho 12)."""
+    cap = int(repo.curriculum(student["curriculum_code"])["max_credits_per_term"])
+    return low, min(high, cap)
+
+
+@pytest.fixture(scope="module")
+def windowed_all(repo_all):
+    """Gợi ý trong khoảng 10–20 tín chỉ cho mọi sinh viên của `repo_all`, tính một lần cho cả module."""
+    results = []
+    for _, student in repo_all.students().iterrows():
+        low, high = _window(repo_all, student)
+        results.append((student, (low, high), rec.recommend(repo_all, student, min_credits=low, max_credits=high)))
+    return results
+
+
+@pytest.fixture(scope="module")
+def curriculum_of(repo_all):
+    """Mã khung → `(học phần theo mã, tín chỉ phải chọn của từng khối tự chọn)`, đọc mỗi khung một lần."""
+    cache = {}
+
+    def read(code):
+        if code not in cache:
+            cache[code] = (repo_all.curriculum_courses(code).set_index("course_code"),
+                           repo_all.elective_blocks(code).set_index("block_code")["required_credits"])
+        return cache[code]
+    return read
+
+
+def test_credit_window_invariants_hold_for_every_student(windowed_all, curriculum_of):
+    """Bất biến "Khoảng tín chỉ" và "Không môn học được nào bị bỏ lặng lẽ" (mục 7), quy định 3–6 của mục 6.11."""
+    errors = []
+    for student, (low, high), result in windowed_all:
+        who = (student["university_code"], student["student_code"])
+        items, left_out = result["items"], result["not_selected"]
+        total = sum(item["credits"] for item in items)
+        window = result["credit_window"]
+        if list(result) != WINDOW_KEYS:
+            errors.append((who, "thứ tự khóa", list(result)))
+        if (window["min_credits"], window["max_credits"], window["total_credits"]) != (low, high, total):
+            errors.append((who, "credit_window", window))
+        if total > high:
+            errors.append((who, "vượt max_credits", total))
+        if ("below_min_credits" in {w["code"] for w in result["warnings"]}) != (total < low):
+            errors.append((who, "below_min_credits", total))
+        codes = [row["course_code"] for row in items + left_out]
+        not_eligible = {row["course_code"] for row in result["not_eligible"]}
+        every = set(curriculum_of(student["curriculum_code"])[0].index)
+        if len(codes) != len(set(codes)) or set(codes) != every - not_eligible \
+                or result["candidate_count"] != len(codes):
+            errors.append((who, "items + not_selected phải là đúng mọi môn học được, mỗi môn một lần", codes))
+        if [item["rank"] for item in items] != list(range(1, len(items) + 1)):
+            errors.append((who, "rank", [item["rank"] for item in items]))
+        for line in left_out:
+            data = line["data"]
+            if line["reason"] == "credit_budget" and not (data["total_credits"] == total
+                                                          and total + data["credits"] > high):
+                errors.append((who, line["course_code"], "credit_budget mà vẫn vừa", data))
+            if line["reason"] == "skipped":
+                errors.append((who, line["course_code"], "không gửi skip"))
+    assert not errors, f"{len(errors)} lỗi, ví dụ {errors[:5]}"
+
+
+def test_elective_blocks_stay_exactly_completable_within_a_credit_window(windowed_all, curriculum_of):
+    """Cùng bất biến "Khối tự chọn hoàn thành đúng" như khi chọn theo `k`: đổi cách dừng không được đổi luật khối."""
+    errors = []
+    for student, _, result in windowed_all:
+        courses, required = curriculum_of(student["curriculum_code"])
+        done = set(student["passed_courses"]) | {item["course_code"] for item in result["items"]}
+        for block, need in required.items():
+            members = courses[courses["elective_block"] == block]["credits"]
+            total = int(members[members.index.isin(done)].sum())
+            rest = [int(c) for code, c in members.items() if code not in done]
+            if total > need or not _can_fill_exactly(int(need) - total, rest):
+                errors.append((student["student_code"], block, f"{total}/{need}"))
+        for line in result["not_selected"]:
+            if line["reason"] == "block_full":
+                block = line["data"]["block_code"]
+                members = courses[courses["elective_block"] == block]["credits"]
+                if line["data"]["taken_credits"] != int(members[members.index.isin(done)].sum()):
+                    errors.append((student["student_code"], line["course_code"], "taken_credits", line["data"]))
+    assert not errors, f"{len(errors)} lỗi, ví dụ {errors[:5]}"
+
+
+def test_a_credit_window_without_choices_is_not_a_what_if_and_keeps_the_ranking_of_k(repo_all):
+    """Cùng sinh viên, cùng trọng số: hai cách chọn xếp hạng như nhau, chỉ khác chỗ dừng."""
+    by_k = rec.recommend(repo_all, _t03(repo_all), k=20)
+    by_window = rec.recommend(repo_all, _t03(repo_all), min_credits=10, max_credits=40)
+    assert by_window["what_if"] is False
+    assert by_window["target_semester"] == 3
+    ranked = [item["course_code"] for item in by_window["items"]]
+    assert ranked == [code for code in (item["course_code"] for item in by_k["items"]) if code in ranked]
+    assert by_window["not_eligible"] == by_k["not_eligible"]
+    assert by_window["candidate_count"] == by_k["candidate_count"]
+
+
+def test_skip_and_include_inside_a_credit_window(repo_all):
+    """Môn `skip` sang `not_selected` với lý do `skipped`; môn `include` luôn có mặt, đứng theo điểm của nó."""
+    result = rec.recommend(repo_all, _t03(repo_all), min_credits=15, max_credits=20, skip=["MAT2323"],
+                           include=["MAT2407"])
+    codes = [item["course_code"] for item in result["items"]]
+    assert "MAT2323" not in codes and "MAT2407" in codes
+    skipped = next(line for line in result["not_selected"] if line["course_code"] == "MAT2323")
+    assert skipped["reason"] == "skipped" and skipped["data"] == {}
+    assert skipped["text"] == "Bạn chọn chưa học Xác suất - Thống kê ở kỳ này."
+    scores = [item["score"] for item in result["items"]]
+    assert scores == sorted(scores, reverse=True), "mục 3.3"
+    assert result["what_if"] is True
+
+
+def test_the_defaults_of_the_credit_window(repo_all):
+    """Gửi một đầu thì đầu kia lấy mặc định: tối thiểu 10, tối đa max(20, min_credits)."""
+    assert rec.recommend(repo_all, _t03(repo_all), max_credits=30)["credit_window"]["min_credits"] == 10
+    assert rec.recommend(repo_all, _t03(repo_all), min_credits=12)["credit_window"]["max_credits"] == 20
+    assert rec.recommend(repo_all, _t03(repo_all), min_credits=25)["credit_window"]["max_credits"] == 25
+
+
+@pytest.mark.parametrize(("kwargs", "message"), [
+    ({"min_credits": 9}, r"^min_credits: phải từ 10"),
+    ({"max_credits": 41}, r"^max_credits: không được vượt 40"),
+    ({"min_credits": 21, "max_credits": 20}, r"^min_credits: phải nhỏ hơn hoặc bằng max_credits"),
+    ({"min_credits": 12.5}, r"^min_credits: phải là số nguyên"),
+    ({"max_credits": True}, r"^max_credits: phải là số nguyên"),
+    ({"include": ["MAT2407"]}, r"^include: chỉ dùng cùng min_credits và max_credits"),
+    ({"min_credits": 10, "swap": [{"course_code": "MAT2323", "replacement": "MAT2407"}]}, r"^swap: không dùng"),
+    ({"min_credits": 10, "include": ["MAT2502"]}, r"^include\[0\]: "),
+    ({"min_credits": 10, "skip": ["MAT2407"], "include": ["MAT2407"]}, r"^include\[0\]: .*skip hoặc include"),
+    # T03 đã có 2/5 tín chỉ của khối II: thêm HUS1023 (2) thì còn thiếu 1, không môn nào đủ nhỏ.
+    ({"min_credits": 10, "include": ["HUS1023"]}, r"^include\[0\]: HUS1023 làm khối tự chọn II"),
+    ({"min_credits": 10, "max_credits": 10, "include": ["MAT2505", "MAT2323", "HIS1056", "PHI1002"]},
+     r"^include\[3\]: các môn muốn học cộng lại vượt max_credits = 10"),
+])
+def test_an_invalid_credit_window_or_choice_names_the_field_that_is_wrong(repo_all, kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        rec.recommend(repo_all, _t03(repo_all), **kwargs)
+
+
+def test_the_cap_of_the_credit_window_is_the_one_of_the_curriculum(repo_all):
+    """Khung DEMO cho tối đa 12 tín chỉ một kỳ, không phải 40 như HUS."""
+    students = repo_all.students()
+    demo = students[students["university_code"] == "DEMO"].iloc[0]
+    assert rec.recommend(repo_all, demo, max_credits=12)["credit_window"]["max_credits"] == 12
+    with pytest.raises(ValueError, match=r"^max_credits: không được vượt 12"):
+        rec.recommend(repo_all, demo, max_credits=13)
+
+
+def test_a_row_that_carries_its_target_semester_is_ranked_at_that_semester(repo_all):
+    """Dòng dựng từ bảng điểm tự nhập mang sẵn `target_semester` (mục 6.10); không tính lại từ năm học."""
+    student = _t03(repo_all).copy()
+    student["target_semester"] = 5
+    result = rec.recommend(repo_all, student, min_credits=10, max_credits=20)
+    assert result["target_semester"] == 5
+    schedules = [r["data"]["target_semester"] for item in result["items"] for r in item["reasons"]
+                 if r["code"] in ("on_time", "overdue")]
+    assert schedules and set(schedules) == {5}
+
+
+def test_a_row_without_a_student_id_gets_no_interest_reason(repo_all):
+    """Sinh viên tự nhập bảng điểm chưa khai sở thích (mục 6.11, quy định 10). Không được rơi vào nhánh đọc sở
+    thích theo `student_id = None`, vì truy vấn đó trả sở thích của MỌI sinh viên."""
+    student = repo_all.student("HUS", "T02")
+    with_id = rec.recommend(repo_all, student, k=20)
+    assert any(r["code"] == "interest" for item in with_id["items"] for r in item["reasons"]), "T02 có khai sở thích"
+    anonymous = student.copy()
+    anonymous["student_id"] = None
+    result = rec.recommend(repo_all, anonymous, k=20)
+    assert not any(r["code"] == "interest" for item in result["items"] for r in item["reasons"])
+
+
+def test_two_identical_credit_window_calls_give_byte_identical_results(repo_all):
+    """Bất biến "Tất định" (mục 7), với khoảng tín chỉ."""
+    kwargs = {"min_credits": 15, "max_credits": 20, "skip": ["MAT2503"], "include": ["MAT2407"]}
+    first = rec.recommend(repo_all, _t03(repo_all), **kwargs)
+    second = rec.recommend(repo_all, _t03(repo_all), **kwargs)
+    assert json.dumps(first, ensure_ascii=False) == json.dumps(second, ensure_ascii=False)

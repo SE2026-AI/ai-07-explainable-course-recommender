@@ -85,6 +85,15 @@ def test_outstanding_retake_omits_the_score_when_the_attempt_has_none():
     assert reason["text"] == "Bạn chưa đạt môn này ở học kỳ 20252."
 
 
+def test_outstanding_retake_of_a_self_entered_transcript_names_the_semester():
+    """Bảng điểm tự nhập (mục 6.10) ghi kỳ thứ mấy thay cho mã học kỳ và không có số lần học (mục 6.11)."""
+    assert scoring.outstanding_retake({"semester": 2, "score": 3.0}, W) == {
+        "code": "outstanding_retake", "contribution": 3.0,
+        "text": "Bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
+        "data": {"semester": 2, "score": 3.0},
+    }
+
+
 # ---------------- Đúng kỳ và trễ kỳ ----------------
 
 def test_on_time_matches_the_contract_example():
@@ -259,4 +268,4 @@ def test_the_second_contract_example_adds_up_to_3_3333():
 def test_the_package_publishes_the_algorithm_constants_the_api_reads():
     """Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1)."""
     assert recommender.ALGORITHM == "rule_based_weighted"
-    assert recommender.ALGORITHM_VERSION == "1.0.1"
+    assert recommender.ALGORITHM_VERSION == "1.1.0"

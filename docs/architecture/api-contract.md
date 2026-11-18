@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Phiên bản hợp đồng | 1.0.0 |
-| Cập nhật | 2026-10-24 |
+| Phiên bản hợp đồng | 1.1.0 |
+| Cập nhật | 2026-11-15 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -33,7 +33,8 @@ Các ví dụ dùng dữ liệu của sinh viên `HUS/T03` trong `test/fixtures/
    sinh viên, hoặc một trường. Client không cần xử lý con trỏ phân trang. Nếu về sau có khung lớn tới mức
    cần chia trang, `limit` và `offset` sẽ được thêm dưới dạng tham số tùy chọn.
 6. **v1 chỉ đọc.** Không endpoint nào thay đổi dữ liệu sinh viên. Các endpoint nhận giả định trong body
-   tính toán trên bản sao trong bộ nhớ của tiến trình xử lý request.
+   tính toán trên bản sao trong bộ nhớ của tiến trình xử lý request. Bảng điểm sinh viên tự nhập (mục 6.10,
+   6.11) cũng vậy: chỉ tồn tại trong request, không được ghi vào cơ sở dữ liệu.
 7. **Tất định.** Cùng tham số PHẢI cho cùng phản hồi, byte-for-byte. Không dùng thời gian hệ thống, không
    dùng số ngẫu nhiên; thứ tự sắp xếp của mọi danh sách được quy định rõ.
 8. **Một câu tiếng Việt luôn đi kèm dữ liệu sinh ra nó.** Mỗi trường `text` đều có `code` và `data` cạnh
@@ -48,6 +49,10 @@ v1 không có xác thực, phân quyền hay giới hạn tần suất.
 Dữ liệu trong hệ thống là dữ liệu giả lập (`students.is_synthetic = true`). API này KHÔNG ĐƯỢC triển khai
 trên dữ liệu sinh viên thật. Việc bổ sung xác thực là thay đổi phá vỡ vì client phải gửi thêm thông tin,
 nên sẽ đi cùng `/v2`.
+
+Mục 6.10 và 6.11 nhận bảng điểm do chính sinh viên nhập trong body, không cần mã sinh viên. Bảng điểm đó
+chỉ dùng để tính phản hồi của chính request: server KHÔNG ĐƯỢC lưu nó, ghi nó ra log, hay đưa nó vào bất kỳ
+bảng nào của cơ sở dữ liệu.
 
 ---
 
@@ -79,6 +84,10 @@ một mã hợp lệ với trường này có thể không tồn tại ở trư�
 
 v1 chưa mô hình hóa việc học phần nào được mở ở học kỳ nào, nên `term` không lọc theo khả năng mở lớp.
 
+Hai endpoint của bảng điểm tự nhập (mục 6.10, 6.11) không nhận `term`: sinh viên khai số kỳ đã học
+(`semesters_completed`), mỗi lần học ghi kỳ thứ mấy (`semester`, đếm từ 1), và `target_semester` là
+`semesters_completed + 1`. Mọi kết quả trong bảng điểm đều được xem là thuộc các kỳ trước kỳ cần gợi ý.
+
 ### 3.2 Kiểu và độ chính xác
 
 | Dữ liệu | Kiểu JSON | Ghi chú |
@@ -99,6 +108,8 @@ v1 chưa mô hình hóa việc học phần nào được mở ở học kỳ n�
 | Trạng thái học phần | `course_code` tăng dần |
 | Học phần không gợi ý được (`not_eligible`) | `course_code` tăng dần, như trạng thái học phần |
 | Gợi ý (`items`) | `score` giảm dần, rồi `recommended_semester` tăng, rồi `course_code` tăng |
+| Học phần học được mà không được xếp (`not_selected`) | Như `items`: thứ tự xếp hạng |
+| Cảnh báo (`warnings`) | Cảnh báo của bảng điểm theo thứ tự `results`, rồi `below_min_credits` |
 | Lý do (`reasons`) | `contribution` giảm dần, rồi `code` tăng |
 | Học kỳ | `code` tăng dần |
 | Nút của sơ đồ tiên quyết (`nodes`) | `sort_no` tăng dần, như học phần của khung |
@@ -164,7 +175,7 @@ API không trả về các mã này ở bất kỳ endpoint nào. Thông tin v�
 
 | `code` | Nghĩa | Trường trong `data` |
 | --- | --- | --- |
-| `outstanding_retake` | Môn đang nợ | `term_code`, `score`, `attempt_no` |
+| `outstanding_retake` | Môn đang nợ | `term_code`, `score`, `attempt_no`; với bảng điểm tự nhập là `semester`, `score` |
 | `overdue` | Trễ so với kỳ dự kiến của khung | `recommended_semester`, `target_semester`, `semesters_late` |
 | `on_time` | Đúng kỳ dự kiến của khung | `recommended_semester`, `target_semester` |
 | `unlocks` | Đạt môn này mở khóa các môn khác | `count`, `course_codes` |
@@ -192,6 +203,33 @@ nằm ở `docs/architecture/ranking.md`. Đổi công thức thì tăng `algori
 | `block_limit_exceeded` | Vượt số tín chỉ cần chọn của một khối tự chọn |
 | `duplicate_course` | Một mã môn xuất hiện nhiều lần |
 | `not_in_curriculum` | Mã môn không thuộc khung của sinh viên |
+
+### 4.6 Lý do một học phần học được mà không được xếp
+
+Chỉ có ở mục 6.11. Mỗi học phần `retake` hoặc `eligible` không vào `items` có đúng một lý do, xét theo thứ
+tự trong bảng.
+
+| `reason` | Nghĩa | Trường trong `data` |
+| --- | --- | --- |
+| `skipped` | Sinh viên chọn chưa học ở kỳ này (`skip`) | rỗng |
+| `block_full` | Thêm môn này thì khối tự chọn không còn hoàn thành đúng `required_credits`, tính cả môn đã đạt và môn xếp trên | `block_code`, `block_name`, `required_credits`, `taken_credits`, `credits` |
+| `credit_budget` | Thêm môn này thì tổng tín chỉ vượt `max_credits` | `credits`, `total_credits`, `max_credits` |
+
+`taken_credits` và `total_credits` là số sau khi đã xếp xong. Tín chỉ chỉ tăng dần trong lúc xếp, nên môn
+không vừa lúc được xét thì cũng không vừa với danh sách cuối cùng.
+
+### 4.7 Mã cảnh báo
+
+Cảnh báo không chặn phản hồi; nó báo điều sinh viên nên kiểm lại. Mỗi cảnh báo có `code`, `text`, `data`,
+và `course_code` khi gắn với một môn.
+
+| `code` | Nghĩa | Trường trong `data` |
+| --- | --- | --- |
+| `below_min_credits` | Tổng tín chỉ đã xếp thấp hơn `min_credits`: không còn môn học được nào vừa với `max_credits` và luật khối tự chọn | `min_credits`, `total_credits` |
+| `prerequisite_not_in_transcript` | Bảng điểm ghi đã đạt một môn nhưng chưa đạt môn nào của một nhóm tiên quyết của nó | `missing_prerequisites` |
+| `studied_before_prerequisite` | Một môn ghi học ở kỳ sớm hơn hoặc cùng kỳ với môn tiên quyết đã đạt của nó | `semester`, `prerequisite_code`, `prerequisite_semester` |
+
+Hai mã sau chỉ do bảng điểm tự nhập sinh ra (mục 6.10, 6.11); `below_min_credits` chỉ có ở mục 6.11.
 
 ---
 
@@ -230,6 +268,14 @@ Yêu cầu này áp dụng cả cho lỗi do tầng validate của web framework
 `route_not_found`, `method_not_allowed` và `http_error` phát sinh ở tầng định tuyến, không phải lỗi dữ liệu:
 client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức, không phải do dữ liệu của sinh viên.
 
+Với `validation_error`, mỗi khóa của `details.fields` là đường dẫn tới trường sai trong request, viết như
+trong JavaScript: `min_credits`, `results[3].score`, `include[0]`, `weights.unlocks`. Client dùng đường dẫn
+này để đánh dấu đúng ô nhập. Ở mục 6.10 và 6.11, lỗi về kiểu, khóa lạ và khoảng cố định (`semesters_completed`
+ngoài `[0, 12]`, `min_credits` dưới 10, `min_credits > max_credits`) do tầng validate của API bắt; lỗi cần tra
+khung (mã môn không thuộc khung hoặc lặp, `semester` vượt `semesters_completed`, `score` vượt `max_score`,
+`max_credits` vượt `max_credits_per_term`, `skip`/`include` sai trạng thái) do tầng luật và tầng xếp hạng bắt,
+cùng một định dạng.
+
 ---
 
 ## 6. Endpoint
@@ -249,6 +295,8 @@ client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức
 | GET | `/v1/universities/{uni}/students/{student_code}/recommendations` | Gợi ý, trọng số mặc định |
 | POST | `/v1/universities/{uni}/students/{student_code}/recommendations` | Gợi ý, trọng số tùy chọn và giả định what-if |
 | POST | `/v1/universities/{uni}/students/{student_code}/plan-check` | Kiểm tra kế hoạch học kỳ do người dùng chọn |
+| POST | `/v1/universities/{uni}/curricula/{curriculum_code}/transcript` | Tiến độ và trạng thái học phần từ bảng điểm tự nhập |
+| POST | `/v1/universities/{uni}/curricula/{curriculum_code}/recommendations` | Gợi ý theo khoảng tín chỉ từ bảng điểm tự nhập |
 | GET | `/v1/data-issues` | Các chỗ văn bản gốc mâu thuẫn hoặc thiếu |
 
 ### 6.1 `GET /v1/meta`
@@ -258,7 +306,7 @@ client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức
   "api_version": "1.0.0",
   "schema_version": "3.0.0",
   "algorithm": "rule_based_weighted",
-  "algorithm_version": "1.0.1",
+  "algorithm_version": "1.1.0",
   "default_term": "20261",
   "curriculum_codes": ["HUS-7460108-2022", "HUS-7480113QTD-2022"]
 }
@@ -487,7 +535,7 @@ Phản hồi, rút gọn còn hai học phần:
   "student_code": "T03",
   "curriculum_code": "HUS-7480113QTD-2022",
   "term": "20261",
-  "algorithm_version": "1.0.1",
+  "algorithm_version": "1.1.0",
   "what_if": false,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
@@ -655,6 +703,248 @@ Sơ đồ "môn nào mở khóa môn nào" của một khung. Phản hồi rút 
 - Số môn mà một học phần mở khóa là số `course_code` khác nhau trong các cạnh có `required_course_code`
   bằng mã đó, trùng `data.count` của lý do `unlocks` (mục 4.4).
 
+### 6.10 `POST /v1/universities/{uni}/curricula/{curriculum_code}/transcript`
+
+Sinh viên tự nhập bảng điểm của mình: số kỳ đã học, rồi mỗi môn đã học ở kỳ thứ mấy và được bao nhiêu điểm.
+Endpoint trả về tiến độ và trạng thái từng học phần của khung, như mục 6.4 và 6.5 gộp lại, nhưng tính từ
+bảng điểm trong body thay vì từ cơ sở dữ liệu. Không cần mã sinh viên, và bảng điểm không được lưu (mục 2).
+
+Body:
+
+```json
+{
+  "semesters_completed": 2,
+  "results": [
+    {"course_code": "HUS1011", "semester": 1, "score": 7.5},
+    {"course_code": "MAT2400", "semester": 1, "score": 7.5},
+    {"course_code": "MAT2501", "semester": 1, "score": 7.5},
+    {"course_code": "MAT3500", "semester": 1, "score": 7.5},
+    {"course_code": "PHI1006", "semester": 1, "score": 7.5},
+    {"course_code": "FLF1107", "semester": 2, "score": 7.5},
+    {"course_code": "HUS1022", "semester": 2, "score": 7.5},
+    {"course_code": "MAT2502", "semester": 2, "score": 7.5},
+    {"course_code": "MAT3557", "semester": 2, "score": 7.5},
+    {"course_code": "PEC1008", "semester": 2, "score": 7.5},
+    {"course_code": "MAT2505", "semester": 2, "score": 3.0}
+  ]
+}
+```
+
+| Trường | Quy định |
+| --- | --- |
+| `semesters_completed` | Số nguyên trong `[0, 12]`: số học kỳ chính đã học xong, không đếm kỳ hè. `0` là sinh viên mới nhập học, khi đó `results` rỗng |
+| `results[].course_code` | Thuộc khung `curriculum_code`; mỗi mã xuất hiện nhiều nhất một lần |
+| `results[].semester` | Số nguyên trong `[1, semesters_completed]`: kỳ thứ mấy của sinh viên, đếm từ kỳ nhập học. Môn học ở kỳ hè ghi vào kỳ chính ngay trước nó |
+| `results[].score` | Số trong `[0, max_score]` của khung (mục 6.2) |
+| `results[].exempted` | `true` khi được miễn môn. Mỗi phần tử có đúng một trong hai trường `score` và `exempted` |
+
+Môn học nhiều lần chỉ nhập lần gần nhất, giống cách mục 6.4 chỉ tính lần học gần nhất. Môn có
+`score >= pass_score` là đạt; `letter_grade` tra từ bảng quy đổi điểm của khung. Môn được miễn là đạt và
+không có điểm. Sai bất kỳ quy định nào → `validation_error` với đường dẫn tới trường sai (mục 5).
+
+Phản hồi, `courses` rút gọn còn hai học phần:
+
+```json
+{
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "semesters_completed": 2,
+  "target_semester": 3,
+  "credits_earned": 34,
+  "credits_outstanding": 3,
+  "total_credits": 129,
+  "gpa": 2.76,
+  "max_credits_per_term": 40,
+  "outstanding_courses": ["MAT2505"],
+  "blocks": [
+    {"block_code": "I.1", "required_credits": 16, "earned_credits": 8, "counts_toward_total": true},
+    {"block_code": "I.2", "required_credits": 5, "earned_credits": 5, "counts_toward_total": true},
+    {"block_code": "II", "required_credits": 5, "earned_credits": 2, "counts_toward_total": true},
+    {"block_code": "IV", "required_credits": 28, "earned_credits": 13, "counts_toward_total": true},
+    {"block_code": "V.1", "required_credits": 49, "earned_credits": 6, "counts_toward_total": true}
+  ],
+  "summary": {"passed": 10, "retake": 1, "eligible": 15, "missing_prerequisite": 33, "block_complete": 6},
+  "courses": [
+    {
+      "course_code": "MAT2505", "course_name": "Lập trình cơ bản", "credits": 3,
+      "block_code": "III", "status": "retake",
+      "last_attempt": {"semester": 2, "score": 3.0, "letter_grade": "F"},
+      "text": "Cần học lại Lập trình cơ bản: bạn chưa đạt môn này ở kỳ 2 (điểm 3,0)."
+    },
+    {
+      "course_code": "PHI1006", "course_name": "Triết học Mác - Lênin", "credits": 3,
+      "block_code": "I.1", "status": "passed",
+      "last_attempt": {"semester": 1, "score": 7.5, "letter_grade": "B"},
+      "text": "Đã đạt Triết học Mác - Lênin (điểm 7,5)."
+    }
+  ],
+  "warnings": []
+}
+```
+
+- Body trên là bảng điểm của sinh viên test `T03`, nên mọi trường tiến độ trùng mục 6.4 và mọi trạng thái
+  trùng mục 6.5. Đó là một bất biến (mục 7): bảng điểm tự nhập chép đúng kết quả của một sinh viên thì cho
+  cùng kết quả với hai endpoint đọc từ cơ sở dữ liệu.
+- `target_semester` = `semesters_completed + 1` (mục 3.1).
+- Các trường tiến độ tính như mục 6.4: chỉ khối có `counts_toward_total = true`; `gpa` là `null` khi chưa
+  có môn nào có điểm. `courses` và `summary` như mục 6.5, trừ `last_attempt` ghi `semester` thay cho
+  `term_code` và `attempt_no`.
+- `warnings` theo mục 4.7, theo thứ tự `results`. Bảng điểm có cảnh báo vẫn được tính: trạng thái học phần
+  chỉ dựa vào môn đạt hay chưa đạt, cảnh báo chỉ nhắc sinh viên kiểm lại chỗ có vẻ nhập nhầm. Ví dụ, ghi
+  `MAT2323` và môn tiên quyết của nó `MAT2502` cùng ở kỳ 2 cho:
+
+  ```json
+  {"code": "studied_before_prerequisite", "course_code": "MAT2323",
+   "text": "Xác suất - Thống kê ghi học ở kỳ 2, không sau kỳ 2 của môn tiên quyết Giải tích 2 (MAT2502): kiểm tra lại kỳ học.",
+   "data": {"semester": 2, "prerequisite_code": "MAT2502", "prerequisite_semester": 2}}
+  ```
+
+### 6.11 `POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations`
+
+Gợi ý cho kỳ kế tiếp của bảng điểm tự nhập. Khác mục 6.6 ở chỗ chọn theo khoảng tín chỉ sinh viên đặt
+(`min_credits`, `max_credits`) thay cho số môn (`limit`), và mọi học phần học được mà không được xếp đều có
+mặt trong `not_selected` kèm lý do.
+
+Body gồm mọi trường của mục 6.10, cộng:
+
+```json
+{
+  "semesters_completed": 2,
+  "results": ["... như mục 6.10 ..."],
+  "min_credits": 15,
+  "max_credits": 20,
+  "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
+              "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
+  "skip": ["MAT2503"],
+  "include": ["MAT2407"]
+}
+```
+
+| Trường | Quy định |
+| --- | --- |
+| `min_credits` | Số nguyên, mặc định 10, không dưới 10 |
+| `max_credits` | Số nguyên, mặc định `max(20, min_credits)`, không vượt `max_credits_per_term` của khung (mục 6.2) và không nhỏ hơn `min_credits` |
+| `weights` | Như mục 6.6 |
+| `skip` | Mã các học phần chưa muốn học ở kỳ này. Mỗi mã có `status` là `retake` hoặc `eligible` |
+| `include` | Mã các học phần muốn học chắc chắn ở kỳ này, cùng quy định với `skip` |
+
+Mỗi mã xuất hiện nhiều nhất một lần trong `skip` và `include` cộng lại. Endpoint không nhận `assumptions`
+(sinh viên sửa thẳng điểm trong `results`), `swap` (đổi môn là `skip` một môn và `include` môn kia) và
+`limit`.
+
+Phản hồi, `items` rút gọn còn môn đầu và môn cuối, `not_selected` còn một môn cho mỗi lý do:
+
+```json
+{
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "algorithm_version": "1.1.0",
+  "what_if": true,
+  "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
+              "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
+  "target_semester": 3,
+  "credit_window": {"min_credits": 15, "max_credits": 20, "total_credits": 20,
+                    "text": "Tổng 20 tín chỉ, trong khoảng 15–20 bạn đặt."},
+  "candidate_count": 16,
+  "items": [
+    {
+      "rank": 1, "course_code": "MAT2505", "course_name": "Lập trình cơ bản", "credits": 3,
+      "block_code": "III", "status": "retake", "score": 5.7083,
+      "reasons": [
+        {"code": "outstanding_retake", "contribution": 3.0,
+         "text": "Bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
+         "data": {"semester": 2, "score": 3.0}},
+        {"code": "unlocks", "contribution": 1.5,
+         "text": "Đạt môn này sẽ mở khóa 12 học phần khác của chương trình.",
+         "data": {"count": 12, "course_codes": ["MAT1202", "MAT3373E", "MAT3505", "MAT3506", "MAT3507",
+                  "MAT3514", "MAT3519", "MAT3539", "MAT3550E", "MAT3554E", "MAT3558", "MAT3560"]}},
+        {"code": "overdue", "contribution": 1.0,
+         "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
+         "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1}},
+        {"code": "strong_topic", "contribution": 0.2083,
+         "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
+         "data": {"topic_code": "lap_trinh", "topic_name": "Lập trình", "average_score": 5.25,
+                  "course_codes": ["HUS1011", "MAT2505"]}}
+      ]
+    },
+    {
+      "rank": 7, "course_code": "MAT2407", "course_name": "Tối ưu hóa", "credits": 3,
+      "block_code": "IV", "status": "eligible", "score": 0.5833,
+      "reasons": [
+        {"code": "strong_topic", "contribution": 0.5833,
+         "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
+         "data": {"topic_code": "toan", "topic_name": "Toán", "average_score": 7.5,
+                  "course_codes": ["MAT2400", "MAT2501", "MAT2502", "MAT3500"]}}
+      ]
+    }
+  ],
+  "not_selected": [
+    {
+      "course_code": "HUS1024", "course_name": "Nhập môn Robotic", "credits": 3,
+      "block_code": "II", "status": "eligible", "score": 2.5833, "reason": "block_full",
+      "text": "Chưa xếp Nhập môn Robotic: khối kiến thức theo lĩnh vực chỉ cần 5 tín chỉ và đã có 5 từ môn đã đạt và môn xếp trên.",
+      "data": {"block_code": "II", "block_name": "Khối kiến thức theo lĩnh vực", "required_credits": 5,
+               "taken_credits": 5, "credits": 3}
+    },
+    {
+      "course_code": "MAT2503", "course_name": "Giải tích 3", "credits": 2,
+      "block_code": "IV", "status": "eligible", "score": 2.5833, "reason": "skipped",
+      "text": "Bạn chọn chưa học Giải tích 3 ở kỳ này.",
+      "data": {}
+    },
+    {
+      "course_code": "MAT2403", "course_name": "Phương trình vi phân", "credits": 3,
+      "block_code": "IV", "status": "eligible", "score": 0.7333, "reason": "credit_budget",
+      "text": "Chưa xếp Phương trình vi phân: kỳ này đã có 20 tín chỉ, thêm 3 tín chỉ sẽ vượt mức tối đa 20 bạn đặt.",
+      "data": {"credits": 3, "total_credits": 20, "max_credits": 20}
+    }
+  ],
+  "not_eligible": [
+    {
+      "course_code": "MAT3533", "course_name": "Học máy", "credits": 3,
+      "block_code": "V.1", "status": "missing_prerequisite",
+      "missing_prerequisites": [["MAT2323"]],
+      "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."
+    }
+  ],
+  "warnings": []
+}
+```
+
+Đầy đủ, ví dụ trên xếp 7 môn đủ 20 tín chỉ: `MAT2505`, `MAT2323`, `HIS1056`, `PHI1002`, `HUS1012`,
+`HIS1001` rồi `MAT2407`. `not_selected` có 9 môn: `HUS1024`, `HUS1021`, `HUS1023` (`block_full`: `HIS1056`
+đã đưa khối II lên đủ 5 tín chỉ), `MAT2503` (`skipped`), và `MAT2403`, `MAT1205E`, `POL1001`, `THL1057`,
+`MAT4080` (`credit_budget`). Không có `include`, `MAT2407` không vừa 20 tín chỉ và chỗ đó thuộc về
+`MAT2403`. Có `include`, nó được xét trước nên đẩy `MAT2403` ra, nhưng vẫn đứng cuối `items` vì `rank`
+theo điểm như mọi môn khác.
+
+Quy định của endpoint này:
+
+1. Quy định 1, 2, 3, 5 và 7 của mục 6.6 giữ nguyên: ràng buộc cứng về tiên quyết và khối tự chọn, `score`
+   bằng tổng `contribution`, `rank` liên tục theo mục 3.3, `weights` là bảng đã ghép, `not_eligible` liệt kê
+   mọi học phần `passed`, `block_complete`, `missing_prerequisite`.
+2. Chọn tham lam theo thứ tự xếp hạng: môn trong `include` được xét trước, rồi các môn còn lại từ trên xuống.
+   Một môn được nhận khi tổng tín chỉ vẫn không vượt `max_credits` và khối tự chọn của nó vẫn hoàn thành đúng
+   được. Môn không vừa thì bỏ qua và XÉT TIẾP môn dưới, nên còn trống 2 tín chỉ thì môn 2 tín chỉ xếp dưới vẫn
+   vào được.
+3. `credit_window.total_credits` = tổng `credits` của `items`, luôn `<= max_credits`.
+4. `total_credits < min_credits` chỉ khi không còn môn học được nào vừa: khi đó `warnings` có
+   `below_min_credits`. Tầng xếp hạng KHÔNG ĐƯỢC phá ràng buộc cứng để đạt `min_credits`.
+5. Mỗi học phần có `status` là `retake` hoặc `eligible` nằm ở đúng một trong hai danh sách `items` và
+   `not_selected`. Vì vậy `candidate_count` = số phần tử của `items` + số phần tử của `not_selected`, và
+   cộng thêm `not_eligible` thì bằng số học phần của khung.
+6. `not_selected` theo thứ tự xếp hạng, mỗi phần tử có đúng một `reason` của mục 4.6.
+7. Môn trong `skip` nằm trong `not_selected` với `reason = "skipped"`, chỗ của nó thuộc về môn xếp kế tiếp.
+   Môn trong `include` luôn có trong `items`; nếu chính các môn `include` làm khối tự chọn không còn hoàn thành
+   đúng được, hoặc cộng lại vượt `max_credits` → `validation_error` ở `include[i]`. `skip` và `include` không
+   đổi trạng thái học phần, nên `candidate_count` và `not_eligible` giữ nguyên.
+8. `what_if` là `true` khi `skip` hoặc `include` khác rỗng.
+9. Trạng thái của mọi học phần trong `items`, `not_selected` và `not_eligible` PHẢI trùng trạng thái mà mục
+   6.10 trả về với cùng `semesters_completed` và `results`. `warnings` gồm cảnh báo của mục 6.10 rồi
+   `below_min_credits` nếu có.
+10. Sinh viên tự nhập bảng điểm chưa khai chủ đề quan tâm, nên v1 không bao giờ trả lý do `interest` ở
+    endpoint này; trọng số `interest` vẫn có trong `weights`.
+
 ---
 
 ## 7. Bất biến
@@ -673,6 +963,11 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 | Tất định | Hai lần gọi cùng tham số cho phản hồi giống nhau từng byte |
 | Có ích | precision@5 của `items` so với `data/synthetic/course_registrations.csv` của học kỳ tương ứng, trung bình trên mọi sinh viên, không thấp hơn **0,85** |
 | Lỗi đúng định dạng | Mọi phản hồi từ 400 trở lên khớp lược đồ ở mục 5 |
+| Bảng điểm tự nhập trùng cơ sở dữ liệu | Chép kết quả của một sinh viên thành body mục 6.10: tiến độ và trạng thái trùng mục 6.4, 6.5 |
+| Khoảng tín chỉ | Ở mục 6.11: `total_credits <= max_credits`; `total_credits < min_credits` khi và chỉ khi có `below_min_credits` |
+| Không môn học được nào bị bỏ lặng lẽ | Ở mục 6.11: mỗi học phần `retake` hoặc `eligible` ở đúng một trong `items` và `not_selected` |
+| Bảng điểm tự nhập không được lưu | Gọi mục 6.10 và 6.11 rồi đếm số dòng của mọi bảng: không bảng nào đổi |
+| Khối tự chọn hoàn thành đúng | Tín chỉ đã đạt cộng tín chỉ trong `items` của mỗi khối `choose_credits` không vượt `required_credits`, và phần còn thiếu ghép đúng được bằng các môn chưa đạt của khối |
 
 Ngưỡng 0,85 của bất biến "Có ích" là **mốc chống thụt lùi, không phải mục tiêu chất lượng**. Lần đo đầu
 tiên (2026-10-20, 200 sinh viên của `data/synthetic`, học kỳ `20261`) cho precision@5 = 0,889; ngưỡng là

@@ -1,0 +1,76 @@
+{
+  "description": "Năm nhất vừa học xong kỳ 1, chưa nợ môn nào: gợi ý chủ yếu là môn đúng kỳ 2 và môn mở khóa nhiều môn khác.",
+  "source": {
+    "student_code": "25000026",
+    "term": "20252"
+  },
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "request": {
+    "semesters_completed": 1,
+    "results": [
+      {
+        "course_code": "MAT2400",
+        "semester": 1,
+        "score": 5.0
+      },
+      {
+        "course_code": "MAT2501",
+        "semester": 1,
+        "score": 6.3
+      },
+      {
+        "course_code": "MAT3500",
+        "semester": 1,
+        "score": 6.2
+      },
+      {
+        "course_code": "PHI1006",
+        "semester": 1,
+        "score": 6.0
+      }
+    ],
+    "min_credits": 10,
+    "max_credits": 20
+  },
+  "expected": {
+    "transcript": {
+      "target_semester": 2,
+      "credits_earned": 16,
+      "credits_outstanding": 0,
+      "gpa": 1.84,
+      "outstanding_courses": []
+    },
+    "recommendations": {
+      "items": [
+        "MAT2502",
+        "PEC1008",
+        "FLF1107",
+        "MAT3557",
+        "HUS1022",
+        "HUS1011",
+        "PHI1002"
+      ],
+      "total_credits": 20,
+      "not_selected": {
+        "FLF1207": "block_full",
+        "FLF1307": "block_full",
+        "FLF1407": "block_full",
+        "FLF1507": "block_full",
+        "FLF1607": "block_full",
+        "FLF1707": "block_full",
+        "HUS1023": "block_full",
+        "MAT2403": "credit_budget",
+        "HIS1056": "credit_budget",
+        "HIS1001": "credit_budget",
+        "POL1001": "credit_budget",
+        "THL1057": "credit_budget",
+        "HUS1012": "credit_budget",
+        "HUS1021": "credit_budget",
+        "HUS1024": "credit_budget",
+        "MAT4080": "credit_budget"
+      },
+      "warnings": []
+    }
+  }
+}

@@ -1,0 +1,251 @@
+{
+  "description": "Sắp tốt nghiệp: kết quả thật sau 6 kỳ, cộng giả định đạt 7,0 mọi môn đã đăng ký ở học kỳ 20261 (kỳ 7). Chỉ còn ít môn học được nên tổng tín chỉ thấp hơn mức tối thiểu: phản hồi có cảnh báo `below_min_credits`.",
+  "source": {
+    "student_code": "23000002",
+    "term": "20261",
+    "assumed_passed": [
+      "MAT3385",
+      "MAT3387",
+      "MAT3392",
+      "MAT3399",
+      "MAT3508",
+      "MAT3562"
+    ]
+  },
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7460108-2022",
+  "request": {
+    "semesters_completed": 7,
+    "results": [
+      {
+        "course_code": "HUS1011",
+        "semester": 1,
+        "score": 7.5
+      },
+      {
+        "course_code": "MAT2400",
+        "semester": 1,
+        "score": 8.2
+      },
+      {
+        "course_code": "MAT2501",
+        "semester": 1,
+        "score": 8.4
+      },
+      {
+        "course_code": "MAT3500",
+        "semester": 1,
+        "score": 7.6
+      },
+      {
+        "course_code": "PHI1006",
+        "semester": 1,
+        "score": 7.7
+      },
+      {
+        "course_code": "FLF1107",
+        "semester": 2,
+        "score": 6.1
+      },
+      {
+        "course_code": "HUS1022",
+        "semester": 2,
+        "score": 8.6
+      },
+      {
+        "course_code": "MAT2502",
+        "semester": 2,
+        "score": 5.3
+      },
+      {
+        "course_code": "MAT2505",
+        "semester": 2,
+        "score": 9.8
+      },
+      {
+        "course_code": "MAT3557",
+        "semester": 2,
+        "score": 7.4
+      },
+      {
+        "course_code": "PEC1008",
+        "semester": 2,
+        "score": 8.9
+      },
+      {
+        "course_code": "HUS1012",
+        "semester": 3,
+        "score": 8.0
+      },
+      {
+        "course_code": "HUS1021",
+        "semester": 3,
+        "score": 7.8
+      },
+      {
+        "course_code": "MAT1202",
+        "semester": 3,
+        "score": 8.5
+      },
+      {
+        "course_code": "MAT2323",
+        "semester": 3,
+        "score": 5.8
+      },
+      {
+        "course_code": "MAT2503",
+        "semester": 3,
+        "score": 7.6
+      },
+      {
+        "course_code": "MAT3514",
+        "semester": 3,
+        "score": 9.7
+      },
+      {
+        "course_code": "PHI1002",
+        "semester": 3,
+        "score": 6.6
+      },
+      {
+        "course_code": "HIS1001",
+        "semester": 4,
+        "score": 9.8
+      },
+      {
+        "course_code": "MAT2403",
+        "semester": 4,
+        "score": 9.6
+      },
+      {
+        "course_code": "MAT3148",
+        "semester": 4,
+        "score": 9.7
+      },
+      {
+        "course_code": "MAT3379",
+        "semester": 4,
+        "score": 9.0
+      },
+      {
+        "course_code": "MAT3507",
+        "semester": 4,
+        "score": 9.7
+      },
+      {
+        "course_code": "MAT3533",
+        "semester": 4,
+        "score": 10.0
+      },
+      {
+        "course_code": "MAT1204",
+        "semester": 5,
+        "score": 10.0
+      },
+      {
+        "course_code": "MAT1209",
+        "semester": 5,
+        "score": 8.9
+      },
+      {
+        "course_code": "MAT2034",
+        "semester": 5,
+        "score": 6.2
+      },
+      {
+        "course_code": "MAT2407",
+        "semester": 5,
+        "score": 4.8
+      },
+      {
+        "course_code": "MAT3378",
+        "semester": 5,
+        "score": 7.1
+      },
+      {
+        "course_code": "MAT3383",
+        "semester": 5,
+        "score": 8.6
+      },
+      {
+        "course_code": "POL1001",
+        "semester": 5,
+        "score": 8.8
+      },
+      {
+        "course_code": "MAT3381",
+        "semester": 6,
+        "score": 8.1
+      },
+      {
+        "course_code": "MAT3388",
+        "semester": 6,
+        "score": 7.5
+      },
+      {
+        "course_code": "MAT3389",
+        "semester": 6,
+        "score": 9.7
+      },
+      {
+        "course_code": "THL1057",
+        "semester": 6,
+        "score": 7.7
+      },
+      {
+        "course_code": "MAT3385",
+        "semester": 7,
+        "score": 7.0
+      },
+      {
+        "course_code": "MAT3387",
+        "semester": 7,
+        "score": 7.0
+      },
+      {
+        "course_code": "MAT3392",
+        "semester": 7,
+        "score": 7.0
+      },
+      {
+        "course_code": "MAT3399",
+        "semester": 7,
+        "score": 7.0
+      },
+      {
+        "course_code": "MAT3508",
+        "semester": 7,
+        "score": 7.0
+      },
+      {
+        "course_code": "MAT3562",
+        "semester": 7,
+        "score": 7.0
+      }
+    ],
+    "min_credits": 10,
+    "max_credits": 20
+  },
+  "expected": {
+    "transcript": {
+      "target_semester": 8,
+      "credits_earned": 120,
+      "credits_outstanding": 0,
+      "gpa": 3.18,
+      "outstanding_courses": []
+    },
+    "recommendations": {
+      "items": [
+        "MAT4083"
+      ],
+      "total_credits": 7,
+      "not_selected": {
+        "MAT3397": "block_full",
+        "MAT3398": "block_full"
+      },
+      "warnings": [
+        "below_min_credits"
+      ]
+    }
+  }
+}

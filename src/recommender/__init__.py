@@ -1,18 +1,20 @@
 """Tầng xếp hạng: chọn học phần nên học ở học kỳ tới và giải thích vì sao.
 
-Hàm công bố cho tầng API (mục 6.6) và cho `test/test_recommender_contract.py`:
+Hàm công bố cho tầng API (mục 6.6, 6.11) và cho `test/test_recommender_contract.py`:
 
-    recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None) -> dict
+    recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None,
+              min_credits=None, max_credits=None, include=None) -> dict
 
-`student` là một dòng của `repo.student()` hoặc `repo.students()`. Trạng thái học phần do
-`src/rules/status.py` quyết định; tầng này chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức
-của sáu tiêu chí: `docs/architecture/ranking.md`.
+`student` là một dòng của `repo.student()` hoặc `repo.students()`, hoặc dòng cùng dạng mà tầng luật dựng từ
+bảng điểm sinh viên tự nhập (mục 6.10). Trạng thái học phần do `src/rules/status.py` quyết định; tầng này
+chỉ xếp hạng trong số học phần đã được phép gợi ý. Công thức của sáu tiêu chí: `docs/architecture/ranking.md`.
 """
 from copy import deepcopy
+from numbers import Integral
 
 import pandas as pd
 
-from src.explain import status_text
+from src.explain import credit_window_text, not_selected_text, status_text, warning_text
 from src.recommender.scoring import (
     DEFAULT_WEIGHTS,
     interest,
@@ -25,13 +27,13 @@ from src.recommender.scoring import (
     total_score,
     unlocks,
 )
-from src.recommender.selection import pick_items
-from src.recommender.whatif import apply_assumptions, check_choices
+from src.recommender.selection import pick_items, pick_within_credits
+from src.recommender.whatif import apply_assumptions, check_choices, check_window_choices
 from src.rules.status import course_status_details, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
 ALGORITHM = "rule_based_weighted"
-ALGORITHM_VERSION = "1.0.1"
+ALGORITHM_VERSION = "1.1.0"
 
 # Chỉ hai trạng thái này được vào danh sách gợi ý (mục 6.6, quy định 1).
 RECOMMENDABLE_STATUSES = ("retake", "eligible")
@@ -39,7 +41,13 @@ RECOMMENDABLE_STATUSES = ("retake", "eligible")
 # Học phần khung không ghi kỳ dự kiến thì xếp sau cùng khi hai học phần bằng điểm (mục 3.3).
 MISSING_SEMESTER = 10**6
 
-__all__ = ["ALGORITHM", "ALGORITHM_VERSION", "DEFAULT_WEIGHTS", "recommend"]
+# Khoảng tín chỉ của mục 6.11. Mức sàn 10 là của sản phẩm; mức trần là `max_credits_per_term` của từng khung.
+MIN_CREDITS_FLOOR = 10
+DEFAULT_MIN_CREDITS = 10
+DEFAULT_MAX_CREDITS = 20
+
+__all__ = ["ALGORITHM", "ALGORITHM_VERSION", "DEFAULT_MAX_CREDITS", "DEFAULT_MIN_CREDITS", "DEFAULT_WEIGHTS",
+           "MIN_CREDITS_FLOOR", "recommend"]
 
 
 def _recommended_semester(course):
@@ -84,8 +92,14 @@ def _strong_topics(repo, courses, attempts):
 
 
 def _declared_topics(repo, student):
-    """Chủ đề sinh viên tự khai: mã chủ đề → dict sẵn sàng cho `scoring.interest`."""
-    declared = repo.student_interests(student["student_id"])
+    """Chủ đề sinh viên tự khai: mã chủ đề → dict sẵn sàng cho `scoring.interest`.
+
+    Sinh viên tự nhập bảng điểm không có `student_id` và v1 chưa nhận sở thích của họ, nên không có chủ đề
+    nào. Phải dừng ở đây: `repo.student_interests(None)` trả về sở thích của MỌI sinh viên."""
+    student_id = student.get("student_id")
+    if student_id is None or pd.isna(student_id):
+        return {}
+    declared = repo.student_interests(student_id)
     return {row.topic_code: {"topic_code": str(row.topic_code),
                              "topic_name": str(row.topic_name),
                              "weight": float(row.weight)}
@@ -137,7 +151,84 @@ def _require_chosen(items, chosen, ranked):
                              "hoàn thành đúng số tín chỉ được, cùng các môn đã chọn")
 
 
-def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None):
+def _student_semester(student, term):
+    """Vị trí của sinh viên trong lộ trình của khung (mục 3.1). Dòng dựng từ bảng điểm tự nhập mang sẵn
+    `target_semester` = số kỳ đã học + 1 (mục 6.10); dòng đọc từ cơ sở dữ liệu thì tính từ năm học và học kỳ."""
+    value = student.get("target_semester")
+    if value is not None and not pd.isna(value):
+        return int(value)
+    return target_semester(student["year_of_study"], term["term_no"])
+
+
+def _credit_window(min_credits, max_credits, cap):
+    """`(min, max)` của khoảng tín chỉ (mục 6.11), hoặc `None` khi người gọi không gửi cả hai, tức chọn theo `k`.
+
+    Gửi một đầu thì đầu kia lấy mặc định. Sàn là `MIN_CREDITS_FLOOR`, trần là `max_credits_per_term` của khung;
+    sai thì `ValueError` mở đầu bằng tên trường sai, để tầng API đưa vào `details.fields`."""
+    if min_credits is None and max_credits is None:
+        return None
+    low = DEFAULT_MIN_CREDITS if min_credits is None else min_credits
+    high = max(DEFAULT_MAX_CREDITS, low) if max_credits is None else max_credits
+    for name, value in (("min_credits", low), ("max_credits", high)):
+        if isinstance(value, bool) or not isinstance(value, Integral):
+            raise ValueError(f"{name}: phải là số nguyên, nhận được {value!r}")
+    low, high = int(low), int(high)
+    if low < MIN_CREDITS_FLOOR:
+        raise ValueError(f"min_credits: phải từ {MIN_CREDITS_FLOOR} tín chỉ trở lên, nhận được {low}")
+    if high > cap:
+        raise ValueError(f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, "
+                         f"nhận được {high}")
+    if low > high:
+        raise ValueError(f"min_credits: phải nhỏ hơn hoặc bằng max_credits, nhận được {low} > {high}")
+    return low, high
+
+
+def _require_included(left_out, chosen, max_credits):
+    """Môn sinh viên muốn học (`include`) chỉ vắng mặt khi chính lựa chọn đó sai: làm hỏng khối tự chọn, hoặc
+    các môn muốn học cộng lại vượt `max_credits`. Báo lỗi đúng trường, không lặng lẽ bỏ (mục 6.11)."""
+    refused = {item["course_code"]: (reason, data) for item, reason, data in left_out}
+    for code, index in sorted(chosen.items(), key=lambda pair: pair[1]):
+        if code not in refused:
+            continue
+        reason, data = refused[code]
+        if reason == "block_full":
+            raise ValueError(f"include[{index}]: {code} làm khối tự chọn {data['block_code']} không còn hoàn thành "
+                             "đúng số tín chỉ được, cùng các môn muốn học khác")
+        raise ValueError(f"include[{index}]: các môn muốn học cộng lại vượt max_credits = {max_credits} tín chỉ")
+
+
+def _not_selected(left_out, block_names):
+    """Mọi học phần học được mà không được xếp (mục 6.11), theo thứ tự xếp hạng, mỗi dòng kèm lý do và câu."""
+    rows = []
+    for item, reason, data in left_out:
+        if reason == "block_full":
+            data = {"block_code": data["block_code"], "block_name": block_names.get(data["block_code"]),
+                    **{key: data[key] for key in ("required_credits", "taken_credits", "credits")}}
+        rows.append({**{key: item[key] for key in ("course_code", "course_name", "credits", "block_code",
+                                                    "status", "score")},
+                     "reason": reason,
+                     "text": not_selected_text(item, reason, data),
+                     "data": data})
+    return rows
+
+
+def _warnings(student, window, total, names):
+    """Cảnh báo của bảng điểm (do tầng luật đưa vào dòng sinh viên) rồi cảnh báo của chính lượt gợi ý (mục 4.7)."""
+    raw = list(student.get("warnings") or [])
+    low, _ = window
+    if total < low:
+        raw.append({"code": "below_min_credits", "data": {"min_credits": low, "total_credits": total}})
+    rows = []
+    for warning in raw:
+        row = {"code": warning["code"]}
+        if warning.get("course_code") is not None:
+            row["course_code"] = warning["course_code"]
+        rows.append({**row, "text": warning_text(warning, names), "data": dict(warning.get("data", {}))})
+    return rows
+
+
+def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None, skip=None, swap=None,
+              min_credits=None, max_credits=None, include=None):
     """Học phần nên học ở học kỳ `term_code`, mỗi phần tử kèm điểm và lời giải thích (mục 6.6).
 
     `student` phải được đọc ở cùng học kỳ, tức `repo.student(uni, code, term_code)`: `year_of_study` và
@@ -154,19 +245,36 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     (mọi học phần `retake` + `eligible`, kể cả phần vượt `k`), `items` (đã sắp theo mục 3.3, mỗi phần tử có
     `rank`, `course_code`, `course_name`, `credits`, `block_code`, `status`, `score`, `reasons`),
     `not_eligible` (mọi học phần còn lại của khung: `passed`, `block_complete`, `missing_prerequisite`).
+
+    Gửi `min_credits` hoặc `max_credits` thì chọn theo khoảng tín chỉ của mục 6.11 thay cho `k`: đi từ trên
+    xuống, nhận môn khi tổng tín chỉ vẫn trong `max_credits` (`selection.pick_within_credits`). Khi đó
+    `include` là các môn muốn học chắc chắn, xét trước mọi môn khác; `swap` không dùng được (đổi môn chính là
+    `skip` cộng `include`). Phản hồi theo thứ tự khóa của mục 6.11: `what_if`, `weights`, `target_semester`,
+    `credit_window`, `candidate_count`, `items`, `not_selected` (môn học được mà không được xếp, kèm lý do),
+    `not_eligible`, `warnings`.
     """
     weights = merge_weights(weights)
     curriculum_code = student["curriculum_code"]
     courses = repo.curriculum_courses(curriculum_code)
     grading = repo.curriculum(curriculum_code)
+    window = _credit_window(min_credits, max_credits, int(grading["max_credits_per_term"]))
+    if window is None and include:
+        raise ValueError("include: chỉ dùng cùng min_credits và max_credits (mục 6.11)")
+    if window is not None and swap:
+        raise ValueError("swap: không dùng cùng khoảng tín chỉ, hãy dùng skip và include (mục 6.11)")
     term = repo.term(student["university_code"], term_code or repo.setting("target_term_code"))
     if assumptions:
         student = apply_assumptions(student, assumptions, set(courses["course_code"]), grading["max_score"],
                                     _attempt_term(repo, student["university_code"], term["term_code"]))
     details = course_status_details(repo, student)
     statuses = {code: detail["status"] for code, detail in details.items()}
-    removed, chosen = check_choices(skip or [], swap or [], statuses, RECOMMENDABLE_STATUSES, k)
-    semester_no = target_semester(student["year_of_study"], term["term_no"])
+    if window is None:
+        removed, chosen = check_choices(skip or [], swap or [], statuses, RECOMMENDABLE_STATUSES, k)
+    else:
+        # Môn trong `skip` vẫn được xếp hạng để `not_selected` giữ đúng thứ tự; chỉ bước chọn bỏ chúng qua.
+        removed = set()
+        skipped, chosen = check_window_choices(skip or [], include or [], statuses, RECOMMENDABLE_STATUSES)
+    semester_no = _student_semester(student, term)
     prerequisites = dict(zip(courses["course_code"], courses["prerequisite_groups"], strict=True))
     attempts = student["latest_attempts"]
     strong = _strong_topics(repo, courses, attempts)
@@ -198,14 +306,33 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     candidates.sort(key=lambda pair: (-pair[0]["score"], _semester_key(pair[1]),
                                       pair[0]["course_code"]))
 
-    required = repo.elective_blocks(curriculum_code).set_index("block_code")["required_credits"].to_dict()
+    blocks = repo.elective_blocks(curriculum_code).set_index("block_code")
+    required = blocks["required_credits"].to_dict()
     taken, open_courses = _elective_progress(courses, student)
     ranked = [(item, course.elective_block if isinstance(course.elective_block, str) else None)
               for item, course in candidates]
-    items = pick_items(ranked, k, required, taken, open_courses, chosen)
-    _require_chosen(items, chosen, ranked)
-    return {"what_if": bool(assumptions or skip or swap),
+    candidate_count = sum(state in RECOMMENDABLE_STATUSES for state in statuses.values())
+    if window is None:
+        items = pick_items(ranked, k, required, taken, open_courses, chosen)
+        _require_chosen(items, chosen, ranked)
+        return {"what_if": bool(assumptions or skip or swap),
+                "weights": weights,
+                "candidate_count": candidate_count,
+                "items": items,
+                "not_eligible": _not_eligible(courses, details)}
+
+    low, high = window
+    items, left_out = pick_within_credits(ranked, high, required, taken, open_courses, chosen, skipped)
+    _require_included(left_out, chosen, high)
+    total = sum(item["credits"] for item in items)
+    credit_window = {"min_credits": low, "max_credits": high, "total_credits": total}
+    names = dict(zip(courses["course_code"], courses["course_name"], strict=True))
+    return {"what_if": bool(assumptions or skip or include),
             "weights": weights,
-            "candidate_count": sum(state in RECOMMENDABLE_STATUSES for state in statuses.values()),
+            "target_semester": semester_no,
+            "credit_window": {**credit_window, "text": credit_window_text(credit_window)},
+            "candidate_count": candidate_count,
             "items": items,
-            "not_eligible": _not_eligible(courses, details)}
+            "not_selected": _not_selected(left_out, blocks["block_name"].to_dict()),
+            "not_eligible": _not_eligible(courses, details),
+            "warnings": _warnings(student, window, total, names)}

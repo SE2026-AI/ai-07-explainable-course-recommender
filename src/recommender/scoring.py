@@ -12,7 +12,7 @@ chạy được mà không cần PostgreSQL.
 """
 import math
 
-from src.explain import format_decimal
+from src.explain import attempt_when, format_decimal
 
 # Bảng trọng số mặc định, lấy nguyên từ hợp đồng mục 6.6.
 DEFAULT_WEIGHTS = {
@@ -64,20 +64,22 @@ def merge_weights(weights=None):
 def outstanding_retake(last_attempt, weights):
     """Lý do `outstanding_retake`: học phần sinh viên đang nợ (mục 4.4).
 
-    `last_attempt` là dict `term_code`, `score`, `attempt_no` của lần học gần nhất, hoặc `None`
-    khi học phần không đang nợ. Môn đang nợ luôn góp đủ trọng số: nợ một kỳ hay ba kỳ đều cần
-    xử lý ngay, và số lần đã học nằm trong `data` để người đọc tự thấy mức độ."""
+    `last_attempt` là lần học gần nhất, hoặc `None` khi học phần không đang nợ. Có hai dạng: `term_code`,
+    `score`, `attempt_no` với kết quả học tập trong cơ sở dữ liệu; `semester`, `score` với bảng điểm sinh viên
+    tự nhập (mục 6.10), vốn không ghi mã học kỳ hay số lần học. Môn đang nợ luôn góp đủ trọng số: nợ một kỳ
+    hay ba kỳ đều cần xử lý ngay, và số lần đã học (nếu có) nằm trong `data` để người đọc tự thấy mức độ."""
     if not last_attempt:
         return None
-    term_code = str(last_attempt["term_code"])
     score = last_attempt.get("score")
-    data = {"term_code": term_code}
+    semester = last_attempt.get("semester")
+    data = {"semester": int(semester)} if semester is not None else {"term_code": str(last_attempt["term_code"])}
     if score is not None:
         data["score"] = float(score)
-    data["attempt_no"] = int(last_attempt["attempt_no"])
+    if semester is None:
+        data["attempt_no"] = int(last_attempt["attempt_no"])
     detail = f" (điểm {format_decimal(score)})" if score is not None else ""
     return _reason("outstanding_retake", weights["outstanding_retake"],
-                   f"Bạn chưa đạt môn này ở học kỳ {term_code}{detail}.", data)
+                   f"Bạn chưa đạt môn này ở {attempt_when(last_attempt)}{detail}.", data)
 
 
 def schedule(recommended_semester, target_semester_no, weights):
