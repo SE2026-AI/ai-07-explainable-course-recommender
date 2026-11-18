@@ -6,7 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError, ValidationError
 
-from src.api.schemas.recommendations import RecommendationItemOut
+from src.api.schemas.recommendations import PlanViolationOut, RecommendationItemOut
 from src.api.schemas.students import (
     CourseStatusCode,
     CourseStatusSummaryOut,
@@ -245,4 +245,44 @@ class TranscriptRecommendationsOut(BaseModel):
     items: list[RecommendationItemOut] = Field(default_factory=list)
     not_selected: list[NotSelectedCourseOut] = Field(default_factory=list)
     not_eligible: list[TranscriptCourseStatusItemOut] = Field(default_factory=list)
+    warnings: list[TranscriptWarningOut] = Field(default_factory=list)
+
+
+class TranscriptPlanCheckIn(TranscriptIn):
+    """Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    course_codes: list[str]
+    min_credits: int = Field(default=10, ge=10, le=40)
+    max_credits: int | None = Field(default=None, ge=10, le=40)
+
+    @field_validator("min_credits", mode="before")
+    @classmethod
+    def _validate_min_credits_not_bool(cls, value: Any) -> Any:
+        return _reject_bool_number(value, "int_type", "min_credits phải là số nguyên, không phải kiểu boolean.")
+
+    @field_validator("max_credits", mode="before")
+    @classmethod
+    def _validate_max_credits_not_bool(cls, value: Any) -> Any:
+        return _reject_bool_number(value, "int_type", "max_credits phải là số nguyên, không phải kiểu boolean.")
+
+    @model_validator(mode="after")
+    def _check_credit_window(self) -> TranscriptPlanCheckIn:
+        self.max_credits = _validate_credit_window_order(self.__class__.__name__, self.min_credits, self.max_credits)
+        return self
+
+
+class TranscriptPlanCheckOut(BaseModel):
+    """Kết quả kiểm tra kế hoạch học kỳ dựa trên bảng điểm tự nhập (mục 6.7)."""
+
+    university_code: str
+    curriculum_code: str
+    target_semester: int
+    min_credits: int
+    max_credits: int
+    total_credits: int
+    max_credits_per_term: int
+    valid: bool
+    violations: list[PlanViolationOut] = Field(default_factory=list)
     warnings: list[TranscriptWarningOut] = Field(default_factory=list)

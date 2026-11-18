@@ -13,11 +13,13 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 
 import src.recommender
+import src.rules.plan
 import src.rules.status
 from src import explain
 from src.api.deps import get_repo
 from src.api.errors import ApiError
 from src.api.schemas.common import ERROR_RESPONSES
+from src.api.schemas.recommendations import PlanViolationOut
 from src.api.schemas.students import (
     CourseStatusSummaryOut,
     StatusBlockDetailOut,
@@ -29,6 +31,8 @@ from src.api.schemas.transcript import (
     TranscriptIn,
     TranscriptLastAttemptOut,
     TranscriptOut,
+    TranscriptPlanCheckIn,
+    TranscriptPlanCheckOut,
     TranscriptRecommendationIn,
     TranscriptRecommendationsOut,
     TranscriptWarningOut,
@@ -669,3 +673,149 @@ def post_curriculum_recommendations(
     curriculum = repo.curriculum(curriculum_code)
     courses_df = repo.curriculum_courses(curriculum_code)
     return _run_recommendation_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)
+
+
+def _plan_check_supports_credit_window() -> bool:
+    """True khi `src.rules.plan.check_plan` đã nhận `min_credits`, `max_credits` (RULES-6)."""
+    params = inspect.signature(src.rules.plan.check_plan).parameters
+    return {"min_credits", "max_credits"}.issubset(params)
+
+
+def _plan_total_credits(courses_df: pd.DataFrame, blocks_df: pd.DataFrame, course_codes: list[str]) -> int:
+    """Tính tổng tín chỉ kế hoạch: cộng mỗi mã một lần và chỉ cộng khối `counts_toward_total = true`."""
+    seen: set[str] = set()
+    unique_codes: list[str] = []
+    for code in course_codes:
+        if code not in seen:
+            seen.add(code)
+            unique_codes.append(code)
+
+    total = 0
+    courses_map = courses_df.set_index("course_code").to_dict("index")
+    for code in unique_codes:
+        if code in courses_map:
+            c_info = courses_map[code]
+            b_code = str(c_info["block_code"])
+            counts_toward_total = True
+            if b_code in blocks_df.index:
+                counts_toward_total = bool(blocks_df.loc[b_code]["counts_toward_total"])
+            if counts_toward_total:
+                total += int(c_info["credits"])
+    return total
+
+
+def _run_plan_check_pipeline(
+    repo: Repository,
+    uni: str,
+    curriculum_code: str,
+    curriculum: pd.Series,
+    courses_df: pd.DataFrame,
+    body: TranscriptPlanCheckIn,
+) -> TranscriptPlanCheckOut:
+    """Chạy luồng Live (`RULES-4`/`DATA-4`/`RULES-6`) hoặc Stub Fallback khi tầng dưới chưa merge."""
+    max_credits = body.max_credits if body.max_credits is not None else max(20, body.min_credits)
+    cap = int(curriculum["max_credits_per_term"])
+    blocks_df = repo.blocks(curriculum_code).set_index("block_code")
+    total_credits = _plan_total_credits(courses_df, blocks_df, body.course_codes)
+    student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
+
+    if student is None or not _plan_check_supports_credit_window():
+        try:
+            if student is None:
+                _validate_stub_transcript(curriculum, courses_df, body)
+            if max_credits > cap:
+                raise ValueError(
+                    f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, nhận được {max_credits}."
+                )
+        except ValueError as exc:
+            api_err = _transcript_value_error(exc)
+            if api_err is None:
+                raise
+            raise api_err from exc
+        return TranscriptPlanCheckOut(
+            university_code=uni,
+            curriculum_code=curriculum_code,
+            target_semester=body.semesters_completed + 1,
+            min_credits=body.min_credits,
+            max_credits=max_credits,
+            total_credits=total_credits,
+            max_credits_per_term=cap,
+            valid=True,
+            violations=[],
+            warnings=[],
+        )
+
+    try:
+        violations_raw = src.rules.plan.check_plan(
+            repo,
+            student,
+            body.course_codes,
+            min_credits=body.min_credits,
+            max_credits=max_credits,
+        )
+    except ValueError as exc:
+        api_err = _transcript_value_error(exc)
+        if api_err is None:
+            raise
+        raise api_err from exc
+
+    courses_by_code: dict[str, dict[str, Any]] = {
+        str(r["course_code"]): {**r.to_dict(), "course_code": str(r["course_code"])}
+        for _, r in courses_df.iterrows()
+    }
+    names = {code: str(c["course_name"]) for code, c in courses_by_code.items()}
+
+    violations_list: list[PlanViolationOut] = []
+    for v in violations_raw:
+        c_obj = courses_by_code.get(v.get("course_code"))
+        text_val = v["text"] if v.get("text") is not None else explain.violation_text(v, c_obj, names)
+        violations_list.append(
+            PlanViolationOut(
+                code=str(v["code"]),
+                course_code=v.get("course_code"),
+                text=text_val,
+                data=dict(v.get("data", {})),
+            )
+        )
+
+    return TranscriptPlanCheckOut(
+        university_code=uni,
+        curriculum_code=curriculum_code,
+        target_semester=int(student.get("target_semester", body.semesters_completed + 1)),
+        min_credits=body.min_credits,
+        max_credits=max_credits,
+        total_credits=total_credits,
+        max_credits_per_term=cap,
+        valid=len(violations_list) == 0,
+        violations=violations_list,
+        warnings=_format_warnings(student.get("warnings"), names),
+    )
+
+
+@router.post(
+    "/universities/{uni}/curricula/{curriculum_code}/plan-check",
+    response_model=TranscriptPlanCheckOut,
+    summary="Kiểm tra kế hoạch đăng ký học kỳ từ bảng điểm tự nhập",
+    description=(
+        "Kiểm tra danh sách học phần sinh viên dự định đăng ký dựa trên bảng điểm tự nhập và khoảng tín chỉ "
+        "[min_credits, max_credits], không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.7)."
+    ),
+    responses={**ERROR_RESPONSES},
+)
+def post_curriculum_plan_check(
+    uni: str,
+    curriculum_code: str,
+    body: TranscriptPlanCheckIn,
+    repo: Repository = Depends(get_repo),  # noqa: B008
+) -> TranscriptPlanCheckOut:
+    """POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.7).
+
+    Lưu ý: Bỏ trùng (dedupe) chỉ áp dụng cho `total_credits`; danh sách `body.course_codes` truyền xuống
+    `check_plan()` giữ nguyên để tầng luật phát hiện `duplicate_course`.
+    """
+    validate_university(repo, uni)
+    validate_curriculum(repo, uni, curriculum_code)
+
+    curriculum = repo.curriculum(curriculum_code)
+    courses_df = repo.curriculum_courses(curriculum_code)
+    return _run_plan_check_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)
