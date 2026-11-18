@@ -1,7 +1,7 @@
 """Hằng phản hồi mẫu nguyên văn từ hợp đồng §6.10 và §6.11.
 
-CHỈ dùng làm Stub Fallback khi RULES-4 / RANK-3 chưa merge.
-TODO: XÓA khi RULES-4 / RANK-3 merge.
+CHỈ dùng làm Stub Fallback khi RULES-4 / RANK-3 / RULES-6 chưa merge.
+TODO: XÓA khi RULES-4 / RANK-3 / RULES-6 merge.
 """
 from __future__ import annotations
 
@@ -195,7 +195,7 @@ _CONTRACT_RECOMMENDATIONS_STUB: dict[str, Any] = {
 # --- Kiểm tra đầu vào ở chế độ Stub -------------------------------------------------------------
 # Các hàm dưới đây ném `ValueError` có đường dẫn trường ở đầu thông điệp, đúng định dạng tầng luật
 # (mục 5), để router đổi sang `validation_error` bằng cùng một đường như khi chạy thật.
-# TODO: XÓA cùng khối hằng ở trên khi RULES-4 / RANK-3 merge.
+# TODO: XÓA cùng khối hằng ở trên khi RULES-4 / RANK-3 / RULES-6 merge.
 
 
 def _codes_of(courses_df: pd.DataFrame) -> set[str]:
@@ -241,6 +241,14 @@ def validate_stub_choices(courses_df: pd.DataFrame, skip: list[str], include: li
             if code in used:
                 raise ValueError(f"{field}[{idx}]: '{code}' đã xuất hiện ở phía trên trong skip hoặc include.")
             used.add(code)
+
+
+def validate_stub_plan_codes(courses_df: pd.DataFrame, course_codes: list[str]) -> None:
+    """`course_codes[i]` phải thuộc khung trước khi stub trả `valid=True`."""
+    valid_codes = _codes_of(courses_df)
+    for idx, code in enumerate(course_codes):
+        if code not in valid_codes:
+            raise ValueError(f"course_codes[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
 
 
 def stub_recommendation_warnings(min_credits: int, total_credits: int) -> list[dict[str, Any]]:
