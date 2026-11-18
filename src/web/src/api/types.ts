@@ -204,6 +204,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/universities/{uni}/students/{student_code}/plan/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Plan Remove */
+        post: operations["post_plan_remove_v1_universities__uni__students__student_code__plan_remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/universities/{uni}/students/{student_code}/plan/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Plan Undo */
+        post: operations["post_plan_undo_v1_universities__uni__students__student_code__plan_undo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/universities/{uni}/students/{student_code}/profile": {
         parameters: {
             query?: never;
@@ -559,6 +593,11 @@ export interface components {
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
         };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /**
          * LastAttemptOut
          * @description Thông tin lần học gần nhất (mục 6.5).
@@ -620,6 +659,34 @@ export interface components {
             valid: boolean;
             /** Violations */
             violations?: components["schemas"]["PlanViolationOut"][];
+        };
+        /** PlanRemoveBodyIn */
+        PlanRemoveBodyIn: {
+            /**
+             * Course Codes
+             * @description Danh sách mã học phần cần bỏ
+             */
+            course_codes?: string[];
+            /**
+             * Term
+             * @description Mã học kỳ (mặc định 20261)
+             * @default 20261
+             */
+            term: string;
+        };
+        /** PlanUndoBodyIn */
+        PlanUndoBodyIn: {
+            /**
+             * Term
+             * @description Mã học kỳ (mặc định 20261)
+             * @default 20261
+             */
+            term: string;
+            /**
+             * Undo Token
+             * @description Token hoàn tác (None nếu Quick-Undo)
+             */
+            undo_token?: string | null;
         };
         /**
          * PlanViolationOut
@@ -886,6 +953,19 @@ export interface components {
             short_name?: string | null;
             /** University Code */
             university_code: string;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
     };
     responses: never;
@@ -1485,6 +1565,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_plan_remove_v1_universities__uni__students__student_code__plan_remove_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Actor-Student-Code"?: string;
+            };
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanRemoveBodyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_plan_undo_v1_universities__uni__students__student_code__plan_undo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Actor-Student-Code"?: string;
+            };
+            path: {
+                uni: string;
+                student_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanUndoBodyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
