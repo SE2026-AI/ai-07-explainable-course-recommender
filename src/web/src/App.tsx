@@ -6,6 +6,7 @@ import { CatalogPage } from "./pages/CatalogPage";
 import { DataIssuesPage } from "./pages/DataIssuesPage";
 import { StudentPickerPage } from "./pages/StudentPickerPage";
 import { TranscriptEntryPage } from "./pages/TranscriptEntryPage";
+import { TranscriptRecommendationsPage } from "./pages/TranscriptRecommendationsPage";
 import { TranscriptWizardPage } from "./pages/TranscriptWizardPage";
 import { CourseStatusPage } from "./pages/student/CourseStatusPage";
 import { GraphPage } from "./pages/student/GraphPage";
@@ -52,6 +53,7 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
         <Routes>
           <Route path="/" element={<TranscriptWizardPage client={client} />} />
           <Route path="/bang-diem" element={<TranscriptEntryPage client={client} />} />
+          <Route path="/goi-y" element={<TranscriptRecommendationsPage client={client} />} />
           <Route path="/students" element={<StudentPickerPage client={client} />} />
           <Route path="/students/:uni/:student" element={<StudentLayout client={client} />}>
             <Route index element={<Navigate to="profile" replace />} />

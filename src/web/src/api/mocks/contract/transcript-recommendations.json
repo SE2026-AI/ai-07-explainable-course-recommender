@@ -1,0 +1,178 @@
+{
+  "university_code": "HUS",
+  "curriculum_code": "HUS-7480113QTD-2022",
+  "algorithm_version": "1.1.0",
+  "what_if": true,
+  "weights": {
+    "outstanding_retake": 3,
+    "overdue": 2,
+    "on_time": 2,
+    "unlocks": 1.5,
+    "strong_topic": 1,
+    "interest": 0.5
+  },
+  "target_semester": 3,
+  "credit_window": {
+    "min_credits": 15,
+    "max_credits": 20,
+    "total_credits": 20,
+    "text": "Tổng 20 tín chỉ, trong khoảng 15–20 bạn đặt."
+  },
+  "candidate_count": 16,
+  "items": [
+    {
+      "rank": 1,
+      "course_code": "MAT2505",
+      "course_name": "Lập trình cơ bản",
+      "credits": 3,
+      "block_code": "III",
+      "status": "retake",
+      "score": 5.7083,
+      "reasons": [
+        {
+          "code": "outstanding_retake",
+          "contribution": 3,
+          "text": "Bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
+          "data": {
+            "semester": 2,
+            "score": 3
+          }
+        },
+        {
+          "code": "unlocks",
+          "contribution": 1.5,
+          "text": "Đạt môn này sẽ mở khóa 12 học phần khác của chương trình.",
+          "data": {
+            "count": 12,
+            "course_codes": [
+              "MAT1202",
+              "MAT3373E",
+              "MAT3505",
+              "MAT3506",
+              "MAT3507",
+              "MAT3514",
+              "MAT3519",
+              "MAT3539",
+              "MAT3550E",
+              "MAT3554E",
+              "MAT3558",
+              "MAT3560"
+            ]
+          }
+        },
+        {
+          "code": "overdue",
+          "contribution": 1,
+          "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
+          "data": {
+            "recommended_semester": 2,
+            "target_semester": 3,
+            "semesters_late": 1
+          }
+        },
+        {
+          "code": "strong_topic",
+          "contribution": 0.2083,
+          "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
+          "data": {
+            "topic_code": "lap_trinh",
+            "topic_name": "Lập trình",
+            "average_score": 5.25,
+            "course_codes": [
+              "HUS1011",
+              "MAT2505"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "course_code": "MAT2407",
+      "course_name": "Tối ưu hóa",
+      "credits": 3,
+      "block_code": "IV",
+      "status": "eligible",
+      "score": 0.5833,
+      "reasons": [
+        {
+          "code": "strong_topic",
+          "contribution": 0.5833,
+          "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
+          "data": {
+            "topic_code": "toan",
+            "topic_name": "Toán",
+            "average_score": 7.5,
+            "course_codes": [
+              "MAT2400",
+              "MAT2501",
+              "MAT2502",
+              "MAT3500"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "not_selected": [
+    {
+      "course_code": "HUS1024",
+      "course_name": "Nhập môn Robotic",
+      "credits": 3,
+      "block_code": "II",
+      "status": "eligible",
+      "score": 2.5833,
+      "reason": "block_full",
+      "text": "Chưa xếp Nhập môn Robotic: khối kiến thức theo lĩnh vực chỉ cần 5 tín chỉ và đã có 5 từ môn đã đạt và môn xếp trên.",
+      "data": {
+        "block_code": "II",
+        "block_name": "Khối kiến thức theo lĩnh vực",
+        "required_credits": 5,
+        "taken_credits": 5,
+        "credits": 3
+      }
+    },
+    {
+      "course_code": "MAT2503",
+      "course_name": "Giải tích 3",
+      "credits": 2,
+      "block_code": "IV",
+      "status": "eligible",
+      "score": 2.5833,
+      "reason": "skipped",
+      "text": "Bạn chọn chưa học Giải tích 3 ở kỳ này.",
+      "data": {}
+    },
+    {
+      "course_code": "MAT2403",
+      "course_name": "Phương trình vi phân",
+      "credits": 3,
+      "block_code": "IV",
+      "status": "eligible",
+      "score": 0.7333,
+      "reason": "credit_budget",
+      "text": "Chưa xếp Phương trình vi phân: kỳ này đã có 20 tín chỉ, thêm 3 tín chỉ sẽ vượt mức tối đa 20 bạn đặt.",
+      "data": {
+        "credits": 3,
+        "total_credits": 20,
+        "max_credits": 20
+      }
+    }
+  ],
+  "not_eligible": [
+    {
+      "course_code": "MAT3533",
+      "course_name": "Học máy",
+      "credits": 3,
+      "block_code": "V.1",
+      "status": "missing_prerequisite",
+      "missing_prerequisites": [
+        [
+          "MAT2323"
+        ]
+      ],
+      "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước."
+    }
+  ],
+  "warnings": []
+}
