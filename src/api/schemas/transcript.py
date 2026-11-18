@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError, ValidationError
 
+from src.api.schemas.recommendations import RecommendationItemOut
 from src.api.schemas.students import (
     CourseStatusCode,
     CourseStatusSummaryOut,
@@ -13,6 +14,7 @@ from src.api.schemas.students import (
     StudentProfileBlockOut,
 )
 
+NotSelectedReasonCode = Literal["skipped", "block_full", "credit_budget"]
 WarningCode = Literal[
     "below_min_credits",
     "prerequisite_not_in_transcript",
@@ -152,6 +154,7 @@ class TranscriptOut(BaseModel):
     courses: list[TranscriptCourseStatusItemOut]
     warnings: list[TranscriptWarningOut] = Field(default_factory=list)
 
+
 def _validate_credit_window_order(
     model_name: str, min_credits: int, max_credits: int | None
 ) -> int:
@@ -204,3 +207,42 @@ class TranscriptRecommendationIn(TranscriptIn):
         self.max_credits = _validate_credit_window_order(self.__class__.__name__, self.min_credits, self.max_credits)
         return self
 
+
+class CreditWindowOut(BaseModel):
+    """Khoảng tín chỉ sinh viên đặt và tổng tín chỉ thực tế được xếp (mục 6.11)."""
+
+    min_credits: int
+    max_credits: int
+    total_credits: int
+    text: str
+
+
+class NotSelectedCourseOut(BaseModel):
+    """Học phần học được nhưng không được xếp vào học kỳ gợi ý (mục 4.6 và 6.11)."""
+
+    course_code: str
+    course_name: str
+    credits: int
+    block_code: str
+    status: Literal["retake", "eligible"]
+    score: float
+    reason: NotSelectedReasonCode
+    text: str
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+class TranscriptRecommendationsOut(BaseModel):
+    """Phản hồi gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập (mục 6.11)."""
+
+    university_code: str
+    curriculum_code: str
+    algorithm_version: str
+    what_if: bool
+    weights: dict[str, float]
+    target_semester: int
+    credit_window: CreditWindowOut
+    candidate_count: int
+    items: list[RecommendationItemOut] = Field(default_factory=list)
+    not_selected: list[NotSelectedCourseOut] = Field(default_factory=list)
+    not_eligible: list[TranscriptCourseStatusItemOut] = Field(default_factory=list)
+    warnings: list[TranscriptWarningOut] = Field(default_factory=list)

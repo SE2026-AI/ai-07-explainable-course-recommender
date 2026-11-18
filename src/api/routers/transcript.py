@@ -1,6 +1,7 @@
 """Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10, 6.11 và 6.7."""
 from __future__ import annotations
 
+import inspect
 import logging
 import math
 import re
@@ -11,6 +12,7 @@ from typing import Any
 import pandas as pd
 from fastapi import APIRouter, Depends
 
+import src.recommender
 import src.rules.status
 from src import explain
 from src.api.deps import get_repo
@@ -22,14 +24,18 @@ from src.api.schemas.students import (
     StudentProfileBlockOut,
 )
 from src.api.schemas.transcript import (
+    CreditWindowOut,
     TranscriptCourseStatusItemOut,
     TranscriptIn,
     TranscriptLastAttemptOut,
     TranscriptOut,
+    TranscriptRecommendationIn,
+    TranscriptRecommendationsOut,
     TranscriptWarningOut,
 )
 from src.api.services.students import validate_curriculum, validate_university
 from src.data.repository import Repository
+from src.recommender.scoring import DEFAULT_WEIGHTS, merge_weights
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +81,142 @@ _CONTRACT_TRANSCRIPT_STUB: dict[str, Any] = {
             "last_attempt": {"semester": 1, "score": 7.5, "letter_grade": "B"},
             "text": "Đã đạt Triết học Mác - Lênin (điểm 7,5).",
         },
+    ],
+    "warnings": [],
+}
+
+# Phản hồi mẫu nguyên văn từ hợp đồng §6.11, chỉ dùng làm Stub Fallback khi RULES-4/DATA-4/RANK-3 chưa merge.
+_CONTRACT_RECOMMENDATIONS_STUB: dict[str, Any] = {
+    "credit_window_total": 20,
+    "credit_window_text": "Tổng 20 tín chỉ, trong khoảng 15–20 bạn đặt.",
+    "candidate_count": 16,
+    "items": [
+        {
+            "rank": 1,
+            "course_code": "MAT2505",
+            "course_name": "Lập trình cơ bản",
+            "credits": 3,
+            "block_code": "III",
+            "status": "retake",
+            "score": 5.7083,
+            "reasons": [
+                {
+                    "code": "outstanding_retake",
+                    "contribution": 3.0,
+                    "text": "Bạn chưa đạt môn này ở kỳ 2 (điểm 3,0).",
+                    "data": {"semester": 2, "score": 3.0},
+                },
+                {
+                    "code": "unlocks",
+                    "contribution": 1.5,
+                    "text": "Đạt môn này sẽ mở khóa 12 học phần khác của chương trình.",
+                    "data": {
+                        "count": 12,
+                        "course_codes": [
+                            "MAT1202", "MAT3373E", "MAT3505", "MAT3506", "MAT3507", "MAT3514",
+                            "MAT3519", "MAT3539", "MAT3550E", "MAT3554E", "MAT3558", "MAT3560",
+                        ],
+                    },
+                },
+                {
+                    "code": "overdue",
+                    "contribution": 1.0,
+                    "text": "Môn này dự kiến học ở kỳ 2, bạn đang ở kỳ 3.",
+                    "data": {"recommended_semester": 2, "target_semester": 3, "semesters_late": 1},
+                },
+                {
+                    "code": "strong_topic",
+                    "contribution": 0.2083,
+                    "text": "Bạn đang học tốt chủ đề Lập trình: điểm trung bình 5,3 trên 2 môn đã học.",
+                    "data": {
+                        "topic_code": "lap_trinh",
+                        "topic_name": "Lập trình",
+                        "average_score": 5.25,
+                        "course_codes": ["HUS1011", "MAT2505"],
+                    },
+                },
+            ],
+        },
+        {
+            "rank": 7,
+            "course_code": "MAT2407",
+            "course_name": "Tối ưu hóa",
+            "credits": 3,
+            "block_code": "IV",
+            "status": "eligible",
+            "score": 0.5833,
+            "reasons": [
+                {
+                    "code": "strong_topic",
+                    "contribution": 0.5833,
+                    "text": "Bạn đang học tốt chủ đề Toán: điểm trung bình 7,5 trên 4 môn đã học.",
+                    "data": {
+                        "topic_code": "toan",
+                        "topic_name": "Toán",
+                        "average_score": 7.5,
+                        "course_codes": ["MAT2400", "MAT2501", "MAT2502", "MAT3500"],
+                    },
+                }
+            ],
+        },
+    ],
+    "not_selected": [
+        {
+            "course_code": "HUS1024",
+            "course_name": "Nhập môn Robotic",
+            "credits": 3,
+            "block_code": "II",
+            "status": "eligible",
+            "score": 2.5833,
+            "reason": "block_full",
+            "text": (
+                "Chưa xếp Nhập môn Robotic: khối kiến thức theo lĩnh vực chỉ cần 5 tín chỉ "
+                "và đã có 5 từ môn đã đạt và môn xếp trên."
+            ),
+            "data": {
+                "block_code": "II",
+                "block_name": "Khối kiến thức theo lĩnh vực",
+                "required_credits": 5,
+                "taken_credits": 5,
+                "credits": 3,
+            },
+        },
+        {
+            "course_code": "MAT2503",
+            "course_name": "Giải tích 3",
+            "credits": 2,
+            "block_code": "IV",
+            "status": "eligible",
+            "score": 2.5833,
+            "reason": "skipped",
+            "text": "Bạn chọn chưa học Giải tích 3 ở kỳ này.",
+            "data": {},
+        },
+        {
+            "course_code": "MAT2403",
+            "course_name": "Phương trình vi phân",
+            "credits": 3,
+            "block_code": "IV",
+            "status": "eligible",
+            "score": 0.7333,
+            "reason": "credit_budget",
+            "text": (
+                "Chưa xếp Phương trình vi phân: kỳ này đã có 20 tín chỉ, "
+                "thêm 3 tín chỉ sẽ vượt mức tối đa 20 bạn đặt."
+            ),
+            "data": {"credits": 3, "total_credits": 20, "max_credits": 20},
+        },
+    ],
+    "not_eligible": [
+        {
+            "course_code": "MAT3533",
+            "course_name": "Học máy",
+            "credits": 3,
+            "block_code": "V.1",
+            "status": "missing_prerequisite",
+            "missing_prerequisites": [["MAT2323"]],
+            "text": "Chưa học được Học máy: cần hoàn thành Xác suất - Thống kê (MAT2323) trước.",
+        }
     ],
     "warnings": [],
 }
@@ -371,3 +513,159 @@ def post_curriculum_transcript(
     curriculum = repo.curriculum(curriculum_code)
     courses_df = repo.curriculum_courses(curriculum_code)
     return _run_transcript_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)
+
+
+def _validate_and_merge_weights(weights: dict[str, float] | None) -> dict[str, float] | None:
+    """Ghép trọng số bằng `merge_weights()` và gắn khóa lỗi `weights.<mã>` đúng mục 5."""
+    if weights is None:
+        return None
+    try:
+        return merge_weights(weights)
+    except ValueError as exc:
+        fields: dict[str, str] = {}
+        for key, value in weights.items():
+            if key not in DEFAULT_WEIGHTS:
+                fields[f"weights.{key}"] = f"Trọng số '{key}' không có trong hợp đồng."
+            elif (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or float(value) < 0
+            ):
+                fields[f"weights.{key}"] = f"Trọng số '{key}' phải là số lớn hơn hoặc bằng 0."
+        if not fields:
+            fields["weights"] = str(exc)
+        raise ApiError(
+            code="validation_error",
+            message="Dữ liệu gợi ý không hợp lệ.",
+            status=422,
+            details={"fields": fields},
+        ) from exc
+
+
+def _recommender_supports_credit_window() -> bool:
+    """True khi `src.recommender.recommend` đã nhận `min_credits`, `max_credits`, `include` (RANK-3)."""
+    params = inspect.signature(src.recommender.recommend).parameters
+    return {"min_credits", "max_credits", "include"}.issubset(params)
+
+
+def _validate_stub_window(
+    curriculum: pd.Series,
+    courses_df: pd.DataFrame,
+    max_credits: int,
+    skip: list[str],
+    include: list[str],
+) -> None:
+    """Kiểm tra đầu vào theo khung cho mục 6.11 khi chạy Stub Fallback (chưa có RANK-3)."""
+    cap = int(curriculum["max_credits_per_term"])
+    if max_credits > cap:
+        raise ValueError(
+            f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, nhận được {max_credits}."
+        )
+    valid_codes = set(courses_df["course_code"].astype(str))
+    used: set[str] = set()
+    for idx, code in enumerate(skip):
+        if code not in valid_codes:
+            raise ValueError(f"skip[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
+        if code in used:
+            raise ValueError(f"skip[{idx}]: '{code}' đã xuất hiện ở phía trên trong skip hoặc include.")
+        used.add(code)
+    for idx, code in enumerate(include):
+        if code not in valid_codes:
+            raise ValueError(f"include[{idx}]: '{code}' không thuộc khung chương trình đào tạo.")
+        if code in used:
+            raise ValueError(f"include[{idx}]: '{code}' đã xuất hiện ở phía trên trong skip hoặc include.")
+        used.add(code)
+
+
+def _run_recommendation_pipeline(
+    repo: Repository,
+    uni: str,
+    curriculum_code: str,
+    curriculum: pd.Series,
+    courses_df: pd.DataFrame,
+    body: TranscriptRecommendationIn,
+) -> TranscriptRecommendationsOut:
+    """Chạy luồng Live (`RULES-4`/`DATA-4`/`RANK-3`/`EXPLAIN-2`) hoặc Stub Fallback (§6.11)."""
+    merged_weights = _validate_and_merge_weights(body.weights)
+    max_credits = body.max_credits if body.max_credits is not None else max(20, body.min_credits)
+    student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
+
+    if student is None or not _recommender_supports_credit_window():
+        try:
+            if student is None:
+                _validate_stub_transcript(curriculum, courses_df, body)
+            _validate_stub_window(curriculum, courses_df, max_credits, body.skip, body.include)
+        except ValueError as exc:
+            api_err = _transcript_value_error(exc)
+            if api_err is None:
+                raise
+            raise api_err from exc
+        stub = _CONTRACT_RECOMMENDATIONS_STUB
+        return TranscriptRecommendationsOut(
+            university_code=uni,
+            curriculum_code=curriculum_code,
+            algorithm_version=src.recommender.ALGORITHM_VERSION,
+            what_if=bool(body.skip or body.include),
+            weights=merged_weights if merged_weights is not None else dict(DEFAULT_WEIGHTS),
+            target_semester=body.semesters_completed + 1,
+            credit_window=CreditWindowOut(
+                min_credits=body.min_credits,
+                max_credits=max_credits,
+                total_credits=stub["credit_window_total"],
+                text=stub["credit_window_text"],
+            ),
+            candidate_count=stub["candidate_count"],
+            items=stub["items"],
+            not_selected=stub["not_selected"],
+            not_eligible=stub["not_eligible"],
+            warnings=stub["warnings"],
+        )
+
+    try:
+        rec: dict[str, Any] = src.recommender.recommend(
+            repo,
+            student,
+            weights=merged_weights,
+            skip=list(body.skip) or None,
+            include=list(body.include) or None,
+            min_credits=body.min_credits,
+            max_credits=max_credits,
+        )
+    except ValueError as exc:
+        api_err = _transcript_value_error(exc)
+        if api_err is None:
+            raise
+        raise api_err from exc
+
+    return TranscriptRecommendationsOut(
+        university_code=uni,
+        curriculum_code=curriculum_code,
+        algorithm_version=src.recommender.ALGORITHM_VERSION,
+        **rec,
+    )
+
+
+@router.post(
+    "/universities/{uni}/curricula/{curriculum_code}/recommendations",
+    response_model=TranscriptRecommendationsOut,
+    summary="Gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập",
+    description=(
+        "Gợi ý danh sách học phần cho kỳ kế tiếp trong khoảng tín chỉ [min_credits, max_credits] trực tiếp từ "
+        "bảng điểm trong body, kèm not_selected, not_eligible và warnings (mục 6.11)."
+    ),
+    responses={**ERROR_RESPONSES},
+)
+def post_curriculum_recommendations(
+    uni: str,
+    curriculum_code: str,
+    body: TranscriptRecommendationIn,
+    repo: Repository = Depends(get_repo),  # noqa: B008
+) -> TranscriptRecommendationsOut:
+    """POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11)."""
+    validate_university(repo, uni)
+    validate_curriculum(repo, uni, curriculum_code)
+
+    curriculum = repo.curriculum(curriculum_code)
+    courses_df = repo.curriculum_courses(curriculum_code)
+    return _run_recommendation_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)
