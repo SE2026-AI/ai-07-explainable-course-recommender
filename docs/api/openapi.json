@@ -1767,6 +1767,125 @@
         "title": "TranscriptOut",
         "type": "object"
       },
+      "TranscriptPlanCheckIn": {
+        "additionalProperties": false,
+        "description": "Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.7).",
+        "properties": {
+          "course_codes": {
+            "items": {
+              "maxLength": 32,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Course Codes",
+            "type": "array"
+          },
+          "max_credits": {
+            "anyOf": [
+              {
+                "maximum": 40.0,
+                "minimum": 10.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Credits"
+          },
+          "min_credits": {
+            "default": 10,
+            "maximum": 40.0,
+            "minimum": 10.0,
+            "title": "Min Credits",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptResultIn"
+            },
+            "maxItems": 200,
+            "title": "Results",
+            "type": "array"
+          },
+          "semesters_completed": {
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Semesters Completed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "semesters_completed",
+          "course_codes"
+        ],
+        "title": "TranscriptPlanCheckIn",
+        "type": "object"
+      },
+      "TranscriptPlanCheckOut": {
+        "description": "Kết quả kiểm tra kế hoạch học kỳ dựa trên bảng điểm tự nhập (mục 6.7).",
+        "properties": {
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "max_credits": {
+            "title": "Max Credits",
+            "type": "integer"
+          },
+          "max_credits_per_term": {
+            "title": "Max Credits Per Term",
+            "type": "integer"
+          },
+          "min_credits": {
+            "title": "Min Credits",
+            "type": "integer"
+          },
+          "target_semester": {
+            "title": "Target Semester",
+            "type": "integer"
+          },
+          "total_credits": {
+            "title": "Total Credits",
+            "type": "integer"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/PlanViolationOut"
+            },
+            "title": "Violations",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptWarningOut"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "university_code",
+          "curriculum_code",
+          "target_semester",
+          "min_credits",
+          "max_credits",
+          "total_credits",
+          "max_credits_per_term",
+          "valid"
+        ],
+        "title": "TranscriptPlanCheckOut",
+        "type": "object"
+      },
       "TranscriptRecommendationIn": {
         "additionalProperties": false,
         "description": "Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11).\n\nKhông nhận `limit`, `assumptions`, `swap` (extra='forbid' tự từ chối với 422 validation_error).",
@@ -2571,6 +2690,98 @@
         "summary": "Học phần của khung CTĐT",
         "tags": [
           "Danh mục & Chương trình đào tạo"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/curricula/{curriculum_code}/plan-check": {
+      "post": {
+        "description": "Kiểm tra danh sách học phần sinh viên dự định đăng ký dựa trên bảng điểm tự nhập và khoảng tín chỉ [min_credits, max_credits], không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.7).",
+        "operationId": "post_curriculum_plan_check_v1_universities__uni__curricula__curriculum_code__plan_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "curriculum_code",
+            "required": true,
+            "schema": {
+              "title": "Curriculum Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptPlanCheckIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptPlanCheckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Kiểm tra kế hoạch đăng ký học kỳ từ bảng điểm tự nhập",
+        "tags": [
+          "Bảng điểm tự nhập"
         ]
       }
     },
