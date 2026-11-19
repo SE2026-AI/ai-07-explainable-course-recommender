@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Phiên bản hợp đồng | 1.1.0 |
-| Cập nhật | 2026-11-15 |
+| Cập nhật | 2026-11-19 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -110,6 +110,7 @@ Hai endpoint của bảng điểm tự nhập (mục 6.10, 6.11) không nhận `
 | Gợi ý (`items`) | `score` giảm dần, rồi `recommended_semester` tăng, rồi `course_code` tăng |
 | Học phần học được mà không được xếp (`not_selected`) | Như `items`: thứ tự xếp hạng |
 | Cảnh báo (`warnings`) | Cảnh báo của bảng điểm theo thứ tự `results`, rồi `below_min_credits` |
+| Vi phạm kế hoạch (`violations`) | Vị trí của học phần trong `course_codes`, rồi `code` tăng; `credit_below_minimum` đứng cuối |
 | Lý do (`reasons`) | `contribution` giảm dần, rồi `code` tăng |
 | Học kỳ | `code` tăng dần |
 | Nút của sơ đồ tiên quyết (`nodes`) | `sort_no` tăng dần, như học phần của khung |
@@ -197,7 +198,8 @@ nằm ở `docs/architecture/ranking.md`. Đổi công thức thì tăng `algori
 
 | `code` | Nghĩa |
 | --- | --- |
-| `credit_limit_exceeded` | Tổng tín chỉ vượt `max_credits_per_term` của khung |
+| `credit_limit_exceeded` | Tổng tín chỉ vượt `max_credits_per_term` của khung; ở mục 6.12 là vượt `max_credits` sinh viên đặt |
+| `credit_below_minimum` | Tổng tín chỉ thấp hơn `min_credits` sinh viên đặt. Chỉ có ở mục 6.12 |
 | `missing_prerequisite` | Môn chưa đủ điều kiện tiên quyết |
 | `already_passed` | Môn sinh viên đã đạt |
 | `block_limit_exceeded` | Vượt số tín chỉ cần chọn của một khối tự chọn |
@@ -229,7 +231,8 @@ và `course_code` khi gắn với một môn.
 | `prerequisite_not_in_transcript` | Bảng điểm ghi đã đạt một môn nhưng chưa đạt môn nào của một nhóm tiên quyết của nó | `missing_prerequisites` |
 | `studied_before_prerequisite` | Một môn ghi học ở kỳ sớm hơn hoặc cùng kỳ với môn tiên quyết đã đạt của nó | `semester`, `prerequisite_code`, `prerequisite_semester` |
 
-Hai mã sau chỉ do bảng điểm tự nhập sinh ra (mục 6.10, 6.11); `below_min_credits` chỉ có ở mục 6.11.
+Hai mã sau chỉ do bảng điểm tự nhập sinh ra (mục 6.10, 6.11, 6.12); `below_min_credits` chỉ có ở mục 6.11.
+Mục 6.12 báo thiếu tín chỉ bằng vi phạm `credit_below_minimum` của mục 4.5, không phải cảnh báo.
 
 ---
 
@@ -270,10 +273,10 @@ client nhận chúng là do gọi sai đường dẫn hoặc sai phương thức
 
 Với `validation_error`, mỗi khóa của `details.fields` là đường dẫn tới trường sai trong request, viết như
 trong JavaScript: `min_credits`, `results[3].score`, `include[0]`, `weights.unlocks`. Client dùng đường dẫn
-này để đánh dấu đúng ô nhập. Ở mục 6.10 và 6.11, lỗi về kiểu, khóa lạ và khoảng cố định (`semesters_completed`
+này để đánh dấu đúng ô nhập. Ở mục 6.10, 6.11 và 6.12, lỗi về kiểu, khóa lạ và khoảng cố định (`semesters_completed`
 ngoài `[0, 12]`, `min_credits` dưới 10, `min_credits > max_credits`) do tầng validate của API bắt; lỗi cần tra
 khung (mã môn không thuộc khung hoặc lặp, `semester` vượt `semesters_completed`, `score` vượt `max_score`,
-`max_credits` vượt `max_credits_per_term`, `skip`/`include` sai trạng thái) do tầng luật và tầng xếp hạng bắt,
+`min_credits` hoặc `max_credits` vượt `max_credits_per_term`, `skip`/`include` sai trạng thái) do tầng luật và tầng xếp hạng bắt,
 cùng một định dạng.
 
 ---
@@ -297,6 +300,7 @@ cùng một định dạng.
 | POST | `/v1/universities/{uni}/students/{student_code}/plan-check` | Kiểm tra kế hoạch học kỳ do người dùng chọn |
 | POST | `/v1/universities/{uni}/curricula/{curriculum_code}/transcript` | Tiến độ và trạng thái học phần từ bảng điểm tự nhập |
 | POST | `/v1/universities/{uni}/curricula/{curriculum_code}/recommendations` | Gợi ý theo khoảng tín chỉ từ bảng điểm tự nhập |
+| POST | `/v1/universities/{uni}/curricula/{curriculum_code}/plan-check` | Kiểm tra kế hoạch học kỳ từ bảng điểm tự nhập |
 | GET | `/v1/data-issues` | Các chỗ văn bản gốc mâu thuẫn hoặc thiếu |
 
 ### 6.1 `GET /v1/meta`
@@ -621,7 +625,7 @@ Body:
 ```json
 {
   "university_code": "HUS", "student_code": "T03", "term": "20261",
-  "total_credits": 18, "max_credits_per_term": 40, "valid": false,
+  "total_credits": 17, "max_credits_per_term": 40, "valid": false,
   "violations": [
     {
       "code": "missing_prerequisite", "course_code": "MAT3533",
@@ -822,8 +826,8 @@ Body gồm mọi trường của mục 6.10, cộng:
 
 | Trường | Quy định |
 | --- | --- |
-| `min_credits` | Số nguyên, mặc định 10, không dưới 10 |
-| `max_credits` | Số nguyên, mặc định `max(20, min_credits)`, không vượt `max_credits_per_term` của khung (mục 6.2) và không nhỏ hơn `min_credits` |
+| `min_credits` | Số nguyên, mặc định 10, không dưới 10 và không vượt `max_credits_per_term` của khung (mục 6.2) |
+| `max_credits` | Số nguyên, mặc định `min(max(20, min_credits), max_credits_per_term)`, không vượt `max_credits_per_term` và không nhỏ hơn `min_credits`. Khung DEMO cho tối đa 12 tín chỉ, nên không gửi `max_credits` thì là 12 |
 | `weights` | Như mục 6.6 |
 | `skip` | Mã các học phần chưa muốn học ở kỳ này. Mỗi mã có `status` là `retake` hoặc `eligible` |
 | `include` | Mã các học phần muốn học chắc chắn ở kỳ này, cùng quy định với `skip` |
@@ -945,6 +949,67 @@ Quy định của endpoint này:
 10. Sinh viên tự nhập bảng điểm chưa khai chủ đề quan tâm, nên v1 không bao giờ trả lý do `interest` ở
     endpoint này; trọng số `interest` vẫn có trong `weights`.
 
+### 6.12 `POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check`
+
+Kiểm tra kế hoạch học kỳ sinh viên tự chọn, dựa trên bảng điểm tự nhập. Khác mục 6.7 ở hai chỗ: môn đã đạt
+lấy từ `results` thay cho cơ sở dữ liệu, và tổng tín chỉ được so với khoảng `min_credits`–`max_credits`
+sinh viên đặt thay cho chỉ mức tối đa của khung. Không cần mã sinh viên.
+
+Body gồm mọi trường của mục 6.10, cộng:
+
+```json
+{
+  "semesters_completed": 2,
+  "results": ["... như mục 6.10 ..."],
+  "course_codes": ["MAT2505", "MAT2323", "MAT2503", "PHI1002", "HIS1056", "MAT3533"],
+  "min_credits": 20,
+  "max_credits": 24
+}
+```
+
+| Trường | Quy định |
+| --- | --- |
+| `course_codes` | Như mục 6.7: giữ nguyên thứ tự và lần lặp. Mã không thuộc khung hay lặp lại là vi phạm, không phải lỗi |
+| `min_credits`, `max_credits` | Như mục 6.11, cùng giá trị mặc định |
+
+Phản hồi:
+
+```json
+{
+  "university_code": "HUS", "curriculum_code": "HUS-7480113QTD-2022", "target_semester": 3,
+  "min_credits": 20, "max_credits": 24, "total_credits": 17, "max_credits_per_term": 40, "valid": false,
+  "violations": [
+    {
+      "code": "missing_prerequisite", "course_code": "MAT3533",
+      "text": "Học máy chưa học được: cần hoàn thành Xác suất - Thống kê (MAT2323) trước.",
+      "data": {"missing_prerequisites": [["MAT2323"]]}
+    },
+    {
+      "code": "credit_below_minimum", "course_code": null,
+      "text": "Kế hoạch có 17 tín chỉ, chưa đủ mức tối thiểu 20 tín chỉ bạn đặt: cần thêm ít nhất 3 tín chỉ.",
+      "data": {"min_credits": 20, "total_credits": 17}
+    }
+  ],
+  "warnings": []
+}
+```
+
+Quy định của endpoint này:
+
+1. Môn đã đạt là môn có kết quả đạt trong `results` (mục 6.10). Như mục 4.2, học phần khác trong cùng kế
+   hoạch không được tính là đã đạt khi xét tiên quyết.
+2. `target_semester` = `semesters_completed + 1`. `min_credits`, `max_credits` là khoảng đã dùng, sau khi lấy
+   mặc định. `total_credits` và `valid` như mục 6.7.
+3. Vi phạm như mục 6.7, trừ hai mã về tổng tín chỉ:
+   - `credit_limit_exceeded` so với `max_credits` thay cho `max_credits_per_term`; `data` có `total_credits`,
+     `max_credits`. `course_code` vẫn là môn làm tổng tín chỉ vượt mức, như mục 6.7.
+   - `credit_below_minimum` khi `total_credits < min_credits`; `data` có `total_credits`, `min_credits`. Vi phạm
+     này nói về cả kế hoạch nên `course_code` là `null`, và nó đứng cuối `violations`.
+4. Thiếu tín chỉ ở đây là vi phạm, còn ở mục 6.11 chỉ là cảnh báo `below_min_credits`: ở mục 6.11 hệ thống đã
+   xét hết các môn học được mà không vừa thêm môn nào, còn ở đây sinh viên tự chọn và thêm môn được. Vì vậy
+   `warnings` chỉ gồm cảnh báo của bảng điểm (mục 6.10), không bao giờ có `below_min_credits`.
+5. Lỗi đầu vào theo mục 5, như mục 6.10 và 6.11. `course_codes` chỉ có lỗi kiểu, không có lỗi tra khung.
+
 ---
 
 ## 7. Bất biến
@@ -966,7 +1031,8 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 | Bảng điểm tự nhập trùng cơ sở dữ liệu | Chép kết quả của một sinh viên thành body mục 6.10: tiến độ và trạng thái trùng mục 6.4, 6.5 |
 | Khoảng tín chỉ | Ở mục 6.11: `total_credits <= max_credits`; `total_credits < min_credits` khi và chỉ khi có `below_min_credits` |
 | Không môn học được nào bị bỏ lặng lẽ | Ở mục 6.11: mỗi học phần `retake` hoặc `eligible` ở đúng một trong `items` và `not_selected` |
-| Bảng điểm tự nhập không được lưu | Gọi mục 6.10 và 6.11 rồi đếm số dòng của mọi bảng: không bảng nào đổi |
+| Bảng điểm tự nhập không được lưu | Gọi mục 6.10, 6.11 và 6.12 rồi đếm số dòng của mọi bảng: không bảng nào đổi |
+| Kế hoạch trong khoảng tín chỉ | Ở mục 6.12: có `credit_below_minimum` khi và chỉ khi `total_credits < min_credits`, có `credit_limit_exceeded` khi và chỉ khi `total_credits > max_credits` |
 | Khối tự chọn hoàn thành đúng | Tín chỉ đã đạt cộng tín chỉ trong `items` của mỗi khối `choose_credits` không vượt `required_credits`, và phần còn thiếu ghép đúng được bằng các môn chưa đạt của khối |
 
 Ngưỡng 0,85 của bất biến "Có ích" là **mốc chống thụt lùi, không phải mục tiêu chất lượng**. Lần đo đầu
@@ -1006,3 +1072,4 @@ viên thật. Đổi ngưỡng là thay đổi hợp đồng.
 
 - Danh sách học phần được mở theo từng học kỳ. Khi có dữ liệu này, `term` sẽ lọc thêm theo khả năng mở lớp,
   và `course-status` có thêm một trạng thái cho học phần đủ điều kiện nhưng kỳ đó không mở.
+- Học kỳ cuối. Sinh viên còn ít hơn 10 tín chỉ học được (sắp tốt nghiệp) luôn nhận `credit_below_minimum` ở mục 6.12, vì sàn của `min_credits` là 10. Quy chế cho kỳ cuối học dưới mức tối thiểu; khi dữ liệu có quy định này, mục 6.12 sẽ bỏ vi phạm đó cho kỳ cuối.
