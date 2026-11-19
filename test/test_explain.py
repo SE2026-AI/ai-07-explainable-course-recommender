@@ -124,6 +124,8 @@ SAMPLE_DETAILS = {
 SAMPLE_VIOLATIONS = {
     "credit_limit_exceeded": {"code": "credit_limit_exceeded", "course_code": "HIS1056",
                               "data": {"max_credits_per_term": 40, "total_credits": 43}},
+    "credit_below_minimum": {"code": "credit_below_minimum", "course_code": None,
+                             "data": {"min_credits": 15, "total_credits": 11}},
     "missing_prerequisite": {"code": "missing_prerequisite", "course_code": "MAT3533",
                              "data": {"missing_prerequisites": [["MAT2323"]]}},
     "already_passed": {"code": "already_passed", "course_code": "MAT2502", "data": {}},
@@ -151,10 +153,21 @@ def test_every_violation_has_a_clean_sentence_that_says_what_to_do():
     """Tiêu chí "hành động được" của README: sau dấu hai chấm luôn là việc người dùng cần làm."""
     assert set(SAMPLE_VIOLATIONS) == set(VIOLATIONS), "mỗi mã của mục 4.5 phải có một ca mẫu"
     for code, violation in SAMPLE_VIOLATIONS.items():
-        course = None if code in ("credit_limit_exceeded", "not_in_curriculum") else _course("Giải tích 2")
+        whole_plan = code in ("credit_limit_exceeded", "credit_below_minimum", "not_in_curriculum")
+        course = None if whole_plan else _course("Giải tích 2")
         text = violation_text(violation, course, NAMES)
         assert _looks_clean(text) and ": " in text, (code, text)
     assert "bỏ bớt ít nhất 3 tín chỉ" in violation_text(SAMPLE_VIOLATIONS["credit_limit_exceeded"], None, NAMES)
+
+
+def test_the_credit_violations_of_a_self_entered_plan_name_the_window_the_student_set():
+    """Mục 6.12: `credit_limit_exceeded` so với `max_credits` sinh viên đặt, `credit_below_minimum` với `min_credits`."""
+    over = {"code": "credit_limit_exceeded", "course_code": "HIS1056",
+            "data": {"max_credits": 20, "total_credits": 23}}
+    assert violation_text(over, None, NAMES) == (
+        "Kế hoạch có 23 tín chỉ, vượt mức tối đa 20 tín chỉ bạn đặt cho học kỳ này: cần bỏ bớt ít nhất 3 tín chỉ.")
+    assert violation_text(SAMPLE_VIOLATIONS["credit_below_minimum"], None, NAMES) == (
+        "Kế hoạch có 11 tín chỉ, chưa đủ mức tối thiểu 15 tín chỉ bạn đặt: cần thêm ít nhất 4 tín chỉ.")
 
 
 def test_block_and_duplicate_violations_read_the_fields_the_rules_layer_sends():
