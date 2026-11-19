@@ -1,12 +1,10 @@
 """Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10."""
 from __future__ import annotations
 
-import importlib
-import importlib.util
 import logging
 import math
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 import pandas as pd
@@ -31,11 +29,8 @@ from src.api.services.students import (
     validate_curriculum,
     validate_university,
 )
-from src.api.stubs.transcript_contract import (
-    _CONTRACT_TRANSCRIPT_STUB,
-    validate_stub_transcript,
-)
 from src.data.repository import Repository
+from src.rules.transcript import build_student
 
 logger = logging.getLogger(__name__)
 
@@ -61,33 +56,6 @@ def _transcript_value_error(exc: ValueError) -> ApiError | None:
     )
 
 
-def _load_build_student() -> Callable[..., Any] | None:
-    """Tra cứu động `src.rules.transcript.build_student` (RULES-4); trả `None` nếu chưa merge.
-
-    Dùng `find_spec` để phân biệt: module vắng → stub; module có nhưng lỗi import thật → nổ → 500.
-    Khi module đã có trong sys.modules (ví dụ do monkeypatch trong test), kiểm trực tiếp sys.modules.
-    """
-    import sys
-
-    if "src.rules.transcript" in sys.modules:
-        # Module đã được load (hoặc monkeypatched): dùng trực tiếp
-        module = sys.modules["src.rules.transcript"]
-    else:
-        try:
-            spec = importlib.util.find_spec("src.rules.transcript")
-        except ValueError:
-            # find_spec ném ValueError khi module đang được load (edge case)
-            spec = None
-        if spec is None:
-            return None  # RULES-4 chưa merge: dùng stub
-        module = importlib.import_module("src.rules.transcript")  # lỗi import thật phải nổ -> 500
-
-    build = getattr(module, "build_student", None)
-    if build is None:
-        raise RuntimeError("src.rules.transcript thiếu build_student")
-    return build
-
-
 def _clean_float(value: Any) -> float | None:
     """Chuyển điểm sang float hoặc `None` nếu thiếu/NaN."""
     if value is None or pd.isna(value):
@@ -103,12 +71,8 @@ def _build_transcript_student(
     curriculum: pd.Series,
     courses_df: pd.DataFrame,
     body: TranscriptIn,
-) -> Mapping[str, Any] | None:
-    """Gọi `build_student()` thật (RULES-4 + DATA-4). Trả `None` nếu tầng dưới chưa merge."""
-    build_student = _load_build_student()
-    if build_student is None:
-        return None
-
+) -> Mapping[str, Any]:
+    """Gọi `build_student()` (RULES-4 + DATA-4); `ValueError` có đường dẫn trường thành 422 `validation_error`."""
     conversions = repo.grade_conversions(curriculum_code)
     results_dicts = [r.to_rule_dict() for r in body.results]
     try:
@@ -199,27 +163,14 @@ def _run_transcript_pipeline(
     courses_df: pd.DataFrame,
     body: TranscriptIn,
 ) -> TranscriptOut:
-    """Chạy luồng Live (`RULES-4`/`RULES-5`/`DATA-4`) hoặc Stub Fallback (§6.10) khi phụ thuộc chưa merge."""
+    """Chạy luồng tính tiến độ và trạng thái học phần (`RULES-4`/`RULES-5`/`DATA-4`, §6.10)."""
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
-    if student is None:
-        try:
-            validate_stub_transcript(curriculum, courses_df, body)
-        except ValueError as exc:
-            api_err = _transcript_value_error(exc)
-            if api_err is None:
-                raise
-            raise api_err from exc
-        return TranscriptOut(
-            university_code=uni,
-            curriculum_code=curriculum_code,
-            semesters_completed=body.semesters_completed,
-            target_semester=body.semesters_completed + 1,
-            total_credits=int(curriculum["total_credits"]),
-            max_credits_per_term=int(curriculum["max_credits_per_term"]),
-            **_CONTRACT_TRANSCRIPT_STUB,
-        )
-
     status_details = src.rules.status.course_status_details(repo, student)
+    # `course_status_details` ghi `last_attempt` theo term_code; bảng điểm tự nhập chỉ có học kỳ (semester).
+    for code, attempt in (student.get("latest_attempts") or {}).items():
+        last_attempt = status_details.get(code, {}).get("last_attempt")
+        if last_attempt is not None:
+            last_attempt["semester"] = attempt["semester"]
     sorted_courses = courses_df.sort_values(by="course_code")
     names = dict(zip(sorted_courses["course_code"].astype(str), sorted_courses["course_name"].astype(str), strict=True))
 

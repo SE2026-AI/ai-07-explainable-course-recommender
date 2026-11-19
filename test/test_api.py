@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import ast
 import copy
-import importlib
 import json
 import pathlib
 
@@ -12,19 +11,11 @@ from fastapi.testclient import TestClient
 
 from src.api.app import create_app
 from src.api.deps import get_repo
+from src.api.routers import transcript as transcript_router
 from src.data.repository import Repository
 from src.recommender import ALGORITHM_VERSION
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[1]
-
-
-def _has(module_name: str, attr: str) -> bool:
-    """True khi module import được và có `attr`. Dùng cho skipif lúc collect: getattr(src, "explain")
-    luôn là None vì submodule chưa được import, khiến test bị skip vĩnh viễn."""
-    try:
-        return hasattr(importlib.import_module(module_name), attr)
-    except Exception:
-        return False
 
 
 @pytest.fixture(scope="session")
@@ -1574,10 +1565,6 @@ def _has_transcript_fixtures() -> bool:
     return all((fixtures_dir / name).exists() for name in TRANSCRIPT_FIXTURE_NAMES)
 
 
-def _has_transcript_live_deps() -> bool:
-    return _has("src.rules.transcript", "build_student") and hasattr(Repository, "grade_conversions")
-
-
 def _table_row_counts(repo_inst: Repository) -> dict[str, int]:
     from sqlalchemy import text
 
@@ -1738,13 +1725,10 @@ def test_transcript_endpoint_contract_determinism_stateless_and_privacy(api_clie
     assert r_ex.status_code == 200, r_ex.text
 
 
-def test_transcript_live_pipeline_wiring_with_stub(
+def test_transcript_live_pipeline_wiring(
     api_client_all: TestClient, repo_all, monkeypatch: pytest.MonkeyPatch
 ):
     """API-4: Kiểm tra nối tầng thật (DATA-4 + RULES-4 + RULES-5 + EXPLAIN-2) qua monkeypatch."""
-    import sys
-    import types
-
     import pandas as pd
 
     import src.explain
@@ -1803,9 +1787,7 @@ def test_transcript_live_pipeline_wiring_with_stub(
                 out[c_code] = {"status": "eligible"}
         return out
 
-    fake_mod = types.ModuleType("src.rules.transcript")
-    fake_mod.build_student = fake_build_student  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "src.rules.transcript", fake_mod)
+    monkeypatch.setattr(transcript_router, "build_student", fake_build_student)
     monkeypatch.setattr(repo_all, "grade_conversions", fake_grade_conversions, raising=False)
     monkeypatch.setattr(src.rules.status, "course_status_details", fake_course_status_details)
     monkeypatch.setattr(src.explain, "warning_text", lambda w, names: f"Cảnh báo {w['code']}", raising=False)
@@ -1852,7 +1834,7 @@ def test_transcript_live_pipeline_wiring_with_stub(
     def failing_field_build(*args):
         raise ValueError("results[0].score: điểm vượt thang điểm của khung")
 
-    monkeypatch.setattr(fake_mod, "build_student", failing_field_build)
+    monkeypatch.setattr(transcript_router, "build_student", failing_field_build)
     r_422 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
     assert r_422.status_code == 422
     assert r_422.json()["error"]["details"]["fields"] == {"results[0].score": "điểm vượt thang điểm của khung"}
@@ -1860,17 +1842,14 @@ def test_transcript_live_pipeline_wiring_with_stub(
     def failing_internal_build(*args):
         raise ValueError("lỗi lập trình bí mật bên trong build_student")
 
-    monkeypatch.setattr(fake_mod, "build_student", failing_internal_build)
+    monkeypatch.setattr(transcript_router, "build_student", failing_internal_build)
     r_500 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/transcript", json=body)
     assert r_500.status_code == 500
     assert r_500.json()["error"]["code"] == "internal_error"
     assert "bí mật" not in r_500.text
 
 
-@pytest.mark.skipif(
-    not (_has_transcript_live_deps() and _has_transcript_fixtures()),
-    reason="chờ DATA-3, DATA-4, RULES-4, RULES-5 và EXPLAIN-2 merge",
-)
+@pytest.mark.skipif(not _has_transcript_fixtures(), reason="Thiếu fixtures trong test/fixtures/transcripts/")
 @pytest.mark.parametrize("fixture_name", TRANSCRIPT_FIXTURE_NAMES)
 def test_transcript_matches_contract_fixtures(api_client_all: TestClient, fixture_name: str):
     """API-4: Khớp toàn bộ 4 bảng điểm mẫu trong test/fixtures/transcripts/ với tầng thật (§6.10, §7)."""
@@ -1991,104 +1970,19 @@ def test_strict_type_validation_422(api_client_all: TestClient, url: str, body: 
 
 
 # =====================================================================
-# 23. Chế độ Stub với 4 bảng điểm mẫu trong test/fixtures/transcripts/
+# 24. plan_undo (Feat/vt097 plan undo, #35) phải còn được đăng ký trong app thật
 # =====================================================================
 
 
-@pytest.mark.skipif(not _has_transcript_fixtures(), reason="Thiếu fixtures trong test/fixtures/transcripts/")
-@pytest.mark.parametrize("fixture_name", TRANSCRIPT_FIXTURE_NAMES)
-def test_transcript_stub_mode_shape(api_client_all: TestClient, fixture_name: str):
-    """Lỗi 3 Stub: Mỗi fixture → /transcript trả 200 với đúng hình dạng §6.10 (đủ khóa, đúng kiểu)."""
-    fixture = json.loads(
-        (PROJECT_ROOT / "test" / "fixtures" / "transcripts" / fixture_name).read_text(encoding="utf-8")
-    )
-    uni = fixture["university_code"]
-    cur = fixture["curriculum_code"]
-    req = fixture["request"]
-    body = {"semesters_completed": req["semesters_completed"], "results": req["results"]}
+def test_plan_undo_router_is_registered_in_app():
+    """Mọi path của `plan_undo.router` có trong app thật, để gỡ router khỏi `create_app()` không bị bỏ sót.
 
-    r = api_client_all.post(f"/v1/universities/{uni}/curricula/{cur}/transcript", json=body)
-    assert r.status_code == 200, r.text
-    data = r.json()
-    for key in ("university_code", "curriculum_code", "semesters_completed", "target_semester",
-                "credits_earned", "credits_outstanding", "total_credits", "max_credits_per_term",
-                "outstanding_courses", "blocks", "summary", "courses", "warnings"):
-        assert key in data, f"{fixture_name}: thiếu khóa '{key}'"
-    assert isinstance(data["courses"], list)
-    assert isinstance(data["warnings"], list)
-
-
-
-# =====================================================================
-# 24. Kiểm tra plan_undo vắng mặt trong OpenAPI (Lỗi 1)
-# =====================================================================
-
-
-def test_plan_undo_absent_from_openapi():
-    """Lỗi 1: Các path /plan/remove và /plan/undo không xuất hiện trong docs/api/openapi.json."""
-    spec = json.loads((PROJECT_ROOT / "docs" / "api" / "openapi.json").read_text(encoding="utf-8"))
-    paths = set(spec.get("paths", {}).keys())
-    for p in paths:
-        assert "/plan/remove" not in p, f"Tìm thấy path plan/remove trong OpenAPI: {p}"
-        assert "/plan/undo" not in p, f"Tìm thấy path plan/undo trong OpenAPI: {p}"
-
-
-# =====================================================================
-# 25. Kiểm tra hai nhánh import của _load_build_student() (Lỗi 3a)
-# =====================================================================
-
-
-def test_transcript_load_build_student_import_branches(api_client_all: TestClient, monkeypatch: pytest.MonkeyPatch):
-    """Lỗi 3a: Module vắng thì trả stub, module có lỗi bên trong thì ném lỗi và ra 500 internal_error.
-
-    Dùng `api_client_all` (đã override `get_repo`) để test không nối vào cơ sở dữ liệu thật.
+    `test_plan_undo.py` tự dựng app riêng nên không bắt được lỗi này.
     """
-    import importlib
-    import importlib.machinery
-    import sys
+    from src.api.routers import plan_undo
+    from src.api.version import API_VERSION
 
-    client = api_client_all
-
-    # Nhánh 1: Module vắng -> trả stub (status 200, credits_earned=34 từ stub)
-    monkeypatch.delitem(sys.modules, "src.rules.transcript", raising=False)
-    orig_find_spec = importlib.util.find_spec
-
-    def stub_find_spec(name: str):
-        return None if name == "src.rules.transcript" else orig_find_spec(name)
-
-    monkeypatch.setattr(importlib.util, "find_spec", stub_find_spec)
-
-    r_stub = client.post(
-        f"{TRANSCRIPT_CURRICULUM_URL}/transcript",
-        json={"semesters_completed": 0, "results": []},
-    )
-    assert r_stub.status_code == 200, r_stub.text
-    assert r_stub.json()["credits_earned"] == 34
-
-    # Nhánh 2: Module có mà lỗi bên trong -> 500 internal_error (không lộ thông tin nội bộ)
-    monkeypatch.delitem(sys.modules, "src.rules.transcript", raising=False)
-    fake_spec = importlib.machinery.ModuleSpec("src.rules.transcript", None)
-
-    def failing_find_spec(name: str):
-        return fake_spec if name == "src.rules.transcript" else orig_find_spec(name)
-
-    monkeypatch.setattr(importlib.util, "find_spec", failing_find_spec)
-
-    orig_import = importlib.import_module
-
-    def failing_import(name: str):
-        if name == "src.rules.transcript":
-            raise ImportError("Lỗi cú pháp tuyệt mật bên trong src.rules.transcript")
-        return orig_import(name)
-
-    monkeypatch.setattr(importlib, "import_module", failing_import)
-
-    r_500 = client.post(
-        f"{TRANSCRIPT_CURRICULUM_URL}/transcript",
-        json={"semesters_completed": 0, "results": []},
-    )
-    assert r_500.status_code == 500
-    assert r_500.json()["error"]["code"] == "internal_error"
-    assert "tuyệt mật" not in r_500.text
-
-
+    expected = {f"/{API_VERSION}{route.path}" for route in plan_undo.router.routes}
+    assert expected, "plan_undo.router không có route nào"
+    app_paths = set(create_app().openapi()["paths"])
+    assert expected <= app_paths, f"Thiếu path của plan_undo trong app: {sorted(expected - app_paths)}"
