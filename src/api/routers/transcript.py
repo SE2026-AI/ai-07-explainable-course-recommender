@@ -1,13 +1,10 @@
-"""Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10, 6.11 và 6.7."""
+"""Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10, 6.11 và 6.12."""
 from __future__ import annotations
 
-import importlib
-import importlib.util
-import inspect
 import logging
 import math
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 import pandas as pd
@@ -26,7 +23,6 @@ from src.api.schemas.students import (
     StudentProfileBlockOut,
 )
 from src.api.schemas.transcript import (
-    CreditWindowOut,
     TranscriptCourseStatusItemOut,
     TranscriptIn,
     TranscriptLastAttemptOut,
@@ -44,17 +40,9 @@ from src.api.services.students import (
     validate_curriculum,
     validate_university,
 )
-from src.api.stubs.transcript_contract import (
-    _CONTRACT_RECOMMENDATIONS_STUB,
-    _CONTRACT_TRANSCRIPT_STUB,
-    stub_recommendation_warnings,
-    validate_stub_choices,
-    validate_stub_max_credits,
-    validate_stub_plan_codes,
-    validate_stub_transcript,
-)
 from src.data.repository import Repository
-from src.recommender.scoring import DEFAULT_WEIGHTS, merge_weights
+from src.recommender.scoring import merge_weights
+from src.rules.transcript import build_student
 
 logger = logging.getLogger(__name__)
 
@@ -80,33 +68,6 @@ def _transcript_value_error(exc: ValueError) -> ApiError | None:
     )
 
 
-def _load_build_student() -> Callable[..., Any] | None:
-    """Tra cứu động `src.rules.transcript.build_student` (RULES-4); trả `None` nếu chưa merge.
-
-    Dùng `find_spec` để phân biệt: module vắng → stub; module có nhưng lỗi import thật → nổ → 500.
-    Khi module đã có trong sys.modules (ví dụ do monkeypatch trong test), kiểm trực tiếp sys.modules.
-    """
-    import sys
-
-    if "src.rules.transcript" in sys.modules:
-        # Module đã được load (hoặc monkeypatched): dùng trực tiếp
-        module = sys.modules["src.rules.transcript"]
-    else:
-        try:
-            spec = importlib.util.find_spec("src.rules.transcript")
-        except ValueError:
-            # find_spec ném ValueError khi module đang được load (edge case)
-            spec = None
-        if spec is None:
-            return None  # RULES-4 chưa merge: dùng stub
-        module = importlib.import_module("src.rules.transcript")  # lỗi import thật phải nổ -> 500
-
-    build = getattr(module, "build_student", None)
-    if build is None:
-        raise RuntimeError("src.rules.transcript thiếu build_student")
-    return build
-
-
 def _clean_float(value: Any) -> float | None:
     """Chuyển điểm sang float hoặc `None` nếu thiếu/NaN."""
     if value is None or pd.isna(value):
@@ -122,12 +83,8 @@ def _build_transcript_student(
     curriculum: pd.Series,
     courses_df: pd.DataFrame,
     body: TranscriptIn,
-) -> Mapping[str, Any] | None:
-    """Gọi `build_student()` thật (RULES-4 + DATA-4). Trả `None` nếu tầng dưới chưa merge."""
-    build_student = _load_build_student()
-    if build_student is None:
-        return None
-
+) -> Mapping[str, Any]:
+    """Gọi `build_student()` (RULES-4 + DATA-4); `ValueError` có đường dẫn trường thành 422 `validation_error`."""
     conversions = repo.grade_conversions(curriculum_code)
     results_dicts = [r.to_rule_dict() for r in body.results]
     try:
@@ -218,27 +175,14 @@ def _run_transcript_pipeline(
     courses_df: pd.DataFrame,
     body: TranscriptIn,
 ) -> TranscriptOut:
-    """Chạy luồng Live (`RULES-4`/`RULES-5`/`DATA-4`) hoặc Stub Fallback (§6.10) khi phụ thuộc chưa merge."""
+    """Chạy luồng tính tiến độ và trạng thái học phần (`RULES-4`/`RULES-5`/`DATA-4`, §6.10)."""
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
-    if student is None:
-        try:
-            validate_stub_transcript(curriculum, courses_df, body)
-        except ValueError as exc:
-            api_err = _transcript_value_error(exc)
-            if api_err is None:
-                raise
-            raise api_err from exc
-        return TranscriptOut(
-            university_code=uni,
-            curriculum_code=curriculum_code,
-            semesters_completed=body.semesters_completed,
-            target_semester=body.semesters_completed + 1,
-            total_credits=int(curriculum["total_credits"]),
-            max_credits_per_term=int(curriculum["max_credits_per_term"]),
-            **_CONTRACT_TRANSCRIPT_STUB,
-        )
-
     status_details = src.rules.status.course_status_details(repo, student)
+    # `course_status_details` ghi `last_attempt` theo term_code; bảng điểm tự nhập chỉ có học kỳ (semester).
+    for code, attempt in (student.get("latest_attempts") or {}).items():
+        last_attempt = status_details.get(code, {}).get("last_attempt")
+        if last_attempt is not None:
+            last_attempt["semester"] = attempt["semester"]
     sorted_courses = courses_df.sort_values(by="course_code")
     names = dict(zip(sorted_courses["course_code"].astype(str), sorted_courses["course_name"].astype(str), strict=True))
 
@@ -322,12 +266,6 @@ def _validate_and_merge_weights(weights: dict[str, float] | None) -> dict[str, f
         ) from exc
 
 
-def _recommender_supports_credit_window() -> bool:
-    """True khi `src.recommender.recommend` đã nhận `min_credits`, `max_credits`, `include` (RANK-3)."""
-    params = inspect.signature(src.recommender.recommend).parameters
-    return {"min_credits", "max_credits", "include"}.issubset(params)
-
-
 def _run_recommendation_pipeline(
     repo: Repository,
     uni: str,
@@ -336,49 +274,9 @@ def _run_recommendation_pipeline(
     courses_df: pd.DataFrame,
     body: TranscriptRecommendationIn,
 ) -> TranscriptRecommendationsOut:
-    """Chạy luồng Live (`RULES-4`/`DATA-4`/`RANK-3`/`EXPLAIN-2`) hoặc Stub Fallback (§6.11)."""
+    """Chạy luồng gợi ý từ bảng điểm tự nhập (`RULES-4`/`DATA-4`/`RANK-3`/`EXPLAIN-2`, §6.11)."""
     merged_weights = _validate_and_merge_weights(body.weights)
-    # body.max_credits được schema điền sẵn bởi _check_credit_window (never None sau validation)
-    max_credits = body.max_credits  # type: ignore[assignment]
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
-
-    if student is None or not _recommender_supports_credit_window():
-        try:
-            if student is None:
-                validate_stub_transcript(curriculum, courses_df, body)
-            validate_stub_max_credits(curriculum, max_credits)
-            validate_stub_choices(courses_df, body.skip, body.include)
-        except ValueError as exc:
-            api_err = _transcript_value_error(exc)
-            if api_err is None:
-                raise
-            raise api_err from exc
-        stub = _CONTRACT_RECOMMENDATIONS_STUB
-        # Tổng tín chỉ stub không vượt quá max_credits của request (§6.11)
-        stub_total = min(stub["credit_window_total"], max_credits)
-        # text sinh theo đúng các số từ request, không dùng chuỗi cứng (§3b)
-        window_dict = {"min_credits": body.min_credits, "max_credits": max_credits, "total_credits": stub_total}
-        # below_min_credits <=> tổng < min_credits (bất biến §7), cùng điều kiện với `credit_window.text`
-        stub_warnings = _format_warnings(stub_recommendation_warnings(body.min_credits, stub_total), {})
-        return TranscriptRecommendationsOut(
-            university_code=uni,
-            curriculum_code=curriculum_code,
-            algorithm_version=src.recommender.ALGORITHM_VERSION,
-            what_if=bool(body.skip or body.include),
-            weights=merged_weights if merged_weights is not None else dict(DEFAULT_WEIGHTS),
-            target_semester=body.semesters_completed + 1,
-            credit_window=CreditWindowOut(
-                min_credits=body.min_credits,
-                max_credits=max_credits,
-                total_credits=stub_total,
-                text=explain.credit_window_text(window_dict),
-            ),
-            candidate_count=stub["candidate_count"],
-            items=stub["items"],
-            not_selected=stub["not_selected"],
-            not_eligible=stub["not_eligible"],
-            warnings=stub_warnings,
-        )
 
     try:
         rec: dict[str, Any] = src.recommender.recommend(
@@ -388,13 +286,20 @@ def _run_recommendation_pipeline(
             skip=list(body.skip) or None,
             include=list(body.include) or None,
             min_credits=body.min_credits,
-            max_credits=max_credits,
+            max_credits=body.max_credits,  # None: recommend() tự tính mặc định và trả lại trong credit_window
         )
     except ValueError as exc:
         api_err = _transcript_value_error(exc)
         if api_err is None:
             raise
         raise api_err from exc
+
+    # `recommend()` ghi `last_attempt` theo term_code; bảng điểm tự nhập chỉ có học kỳ (semester).
+    attempts = student.get("latest_attempts") or {}
+    for item in rec.get("not_eligible", []):
+        last_attempt = item.get("last_attempt")
+        if last_attempt is not None and item.get("course_code") in attempts:
+            last_attempt["semester"] = attempts[item["course_code"]]["semester"]
 
     return TranscriptRecommendationsOut(
         university_code=uni,
@@ -429,10 +334,15 @@ def post_curriculum_recommendations(
     return _run_recommendation_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)
 
 
-def _plan_check_supports_credit_window() -> bool:
-    """True khi `src.rules.plan.check_plan` đã nhận `min_credits`, `max_credits` (RULES-6)."""
-    params = inspect.signature(src.rules.plan.check_plan).parameters
-    return {"min_credits", "max_credits"}.issubset(params)
+def _plan_check_default_max_credits(curriculum: pd.Series, min_credits: int) -> int:
+    """Mặc định `max_credits` của plan-check: `min(max(20, min_credits), max_credits_per_term)`, như §6.11.
+
+    `check_plan()` không tự lấy mặc định nên endpoint phải tính trước khi gọi.
+    """
+    return min(
+        max(src.recommender.DEFAULT_MAX_CREDITS, min_credits),
+        int(curriculum["max_credits_per_term"]),
+    )
 
 
 def _run_plan_check_pipeline(
@@ -443,37 +353,16 @@ def _run_plan_check_pipeline(
     courses_df: pd.DataFrame,
     body: TranscriptPlanCheckIn,
 ) -> TranscriptPlanCheckOut:
-    """Chạy luồng Live (`RULES-4`/`DATA-4`/`RULES-6`) hoặc Stub Fallback khi tầng dưới chưa merge."""
-    # body.max_credits được schema điền sẵn bởi _check_credit_window (never None sau validation)
-    max_credits = body.max_credits  # type: ignore[assignment]
+    """Chạy luồng kiểm tra kế hoạch từ bảng điểm tự nhập (`RULES-4`/`DATA-4`/`RULES-6`, §6.12)."""
+    max_credits = (
+        body.max_credits
+        if body.max_credits is not None
+        else _plan_check_default_max_credits(curriculum, body.min_credits)
+    )
     cap = int(curriculum["max_credits_per_term"])
     blocks_df = repo.blocks(curriculum_code).set_index("block_code")
     total_credits = calculate_plan_total_credits(courses_df, blocks_df, body.course_codes)
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
-
-    if student is None or not _plan_check_supports_credit_window():
-        try:
-            if student is None:
-                validate_stub_transcript(curriculum, courses_df, body)
-            validate_stub_plan_codes(courses_df, body.course_codes)
-            validate_stub_max_credits(curriculum, max_credits)
-        except ValueError as exc:
-            api_err = _transcript_value_error(exc)
-            if api_err is None:
-                raise
-            raise api_err from exc
-        return TranscriptPlanCheckOut(
-            university_code=uni,
-            curriculum_code=curriculum_code,
-            target_semester=body.semesters_completed + 1,
-            min_credits=body.min_credits,
-            max_credits=max_credits,
-            total_credits=total_credits,
-            max_credits_per_term=cap,
-            valid=True,
-            violations=[],
-            warnings=[],
-        )
 
     try:
         violations_raw = src.rules.plan.check_plan(
@@ -528,7 +417,7 @@ def _run_plan_check_pipeline(
     summary="Kiểm tra kế hoạch đăng ký học kỳ từ bảng điểm tự nhập",
     description=(
         "Kiểm tra danh sách học phần sinh viên dự định đăng ký dựa trên bảng điểm tự nhập và khoảng tín chỉ "
-        "[min_credits, max_credits], không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.7)."
+        "[min_credits, max_credits], không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.12)."
     ),
     responses={**ERROR_RESPONSES},
 )
@@ -538,7 +427,7 @@ def post_curriculum_plan_check(
     body: TranscriptPlanCheckIn,
     repo: Repository = Depends(get_repo),  # noqa: B008
 ) -> TranscriptPlanCheckOut:
-    """POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.7).
+    """POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.12, mở rộng mục 6.7).
 
     Lưu ý: Bỏ trùng (dedupe) chỉ áp dụng cho `total_credits`; danh sách `body.course_codes` truyền xuống
     `check_plan()` giữ nguyên để tầng luật phát hiện `duplicate_course`.

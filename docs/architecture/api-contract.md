@@ -297,7 +297,6 @@ cùng một định dạng.
 | POST | `/v1/universities/{uni}/students/{student_code}/plan-check` | Kiểm tra kế hoạch học kỳ do người dùng chọn |
 | POST | `/v1/universities/{uni}/curricula/{curriculum_code}/transcript` | Tiến độ và trạng thái học phần từ bảng điểm tự nhập |
 | POST | `/v1/universities/{uni}/curricula/{curriculum_code}/recommendations` | Gợi ý theo khoảng tín chỉ từ bảng điểm tự nhập |
-| POST | `/v1/universities/{uni}/curricula/{curriculum_code}/plan-check` | Kiểm tra kế hoạch học kỳ từ bảng điểm tự nhập |
 | GET | `/v1/data-issues` | Các chỗ văn bản gốc mâu thuẫn hoặc thiếu |
 
 ### 6.1 `GET /v1/meta`
@@ -945,13 +944,6 @@ Quy định của endpoint này:
    `below_min_credits` nếu có.
 10. Sinh viên tự nhập bảng điểm chưa khai chủ đề quan tâm, nên v1 không bao giờ trả lý do `interest` ở
     endpoint này; trọng số `interest` vẫn có trong `weights`.
-
-### 6.12 `POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check`
-
-Kiểm tra danh sách học phần sinh viên dự định đăng ký (`course_codes`) dựa trên bảng điểm tự nhập và khoảng tín chỉ `[min_credits, max_credits]`, không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mở rộng mục 6.7 cho luồng tự nhập bảng điểm).
-
-- **Body:** Gồm mọi trường của mục 6.10 (`semesters_completed`, `results`), cộng `course_codes` (bắt buộc) và `min_credits`, `max_credits` (tùy chọn, mặc định như mục 6.11).
-- **Phản hồi:** Trả `university_code`, `curriculum_code`, `target_semester`, `min_credits`, `max_credits`, `total_credits` (bỏ trùng lặp và chỉ cộng môn có `counts_toward_total = true`), `max_credits_per_term`, `valid` (`violations` rỗng), `violations` (như mục 6.7) và `warnings` (cảnh báo bảng điểm của mục 6.10).
 
 ---
 
