@@ -446,7 +446,7 @@ def test_skip_and_include_inside_a_credit_window(repo_all):
 
 
 def test_the_defaults_of_the_credit_window(repo_all):
-    """Gửi một đầu thì đầu kia lấy mặc định: tối thiểu 10, tối đa max(20, min_credits)."""
+    """Gửi một đầu thì đầu kia lấy mặc định: tối thiểu 10, tối đa min(max(20, min_credits), trần của khung)."""
     assert rec.recommend(repo_all, _t03(repo_all), max_credits=30)["credit_window"]["min_credits"] == 10
     assert rec.recommend(repo_all, _t03(repo_all), min_credits=12)["credit_window"]["max_credits"] == 20
     assert rec.recommend(repo_all, _t03(repo_all), min_credits=25)["credit_window"]["max_credits"] == 25
@@ -479,6 +479,20 @@ def test_the_cap_of_the_credit_window_is_the_one_of_the_curriculum(repo_all):
     assert rec.recommend(repo_all, demo, max_credits=12)["credit_window"]["max_credits"] == 12
     with pytest.raises(ValueError, match=r"^max_credits: không được vượt 12"):
         rec.recommend(repo_all, demo, max_credits=13)
+
+
+def test_the_default_maximum_never_exceeds_the_cap_of_the_curriculum(repo_all):
+    """Mặc định 20 cao hơn trần 12 của DEMO: chỉ gửi `min_credits` thì tối đa là trần, không phải lỗi ở
+    `max_credits`, trường người gọi không gửi. `min_credits` vượt trần thì lỗi ở chính `min_credits`."""
+    students = repo_all.students()
+    demo = students[students["university_code"] == "DEMO"].iloc[0]
+    window = rec.recommend(repo_all, demo, min_credits=10)["credit_window"]
+    assert (window["min_credits"], window["max_credits"]) == (10, 12)
+    assert rec.recommend(repo_all, demo, min_credits=12)["credit_window"]["max_credits"] == 12
+    with pytest.raises(ValueError, match=r"^min_credits: không được vượt 12"):
+        rec.recommend(repo_all, demo, min_credits=13)
+    with pytest.raises(ValueError, match=r"^min_credits: không được vượt 40"):
+        rec.recommend(repo_all, _t03(repo_all), min_credits=41)
 
 
 def test_a_row_that_carries_its_target_semester_is_ranked_at_that_semester(repo_all):

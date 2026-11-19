@@ -163,18 +163,23 @@ def _student_semester(student, term):
 def _credit_window(min_credits, max_credits, cap):
     """`(min, max)` của khoảng tín chỉ (mục 6.11), hoặc `None` khi người gọi không gửi cả hai, tức chọn theo `k`.
 
-    Gửi một đầu thì đầu kia lấy mặc định. Sàn là `MIN_CREDITS_FLOOR`, trần là `max_credits_per_term` của khung;
-    sai thì `ValueError` mở đầu bằng tên trường sai, để tầng API đưa vào `details.fields`."""
+    Gửi một đầu thì đầu kia lấy mặc định: `max_credits` mặc định là `max(DEFAULT_MAX_CREDITS, min_credits)` nhưng
+    không vượt trần, vì khung DEMO chỉ cho 12 tín chỉ một kỳ. Sàn là `MIN_CREDITS_FLOOR`, trần là
+    `max_credits_per_term` của khung; sai thì `ValueError` mở đầu bằng tên trường sai, để tầng API đưa vào
+    `details.fields`. Lỗi luôn chỉ vào trường người gọi đã gửi, không chỉ vào giá trị mặc định."""
     if min_credits is None and max_credits is None:
         return None
     low = DEFAULT_MIN_CREDITS if min_credits is None else min_credits
-    high = max(DEFAULT_MAX_CREDITS, low) if max_credits is None else max_credits
-    for name, value in (("min_credits", low), ("max_credits", high)):
-        if isinstance(value, bool) or not isinstance(value, Integral):
+    for name, value in (("min_credits", low), ("max_credits", max_credits)):
+        if value is not None and (isinstance(value, bool) or not isinstance(value, Integral)):
             raise ValueError(f"{name}: phải là số nguyên, nhận được {value!r}")
-    low, high = int(low), int(high)
+    low = int(low)
+    high = min(max(DEFAULT_MAX_CREDITS, low), cap) if max_credits is None else int(max_credits)
     if low < MIN_CREDITS_FLOOR:
         raise ValueError(f"min_credits: phải từ {MIN_CREDITS_FLOOR} tín chỉ trở lên, nhận được {low}")
+    if low > cap:
+        raise ValueError(f"min_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, "
+                         f"nhận được {low}")
     if high > cap:
         raise ValueError(f"max_credits: không được vượt {cap} tín chỉ, mức tối đa một học kỳ của khung, "
                          f"nhận được {high}")

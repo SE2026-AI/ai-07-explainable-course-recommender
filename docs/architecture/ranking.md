@@ -264,7 +264,9 @@ phần tín chỉ còn trống.
 
 Mặc định là 10–20 tín chỉ. Sàn 10 là của sản phẩm, đặt ở `MIN_CREDITS_FLOOR`; trần là `max_credits_per_term`
 của từng khung (HUS 40, DEMO 12), không phải hằng số. Mặc định 20 là lựa chọn của nhóm, chưa dựa trên số
-đo nào: đủ cho 6–7 môn, và sinh viên nâng được tới trần của khung.
+đo nào: đủ cho 6–7 môn, và sinh viên nâng được tới trần của khung. Mặc định của `max_credits` không bao giờ
+vượt trần, nên khung DEMO không gửi `max_credits` thì là 12; lỗi chỉ báo ở trường người gọi đã gửi, như
+`min_credits` vượt trần.
 
 `skip` và `include` thay cho `skip` và `swap` của mục 5.3. Môn trong `skip` vẫn nằm trong danh sách xếp
 hạng, chỉ không bao giờ được nhận, để `not_selected` giữ đúng thứ tự. Môn trong `include` được xét trước mọi
