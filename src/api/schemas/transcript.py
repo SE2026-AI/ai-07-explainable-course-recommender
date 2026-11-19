@@ -13,7 +13,7 @@ from src.api.schemas.students import (
     StatusBlockDetailOut,
     StudentProfileBlockOut,
 )
-from src.recommender import DEFAULT_MAX_CREDITS, DEFAULT_MIN_CREDITS, MIN_CREDITS_FLOOR
+from src.recommender import DEFAULT_MIN_CREDITS, MIN_CREDITS_FLOOR
 
 NotSelectedReasonCode = Literal["skipped", "block_full", "credit_budget"]
 WarningCode = Literal[
@@ -148,15 +148,14 @@ class TranscriptOut(BaseModel):
         return None if number != number else round(number, 2)
 
 
-def _validate_credit_window_order(
-    model_name: str, min_credits: int, max_credits: int | None
-) -> int:
-    """Áp dụng mặc định `max_credits = max(DEFAULT_MAX_CREDITS, min_credits)`.
+def _validate_credit_window_order(model_name: str, min_credits: int, max_credits: int | None) -> None:
+    """Báo lỗi ở `min_credits` nếu client gửi cả hai và `min_credits > max_credits`.
 
-    Báo lỗi ở `min_credits` nếu `min_credits > max_credits`.
+    Không điền mặc định cho `max_credits`: mặc định `min(max(20, min_credits), max_credits_per_term)` (§6.11)
+    phụ thuộc trần của khung nên do `recommend()` tính (RANK-3) và trả về trong `credit_window`.
     """
     if max_credits is None:
-        return max(DEFAULT_MAX_CREDITS, min_credits)
+        return
     if min_credits > max_credits:
         raise ValidationError.from_exception_data(
             title=model_name,
@@ -171,7 +170,6 @@ def _validate_credit_window_order(
                 )
             ],
         )
-    return max_credits
 
 
 class TranscriptRecommendationIn(TranscriptIn):
@@ -190,7 +188,7 @@ class TranscriptRecommendationIn(TranscriptIn):
 
     @model_validator(mode="after")
     def _check_credit_window(self) -> TranscriptRecommendationIn:
-        self.max_credits = _validate_credit_window_order(self.__class__.__name__, self.min_credits, self.max_credits)
+        _validate_credit_window_order(self.__class__.__name__, self.min_credits, self.max_credits)
         return self
 
 
