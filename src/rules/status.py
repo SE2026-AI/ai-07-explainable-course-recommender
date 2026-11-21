@@ -71,16 +71,7 @@ def course_status_details(repo: Any, student: pd.Series | Mapping[str, Any]) -> 
     """Trả trạng thái và thông tin giải thích cho từng học phần trong khung."""
     courses, statuses, blocks = _status_data(repo, student)
     passed = set(student["passed_courses"])
-    results = pd.DataFrame()
-    student_id = student.get("student_id")
-    if student_id is not None:
-        results = repo.course_results(student_id)
-        if not results.empty and "recency" in results:
-            results = results[results["recency"] == 1]
-        elif not results.empty:
-            # Khi không có cột recency, chọn lần mới nhất theo học kỳ và số lần học.
-            results = results.sort_values(["term_code", "attempt_no"]).drop_duplicates("course_code", keep="last")
-    latest = results.set_index("course_code").to_dict("index") if not results.empty else {}
+    latest = student.get("latest_attempts", {}) or {}
 
     details: dict[str, dict[str, Any]] = {}
     for _, course in courses.iterrows():
@@ -97,8 +88,8 @@ def course_status_details(repo: Any, student: pd.Series | Mapping[str, Any]) -> 
         elif status in {"passed", "retake"} and code in latest:
             result = latest[code]
             item["last_attempt"] = {
-                "term_code": result["term_code"],
-                "attempt_no": int(result["attempt_no"]),
+                "term_code": result.get("term_code"),
+                "attempt_no": int(result["attempt_no"]) if result.get("attempt_no") is not None else None,
                 "score": None if result["status"] == "exempted" else result["score"],
                 "letter_grade": None if result["status"] == "exempted" else result["letter_grade"],
             }
