@@ -2036,7 +2036,7 @@ def test_transcript_recommendations_validation_422_fields(
 def test_transcript_recommendations_defaults_determinism_stateless_and_privacy(
     api_client_all: TestClient, repo_all
 ):
-    """API-5: Mặc định max_credits = min(max(20, min_credits), trần của khung), tất định, không ghi DB, không lộ trường nhạy cảm."""
+    """API-5: Mặc định max_credits = min(max(20, min_credits), trần khung), tất định, không ghi DB, không lộ trường nhạy cảm."""
     before = _table_row_counts(repo_all)
 
     # 1. Mặc định khi không gửi min_credits/max_credits -> [10, 20]
