@@ -87,9 +87,13 @@ def course_status_details(repo: Any, student: pd.Series | Mapping[str, Any]) -> 
             item["block"] = blocks[str(block_code)]
         elif status in {"passed", "retake"} and code in latest:
             result = latest[code]
+            when = (
+                {"semester": int(result["semester"])}
+                if result.get("semester") is not None
+                else {"term_code": result["term_code"], "attempt_no": int(result["attempt_no"])}
+            )
             item["last_attempt"] = {
-                "term_code": result.get("term_code"),
-                "attempt_no": int(result["attempt_no"]) if result.get("attempt_no") is not None else None,
+                **when,
                 "score": None if result["status"] == "exempted" else result["score"],
                 "letter_grade": None if result["status"] == "exempted" else result["letter_grade"],
             }

@@ -332,7 +332,7 @@ def test_transcript_student_uses_latest_attempts_without_student_id():
     }
     details = course_status_details(repo, student)
     assert details["A"] == {"status": "passed", "last_attempt": {
-        "term_code": None, "attempt_no": None, "score": 8.0, "letter_grade": "A",
+        "semester": 1, "score": 8.0, "letter_grade": "A",
     }}
     assert details["B"]["status"] == "retake"
     assert details["B"]["last_attempt"]["score"] == 3.0
