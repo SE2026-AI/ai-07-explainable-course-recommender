@@ -15,7 +15,7 @@ from fastapi import FastAPI
 
 from src.api.deps import dispose_repo
 from src.api.errors import register_handlers
-from src.api.routers import catalog, plan_undo, recommendations, students, system
+from src.api.routers import catalog, plan_undo, recommendations, students, system, transcript
 from src.api.serialization import CleanJSONResponse
 from src.api.version import API_VERSION, CONTRACT_VERSION
 
@@ -51,12 +51,13 @@ def create_app() -> FastAPI:
     # Đăng ký exception handler cho tất cả loại lỗi (chuẩn mục 5, không có request_id)
     register_handlers(app)
 
-    # Đăng ký router với tiền tố /v1 (tổng cộng 14 endpoint theo hợp đồng)
+    # Đăng ký router với tiền tố /v1 (tổng cộng 17 path theo hợp đồng)
     prefix = f"/{API_VERSION}"
     app.include_router(system.router, prefix=prefix)
     app.include_router(catalog.router, prefix=prefix)
     app.include_router(students.router, prefix=prefix)
     app.include_router(recommendations.router, prefix=prefix)
+    app.include_router(transcript.router, prefix=prefix)
     app.include_router(plan_undo.router, prefix=prefix)
 
     return app

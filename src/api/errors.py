@@ -19,6 +19,7 @@ Quy định:
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -56,6 +57,26 @@ def _format_error_response(code: str, message: str, details: dict[str, Any] | No
     }
 
 
+def _format_loc(loc: Sequence[Any]) -> str:
+    """Chuyển `loc` của Pydantic sang đường dẫn kiểu JavaScript (hợp đồng mục 5).
+
+    Ví dụ: `("body", "results", 3, "score")` -> `"results[3].score"`,
+    `("body", "include", 0)` -> `"include[0]"`, `("query", "limit")` -> `"limit"`.
+    """
+    parts = list(loc)
+    if parts and parts[0] in ("body", "query", "path", "header", "cookie"):
+        parts = parts[1:]
+    if not parts:
+        return "body"
+    path = ""
+    for part in parts:
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path = f"{path}.{part}" if path else str(part)
+    return path
+
+
 def register_handlers(app: FastAPI) -> None:
     """Đăng ký tất cả exception handlers vào ứng dụng FastAPI."""
 
@@ -71,10 +92,7 @@ def register_handlers(app: FastAPI) -> None:
         """Xử lý lỗi validate của Pydantic/FastAPI -> 422 validation_error."""
         fields_error: dict[str, str] = {}
         for error in exc.errors():
-            loc = error.get("loc", ())
-            # Bỏ qua phần tử đầu ("body", "query", "path")
-            field_parts = [str(p) for p in loc if p not in ("body", "query", "path")]
-            field = ".".join(field_parts) if field_parts else "body"
+            field = _format_loc(error.get("loc", ()))
             fields_error[field] = error.get("msg", "Dữ liệu không hợp lệ")
 
         return JSONResponse(
