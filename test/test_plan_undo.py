@@ -6,10 +6,14 @@ from __future__ import annotations
 
 import unittest
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.api.app import app
+from src.api.errors import register_handlers
+from src.api.routers import plan_undo
 from src.api.routers.plan_undo import undo_service
+from src.api.serialization import CleanJSONResponse
+from src.api.version import API_VERSION
 from src.rules.plan_undo import (
     PlanUndoConflictError,
     PlanUndoService,
@@ -49,7 +53,10 @@ class TestPlanUndoVT097(unittest.TestCase):
             self.base_courses[:10],
             max_credits_per_term=24,
         )
-        self.client = TestClient(app, raise_server_exceptions=False)
+        test_app = FastAPI(default_response_class=CleanJSONResponse)
+        register_handlers(test_app)
+        test_app.include_router(plan_undo.router, prefix=f"/{API_VERSION}")
+        self.client = TestClient(test_app, raise_server_exceptions=False)
 
     def test_tc01_unit_bva_min_valid_remove_1_course_and_undo(self) -> None:
         """TC-01 [Unit/BVA]: Biên dưới hợp lệ N=1 (min), mã môn L=3 ('ABC', min) và dt=0.0s (min)."""

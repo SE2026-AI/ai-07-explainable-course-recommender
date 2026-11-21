@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections import Counter
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 import pandas as pd
@@ -11,8 +12,10 @@ from src import explain
 from src.api.errors import ApiError
 from src.api.schemas.students import (
     CourseStatusItemOut,
+    CourseStatusSummaryOut,
     LastAttemptOut,
     StatusBlockDetailOut,
+    StudentProfileBlockOut,
 )
 from src.data.repository import Repository
 
@@ -159,3 +162,51 @@ def build_course_status_item(
     item_kwargs["text"] = explain.status_text(course_obj, detail, names)
 
     return CourseStatusItemOut(**item_kwargs)
+
+
+def filter_leaf_blocks(blocks_raw: Any) -> list[StudentProfileBlockOut]:
+    """Lọc khối lá có tín chỉ tích lũy (earned_credits > 0 và selection_rule != 'container') (§6.4, §6.10).
+
+    Dùng chung cho cả endpoint /students/.../profile và endpoint /curricula/.../transcript.
+    """
+    if blocks_raw is None:
+        return []
+    if isinstance(blocks_raw, pd.DataFrame):
+        records = blocks_raw.to_dict("records")
+    elif isinstance(blocks_raw, list):
+        records = blocks_raw
+    else:
+        records = list(blocks_raw)
+
+    blocks_out: list[StudentProfileBlockOut] = []
+    for b in records:
+        if b.get("selection_rule") == "container":
+            continue
+        earned = int(b.get("earned_credits", 0))
+        if earned <= 0:
+            continue
+        blocks_out.append(
+            StudentProfileBlockOut(
+                block_code=str(b["block_code"]),
+                required_credits=int(b["required_credits"]),
+                earned_credits=earned,
+                counts_toward_total=bool(b["counts_toward_total"]),
+            )
+        )
+    return blocks_out
+
+
+
+def summarize_course_status(statuses: Iterable[str]) -> CourseStatusSummaryOut:
+    """Đếm số học phần theo trạng thái đã có sẵn trong danh sách trả về (`summary` của mục 6.5 và 6.10).
+
+    Chỉ đếm các trạng thái do tầng luật đã gán; không tự suy ra trạng thái.
+    """
+    counts = Counter(statuses)
+    return CourseStatusSummaryOut(
+        passed=counts.get("passed", 0),
+        retake=counts.get("retake", 0),
+        eligible=counts.get("eligible", 0),
+        missing_prerequisite=counts.get("missing_prerequisite", 0),
+        block_complete=counts.get("block_complete", 0),
+    )
