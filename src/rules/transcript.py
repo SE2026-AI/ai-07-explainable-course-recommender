@@ -16,9 +16,9 @@ def _records(value: Any) -> list[dict[str, Any]]:
         return [value.to_dict()]
     if isinstance(value, (list, tuple)):
         if any(not isinstance(row, (Mapping, pd.Series)) for row in value):
-            raise ValueError("courses: every row must be a mapping")
+            raise ValueError("courses: mỗi dòng phải là một đối tượng")
         return [dict(row) if isinstance(row, Mapping) else row.to_dict() for row in value]
-    raise ValueError("courses: must be a sequence or table")
+    raise ValueError("courses: phải là danh sách hoặc bảng dữ liệu")
 
 
 def _mapping(value: Any) -> dict[str, Any]:
@@ -26,12 +26,12 @@ def _mapping(value: Any) -> dict[str, Any]:
         return value.to_dict()
     if isinstance(value, Mapping):
         return dict(value)
-    raise ValueError("curriculum: must be a mapping")
+    raise ValueError("curriculum: phải là một đối tượng")
 
 
 def _number(value: Any, path: str) -> float:
     if isinstance(value, bool) or not isinstance(value, Real):
-        raise ValueError(f"{path}: must be a number")
+        raise ValueError(f"{path}: phải là số")
     return float(value)
 
 
@@ -56,20 +56,20 @@ def build_student(curriculum, courses, conversions, semesters_completed, results
     if "curriculum_code" not in info and isinstance(curriculum, pd.Series):
         curriculum_code = curriculum.name
     if not isinstance(curriculum_code, str) or not curriculum_code:
-        raise ValueError("curriculum.curriculum_code: is required")
+        raise ValueError("curriculum.curriculum_code: là thông tin bắt buộc")
     try:
         if isinstance(semesters_completed, bool) or not isinstance(semesters_completed, int):
             raise ValueError
         if not 0 <= semesters_completed <= 12:
             raise ValueError
     except (TypeError, ValueError):
-        raise ValueError("semesters_completed: must be an integer between 0 and 12") from None
+        raise ValueError("semesters_completed: phải là số nguyên từ 0 đến 12") from None
     if not isinstance(results, (list, tuple)):
-        raise ValueError("results: must be a sequence")
+        raise ValueError("results: phải là danh sách")
     if semesters_completed == 0 and results:
-        raise ValueError("semesters_completed: must be greater than 0 when results are non-empty")
+        raise ValueError("semesters_completed: phải lớn hơn 0 khi có kết quả học tập")
     if "pass_score" not in info or "max_score" not in info:
-        raise ValueError("curriculum: must include pass_score and max_score")
+        raise ValueError("curriculum: phải có pass_score và max_score")
     pass_score = _number(info["pass_score"], "curriculum.pass_score")
     max_score = _number(info["max_score"], "curriculum.max_score")
 
@@ -77,10 +77,10 @@ def build_student(curriculum, courses, conversions, semesters_completed, results
     by_code: dict[str, dict[str, Any]] = {}
     for i, course in enumerate(course_rows):
         if not isinstance(course, Mapping) or _missing(course.get("course_code")):
-            raise ValueError(f"courses[{i}].course_code: is required")
+            raise ValueError(f"courses[{i}].course_code: là thông tin bắt buộc")
         code = str(course["course_code"])
         if code in by_code:
-            raise ValueError(f"courses[{i}].course_code: duplicate course code")
+            raise ValueError(f"courses[{i}].course_code: mã môn học bị trùng")
         by_code[code] = dict(course)
 
     conversion_rows = _records(conversions)
@@ -90,39 +90,39 @@ def build_student(curriculum, courses, conversions, semesters_completed, results
     for i, raw in enumerate(results):
         path = f"results[{i}]"
         if not isinstance(raw, Mapping):
-            raise ValueError(f"{path}: must be an object")
+            raise ValueError(f"{path}: phải là một đối tượng")
         result = dict(raw)
         code = result.get("course_code")
         if not isinstance(code, str) or not code:
-            raise ValueError(f"{path}.course_code: must be a non-empty course code")
+            raise ValueError(f"{path}.course_code: không được để trống")
         if code not in by_code:
-            raise ValueError(f"{path}.course_code: unknown course code")
+            raise ValueError(f"{path}.course_code: mã môn học không tồn tại trong chương trình đào tạo")
         if code in seen:
-            raise ValueError(f"{path}.course_code: duplicate course code")
+            raise ValueError(f"{path}.course_code: mã môn học bị trùng")
         seen.add(code)
         semester = result.get("semester")
         if isinstance(semester, bool) or not isinstance(semester, int):
-            raise ValueError(f"{path}.semester: must be an integer")
+            raise ValueError(f"{path}.semester: phải là số nguyên")
         if not 1 <= semester <= semesters_completed:
-            raise ValueError(f"{path}.semester: must be between 1 and semesters_completed")
+            raise ValueError(f"{path}.semester: phải từ 1 đến {semesters_completed} (semesters_completed)")
         has_score = "score" in result
         has_exempted = "exempted" in result
         if has_score == has_exempted:
-            raise ValueError(f"{path}: must contain either score or exempted")
+            raise ValueError(f"{path}: phải cung cấp điểm số hoặc đánh dấu miễn học")
         exempted = has_exempted and result.get("exempted") is True
         if has_exempted and not exempted:
-            raise ValueError(f"{path}.exempted: must be true")
+            raise ValueError(f"{path}.exempted: phải là true")
         score = None
         letter = grade_point = None
         status = "exempted" if exempted else "failed"
         if has_score:
             score = _number(result["score"], f"{path}.score")
             if not 0 <= score <= max_score:
-                raise ValueError(f"{path}.score: score is outside the allowed range")
+                raise ValueError(f"{path}.score: điểm số nằm ngoài phạm vi cho phép")
             conversion = next((row for row in conversion_rows
                                if score >= float(row.get("min_score", float("inf")))), None)
             if conversion is None:
-                raise ValueError(f"{path}.score: no grade conversion is available")
+                raise ValueError(f"{path}.score: không có quy đổi điểm phù hợp")
             letter = conversion.get("letter")
             grade_point = None if _missing(conversion.get("grade_point")) else float(conversion["grade_point"])
             status = "passed" if score >= pass_score else "failed"
@@ -178,13 +178,16 @@ def build_student(curriculum, courses, conversions, semesters_completed, results
             warnings.append({"code": "prerequisite_not_in_transcript", "course_code": code,
                              "data": {"missing_prerequisites": missing_groups}})
         for group in groups:
-            for prerequisite in group:
-                prior_attempt = normalized.get(prerequisite)
-                if prior_attempt and prior_attempt["status"] in {"passed", "exempted"} \
-                        and attempt["semester"] <= prior_attempt["semester"]:
-                    warnings.append({"code": "studied_before_prerequisite", "course_code": code,
-                                     "data": {"semester": attempt["semester"], "prerequisite_code": prerequisite,
-                                              "prerequisite_semester": prior_attempt["semester"]}})
+            passed_attempts = [(prerequisite, normalized[prerequisite]) for prerequisite in group
+                               if prerequisite in normalized
+                               and normalized[prerequisite]["status"] in {"passed", "exempted"}]
+            if not passed_attempts or any(prior["semester"] < attempt["semester"]
+                                          for _, prior in passed_attempts):
+                continue
+            prerequisite, prior_attempt = min(passed_attempts, key=lambda item: item[1]["semester"])
+            warnings.append({"code": "studied_before_prerequisite", "course_code": code,
+                             "data": {"semester": attempt["semester"], "prerequisite_code": prerequisite,
+                                      "prerequisite_semester": prior_attempt["semester"]}})
 
     return {
         "student_id": None,

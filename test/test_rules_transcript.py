@@ -135,18 +135,18 @@ def test_exempted_and_empty_transcripts():
 
 
 @pytest.mark.parametrize(("results", "done", "field", "message"), [
-    ([{"course_code": "Q", "semester": 1, "score": 5}], 1, "course_code", "unknown course"),
+    ([{"course_code": "Q", "semester": 1, "score": 5}], 1, "course_code", "không tồn tại"),
     ([{"course_code": "A", "semester": 1, "score": 5}, {"course_code": "A", "semester": 1, "score": 6}], 1,
-     "course_code", "duplicate"),
-    ([{"course_code": "A", "semester": 0, "score": 5}], 1, "semester", "between"),
-    ([{"course_code": "A", "semester": 2, "score": 5}], 1, "semester", "between"),
-    ([{"course_code": "A", "semester": "1", "score": 5}], 1, "semester", "integer"),
-    ([{"course_code": "A", "semester": 1, "score": -1}], 1, "score", "outside"),
-    ([{"course_code": "A", "semester": 1, "score": 11}], 1, "score", "outside"),
-    ([{"course_code": "A", "semester": 1}], 1, "results[0]", "either"),
-    ([{"course_code": "A", "semester": 1, "score": 5, "exempted": True}], 1, "results[0]", "either"),
+     "course_code", "trùng"),
+    ([{"course_code": "A", "semester": 0, "score": 5}], 1, "semester", "phải từ"),
+    ([{"course_code": "A", "semester": 2, "score": 5}], 1, "semester", "phải từ"),
+    ([{"course_code": "A", "semester": "1", "score": 5}], 1, "semester", "số nguyên"),
+    ([{"course_code": "A", "semester": 1, "score": -1}], 1, "score", "ngoài phạm vi"),
+    ([{"course_code": "A", "semester": 1, "score": 11}], 1, "score", "ngoài phạm vi"),
+    ([{"course_code": "A", "semester": 1}], 1, "results[0]", "điểm số"),
+    ([{"course_code": "A", "semester": 1, "score": 5, "exempted": True}], 1, "results[0]", "điểm số"),
     ([{"course_code": "A", "semester": 1, "exempted": False}], 1, "exempted", "true"),
-    ([{"course_code": "A", "semester": 1, "score": True}], 1, "score", "number"),
+    ([{"course_code": "A", "semester": 1, "score": True}], 1, "score", "phải là số"),
 ])
 def test_invalid_results_raise_field_path_value_errors(results, done, field, message):
     with pytest.raises(ValueError, match=field.replace("[", r"\[").replace("]", r"\]").replace(".", r"\.")) as exc:
@@ -168,7 +168,7 @@ def test_nonempty_transcript_requires_completed_semester():
 def test_warnings_are_structured_and_do_not_change_pass_outcomes():
     curriculum, courses, conversions = _inputs()
     courses.at[courses.index[courses.course_code == "B"][0], "prerequisite_groups"] = [["NOPE"], ["A"]]
-    student = build_student(curriculum, courses, conversions, 2, [
+    student = build_student(curriculum, courses, conversions, 3, [
         {"course_code": "A", "semester": 2, "score": 8},
         {"course_code": "B", "semester": 1, "score": 8},
     ])
@@ -180,6 +180,53 @@ def test_warnings_are_structured_and_do_not_change_pass_outcomes():
          "data": {"semester": 1, "prerequisite_code": "A", "prerequisite_semester": 2}},
     ]
     assert all(set(warning) == {"code", "course_code", "data"} for warning in student["warnings"])
+
+
+def test_or_prerequisite_group_satisfied_by_earlier_alternative():
+    curriculum, courses, conversions = _inputs()
+    courses = pd.concat([courses, pd.DataFrame([{
+        "course_code": "C", "credits": 3, "block_code": "CORE", "block_required_credits": 6,
+        "counts_toward_total": 1, "prerequisite_groups": [["A", "B"]],
+    }])], ignore_index=True)
+    student = build_student(curriculum, courses, conversions, 3, [
+        {"course_code": "A", "semester": 1, "score": 8},
+        {"course_code": "C", "semester": 2, "score": 8},
+        {"course_code": "B", "semester": 3, "score": 8},
+    ])
+    assert not [warning for warning in student["warnings"]
+                if warning["code"] == "studied_before_prerequisite" and warning["course_code"] == "C"]
+
+
+def test_or_prerequisite_warning_selects_earliest_passed_course():
+    curriculum, courses, conversions = _inputs()
+    courses = pd.concat([courses, pd.DataFrame([{
+        "course_code": "C", "credits": 3, "block_code": "CORE", "block_required_credits": 6,
+        "counts_toward_total": 1, "prerequisite_groups": [["A", "X"]],
+    }])], ignore_index=True)
+    student = build_student(curriculum, courses, conversions, 3, [
+        {"course_code": "C", "semester": 1, "score": 8},
+        {"course_code": "A", "semester": 2, "score": 8},
+        {"course_code": "X", "semester": 3, "score": 8},
+    ])
+    warning = next(w for w in student["warnings"]
+                   if w["code"] == "studied_before_prerequisite" and w["course_code"] == "C")
+    assert warning["data"]["prerequisite_code"] == "A"
+
+
+def test_or_prerequisite_same_or_later_pass_still_warns():
+    curriculum, courses, conversions = _inputs()
+    courses = pd.concat([courses, pd.DataFrame([{
+        "course_code": "C", "credits": 3, "block_code": "CORE", "block_required_credits": 6,
+        "counts_toward_total": 1, "prerequisite_groups": [["A", "X"]],
+    }])], ignore_index=True)
+    student = build_student(curriculum, courses, conversions, 2, [
+        {"course_code": "C", "semester": 1, "score": 8},
+        {"course_code": "A", "semester": 1, "score": 8},
+        {"course_code": "X", "semester": 2, "score": 8},
+    ])
+    warning = next(w for w in student["warnings"]
+                   if w["code"] == "studied_before_prerequisite" and w["course_code"] == "C")
+    assert warning["data"] == {"semester": 1, "prerequisite_code": "A", "prerequisite_semester": 1}
 
 
 def test_inputs_are_not_mutated():
