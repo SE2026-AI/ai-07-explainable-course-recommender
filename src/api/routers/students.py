@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
 
 import pandas as pd
 from fastapi import APIRouter, Depends, Query
@@ -13,11 +12,14 @@ from src.api.schemas.common import ERROR_RESPONSES
 from src.api.schemas.students import (
     CourseStatusItemOut,
     CourseStatusOut,
-    CourseStatusSummaryOut,
-    StudentProfileBlockOut,
     StudentProfileOut,
 )
-from src.api.services.students import build_course_status_item, load_student
+from src.api.services.students import (
+    build_course_status_item,
+    filter_leaf_blocks,
+    load_student,
+    summarize_course_status,
+)
 from src.data.repository import Repository
 from src.recommender.scoring import target_semester
 from src.rules.status import course_status_details
@@ -60,21 +62,7 @@ def get_student_profile(
     curriculum = repo.curriculum(str(student["curriculum_code"]))
 
     blocks_df = repo.block_progress(int(student["student_id"]), effective_term)
-    # Lọc khối lá có tín chỉ tích lũy (earned_credits > 0 và không phải khối container)
-    leaf_blocks = blocks_df[
-        (blocks_df["selection_rule"] != "container") & (blocks_df["earned_credits"] > 0)
-    ]
-
-    blocks_data: list[StudentProfileBlockOut] = []
-    for _, b in leaf_blocks.iterrows():
-        blocks_data.append(
-            StudentProfileBlockOut(
-                block_code=str(b["block_code"]),
-                required_credits=int(b["required_credits"]),
-                earned_credits=int(b["earned_credits"]),
-                counts_toward_total=bool(b["counts_toward_total"]),
-            )
-        )
+    blocks_data = filter_leaf_blocks(blocks_df)
 
     gpa_val = float(student["gpa"]) if not pd.isna(student["gpa"]) else None
     if gpa_val is not None:
@@ -162,14 +150,7 @@ def get_student_course_status(
             )
         courses_list.append(build_course_status_item(r, status_details[c_code], names))
 
-    counts = Counter(c.status for c in courses_list)
-    summary = CourseStatusSummaryOut(
-        passed=counts.get("passed", 0),
-        retake=counts.get("retake", 0),
-        eligible=counts.get("eligible", 0),
-        missing_prerequisite=counts.get("missing_prerequisite", 0),
-        block_complete=counts.get("block_complete", 0),
-    )
+    summary = summarize_course_status(c.status for c in courses_list)
 
     if sum(summary.model_dump().values()) != len(courses_list):
         logger.error(

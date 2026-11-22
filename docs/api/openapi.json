@@ -1491,6 +1491,342 @@
         "title": "TermOut",
         "type": "object"
       },
+      "TranscriptCourseStatusItemOut": {
+        "description": "Trạng thái một học phần tính từ bảng điểm tự nhập (mục 6.10 và 6.11).",
+        "properties": {
+          "block": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatusBlockDetailOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "last_attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranscriptLastAttemptOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing_prerequisites": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Prerequisites"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "block_complete",
+              "missing_prerequisite",
+              "retake",
+              "eligible"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "course_code",
+          "course_name",
+          "credits",
+          "block_code",
+          "status"
+        ],
+        "title": "TranscriptCourseStatusItemOut",
+        "type": "object"
+      },
+      "TranscriptIn": {
+        "additionalProperties": false,
+        "description": "Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/transcript (mục 6.10).",
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptResultIn"
+            },
+            "maxItems": 200,
+            "title": "Results",
+            "type": "array"
+          },
+          "semesters_completed": {
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Semesters Completed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "semesters_completed"
+        ],
+        "title": "TranscriptIn",
+        "type": "object"
+      },
+      "TranscriptLastAttemptOut": {
+        "description": "Thông tin lần học gần nhất từ bảng điểm tự nhập (mục 6.10).",
+        "properties": {
+          "letter_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Letter Grade"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "semester": {
+            "title": "Semester",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "semester"
+        ],
+        "title": "TranscriptLastAttemptOut",
+        "type": "object"
+      },
+      "TranscriptOut": {
+        "description": "Phản hồi tiến độ và trạng thái học phần từ bảng điểm tự nhập (mục 6.10).",
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/StudentProfileBlockOut"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptCourseStatusItemOut"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
+          "credits_earned": {
+            "title": "Credits Earned",
+            "type": "integer"
+          },
+          "credits_outstanding": {
+            "title": "Credits Outstanding",
+            "type": "integer"
+          },
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "gpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpa"
+          },
+          "max_credits_per_term": {
+            "title": "Max Credits Per Term",
+            "type": "integer"
+          },
+          "outstanding_courses": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outstanding Courses",
+            "type": "array"
+          },
+          "semesters_completed": {
+            "title": "Semesters Completed",
+            "type": "integer"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/CourseStatusSummaryOut"
+          },
+          "target_semester": {
+            "title": "Target Semester",
+            "type": "integer"
+          },
+          "total_credits": {
+            "title": "Total Credits",
+            "type": "integer"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptWarningOut"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "university_code",
+          "curriculum_code",
+          "semesters_completed",
+          "target_semester",
+          "credits_earned",
+          "credits_outstanding",
+          "total_credits",
+          "max_credits_per_term",
+          "summary",
+          "courses"
+        ],
+        "title": "TranscriptOut",
+        "type": "object"
+      },
+      "TranscriptResultIn": {
+        "additionalProperties": false,
+        "description": "Một dòng kết quả học tập trong bảng điểm tự nhập (mục 6.10).",
+        "properties": {
+          "course_code": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Course Code",
+            "type": "string"
+          },
+          "exempted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exempted"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "semester": {
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Semester",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "course_code",
+          "semester"
+        ],
+        "title": "TranscriptResultIn",
+        "type": "object"
+      },
+      "TranscriptWarningOut": {
+        "description": "Một cảnh báo cho bảng điểm tự nhập hoặc lượt gợi ý (mục 4.7).",
+        "properties": {
+          "code": {
+            "enum": [
+              "below_min_credits",
+              "prerequisite_not_in_transcript",
+              "studied_before_prerequisite"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "course_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Code"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "TranscriptWarningOut",
+        "type": "object"
+      },
       "UniversityOut": {
         "description": "Thông tin một trường đại học.",
         "properties": {
@@ -2166,6 +2502,98 @@
         "summary": "Sơ đồ tiên quyết của khung CTĐT",
         "tags": [
           "Danh mục & Chương trình đào tạo"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/curricula/{curriculum_code}/transcript": {
+      "post": {
+        "description": "Tính tiến độ tích lũy và trạng thái từng học phần của khung CTĐT trực tiếp từ bảng điểm trong body, không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.10).",
+        "operationId": "post_curriculum_transcript_v1_universities__uni__curricula__curriculum_code__transcript_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "curriculum_code",
+            "required": true,
+            "schema": {
+              "title": "Curriculum Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Tiến độ và trạng thái học phần từ bảng điểm tự nhập",
+        "tags": [
+          "Bảng điểm tự nhập"
         ]
       }
     },
