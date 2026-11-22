@@ -21,6 +21,8 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
     Prerequisites are checked against courses already passed by the student. Courses in
     this plan never satisfy prerequisites for another planned course.
     """
+    if not course_codes and min_credits is None:
+        return []
     curriculum_code = student["curriculum_code"]
     courses = repo.curriculum_courses(curriculum_code)
     by_code = {str(row["course_code"]): row for _, row in courses.iterrows()}
@@ -28,10 +30,6 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
     curriculum = repo.curriculum(curriculum_code)
     configured_max = int(curriculum["max_credits_per_term"])
     maximum = max_credits if max_credits is not None else configured_max
-    curriculum_min = _value(curriculum, "min_credits")
-    curriculum_min = int(curriculum_min) if curriculum_min is not None else None
-    if not course_codes and curriculum_min is None and min_credits is None:
-        return []
     seen: set[str] = set()
     violations: list[tuple[int, str, dict[str, Any]]] = []
 
@@ -39,10 +37,13 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
     # takes the cumulative total over the limit, while reporting the final total.
     total_credits = 0
     total_crossing: int | None = None
+    counted_total_codes: set[str] = set()
     for index, code in enumerate(course_codes):
         course = by_code.get(code)
-        if course is not None and bool(_value(course, "counts_toward_total", True)):
+        if (course is not None and code not in counted_total_codes
+                and bool(_value(course, "counts_toward_total", True))):
             total_credits += int(course["credits"])
+            counted_total_codes.add(code)
             if total_crossing is None and total_credits > maximum:
                 total_crossing = index
 
@@ -95,13 +96,6 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
     if total_crossing is not None:
         violations.append((total_crossing, "credit_limit_exceeded", {
             ("max_credits" if max_credits is not None else "max_credits_per_term"): maximum,
-            "total_credits": total_credits,
-        }))
-
-    # Keep the curriculum-configured minimum's original plan-index semantics.
-    if curriculum_min is not None and total_credits < curriculum_min:
-        violations.append((0 if course_codes else -1, "below_min_credits", {
-            "min_credits": curriculum_min,
             "total_credits": total_credits,
         }))
 
