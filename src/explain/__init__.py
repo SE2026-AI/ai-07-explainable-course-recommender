@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from decimal import ROUND_HALF_UP, Decimal
 
 STATUSES = ("passed", "block_complete", "missing_prerequisite", "retake", "eligible")
-VIOLATIONS = ("credit_limit_exceeded", "below_min_credits", "missing_prerequisite", "already_passed",
+VIOLATIONS = ("credit_limit_exceeded", "missing_prerequisite", "already_passed",
               "block_limit_exceeded", "duplicate_course", "not_in_curriculum")
 NOT_SELECTED_REASONS = ("skipped", "block_full", "credit_budget")
 WARNINGS = ("below_min_credits", "prerequisite_not_in_transcript", "studied_before_prerequisite")
@@ -125,7 +125,6 @@ def violation_text(violation: Mapping, course: Mapping | None, names: Mapping[st
     | `code` | `data` |
     | --- | --- |
     | `credit_limit_exceeded` | `total_credits`, `max_credits_per_term` |
-    | `below_min_credits` | `total_credits`, `min_credits` |
     | `missing_prerequisite` | `missing_prerequisites` |
     | `block_limit_exceeded` | `block_code`, `required_credits`, `total_credits`; `block_name` nếu có |
     | `duplicate_course` | `occurrence`: lần xuất hiện thứ mấy, mỗi lần lặp là một vi phạm |
@@ -139,9 +138,6 @@ def violation_text(violation: Mapping, course: Mapping | None, names: Mapping[st
         over = data["total_credits"] - data["max_credits_per_term"]
         return (f"Kế hoạch có {data['total_credits']} tín chỉ, vượt mức tối đa {data['max_credits_per_term']} "
                 f"tín chỉ một học kỳ: cần bỏ bớt ít nhất {over} tín chỉ.")
-    if code == "below_min_credits":
-        return (f"Kế hoạch có {data['total_credits']} tín chỉ, thấp hơn mức tối thiểu "
-                f"{data['min_credits']} tín chỉ: hãy thêm môn học để đạt mức tối thiểu.")
     if code == "missing_prerequisite":
         phrase = prerequisite_phrase(data["missing_prerequisites"], names)
         return f"{name} chưa học được: cần hoàn thành {phrase} trước."
