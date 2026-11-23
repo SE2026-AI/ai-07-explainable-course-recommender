@@ -144,6 +144,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/universities/{uni}/curricula/{curriculum_code}/plan-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kiểm tra kế hoạch đăng ký học kỳ từ bảng điểm tự nhập
+         * @description Kiểm tra danh sách học phần sinh viên dự định đăng ký dựa trên bảng điểm tự nhập và khoảng tín chỉ [min_credits, max_credits], không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.12).
+         */
+        post: operations["post_curriculum_plan_check_v1_universities__uni__curricula__curriculum_code__plan_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/universities/{uni}/curricula/{curriculum_code}/prerequisite-graph": {
         parameters: {
             query?: never;
@@ -1105,6 +1125,51 @@ export interface components {
             warnings?: components["schemas"]["TranscriptWarningOut"][];
         };
         /**
+         * TranscriptPlanCheckIn
+         * @description Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.12).
+         */
+        TranscriptPlanCheckIn: {
+            /** Course Codes */
+            course_codes: string[];
+            /** Max Credits */
+            max_credits?: number | null;
+            /**
+             * Min Credits
+             * @default 10
+             */
+            min_credits: number;
+            /** Results */
+            results?: components["schemas"]["TranscriptResultIn"][];
+            /** Semesters Completed */
+            semesters_completed: number;
+        };
+        /**
+         * TranscriptPlanCheckOut
+         * @description Kết quả kiểm tra kế hoạch học kỳ dựa trên bảng điểm tự nhập (mục 6.12).
+         */
+        TranscriptPlanCheckOut: {
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Max Credits */
+            max_credits: number;
+            /** Max Credits Per Term */
+            max_credits_per_term: number;
+            /** Min Credits */
+            min_credits: number;
+            /** Target Semester */
+            target_semester: number;
+            /** Total Credits */
+            total_credits: number;
+            /** University Code */
+            university_code: string;
+            /** Valid */
+            valid: boolean;
+            /** Violations */
+            violations?: components["schemas"]["PlanViolationOut"][];
+            /** Warnings */
+            warnings?: components["schemas"]["TranscriptWarningOut"][];
+        };
+        /**
          * TranscriptRecommendationIn
          * @description Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11).
          *
@@ -1602,6 +1667,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurriculumCoursesOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_curriculum_plan_check_v1_universities__uni__curricula__curriculum_code__plan_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uni: string;
+                curriculum_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranscriptPlanCheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptPlanCheckOut"];
                 };
             };
             /** @description Tài nguyên không tìm thấy */
