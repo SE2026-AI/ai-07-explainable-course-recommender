@@ -164,6 +164,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/universities/{uni}/curricula/{curriculum_code}/transcript": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tiến độ và trạng thái học phần từ bảng điểm tự nhập
+         * @description Tính tiến độ tích lũy và trạng thái từng học phần của khung CTĐT trực tiếp từ bảng điểm trong body, không cần mã sinh viên và không lưu vào cơ sở dữ liệu (mục 6.10).
+         */
+        post: operations["post_curriculum_transcript_v1_universities__uni__curricula__curriculum_code__transcript_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/universities/{uni}/students/{student_code}/course-status": {
         parameters: {
             query?: never;
@@ -939,6 +959,119 @@ export interface components {
             term_no: number;
         };
         /**
+         * TranscriptCourseStatusItemOut
+         * @description Trạng thái một học phần tính từ bảng điểm tự nhập (mục 6.10 và 6.11).
+         */
+        TranscriptCourseStatusItemOut: {
+            block?: components["schemas"]["StatusBlockDetailOut"] | null;
+            /** Block Code */
+            block_code: string;
+            /** Course Code */
+            course_code: string;
+            /** Course Name */
+            course_name: string;
+            /** Credits */
+            credits: number;
+            last_attempt?: components["schemas"]["TranscriptLastAttemptOut"] | null;
+            /** Missing Prerequisites */
+            missing_prerequisites?: string[][] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "block_complete" | "missing_prerequisite" | "retake" | "eligible";
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * TranscriptIn
+         * @description Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/transcript (mục 6.10).
+         */
+        TranscriptIn: {
+            /** Results */
+            results?: components["schemas"]["TranscriptResultIn"][];
+            /** Semesters Completed */
+            semesters_completed: number;
+        };
+        /**
+         * TranscriptLastAttemptOut
+         * @description Thông tin lần học gần nhất từ bảng điểm tự nhập (mục 6.10).
+         */
+        TranscriptLastAttemptOut: {
+            /** Letter Grade */
+            letter_grade?: string | null;
+            /** Score */
+            score?: number | null;
+            /** Semester */
+            semester: number;
+        };
+        /**
+         * TranscriptOut
+         * @description Phản hồi tiến độ và trạng thái học phần từ bảng điểm tự nhập (mục 6.10).
+         */
+        TranscriptOut: {
+            /** Blocks */
+            blocks?: components["schemas"]["StudentProfileBlockOut"][];
+            /** Courses */
+            courses: components["schemas"]["TranscriptCourseStatusItemOut"][];
+            /** Credits Earned */
+            credits_earned: number;
+            /** Credits Outstanding */
+            credits_outstanding: number;
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Gpa */
+            gpa?: number | null;
+            /** Max Credits Per Term */
+            max_credits_per_term: number;
+            /** Outstanding Courses */
+            outstanding_courses?: string[];
+            /** Semesters Completed */
+            semesters_completed: number;
+            summary: components["schemas"]["CourseStatusSummaryOut"];
+            /** Target Semester */
+            target_semester: number;
+            /** Total Credits */
+            total_credits: number;
+            /** University Code */
+            university_code: string;
+            /** Warnings */
+            warnings?: components["schemas"]["TranscriptWarningOut"][];
+        };
+        /**
+         * TranscriptResultIn
+         * @description Một dòng kết quả học tập trong bảng điểm tự nhập (mục 6.10).
+         */
+        TranscriptResultIn: {
+            /** Course Code */
+            course_code: string;
+            /** Exempted */
+            exempted?: boolean | null;
+            /** Score */
+            score?: number | null;
+            /** Semester */
+            semester: number;
+        };
+        /**
+         * TranscriptWarningOut
+         * @description Một cảnh báo cho bảng điểm tự nhập hoặc lượt gợi ý (mục 4.7).
+         */
+        TranscriptWarningOut: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "below_min_credits" | "prerequisite_not_in_transcript" | "studied_before_prerequisite";
+            /** Course Code */
+            course_code?: string | null;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** Text */
+            text?: string | null;
+        };
+        /**
          * UniversityOut
          * @description Thông tin một trường đại học.
          */
@@ -1404,6 +1537,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrerequisiteGraphOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_curriculum_transcript_v1_universities__uni__curricula__curriculum_code__transcript_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uni: string;
+                curriculum_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranscriptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptOut"];
                 };
             };
             /** @description Tài nguyên không tìm thấy */

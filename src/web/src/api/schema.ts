@@ -34,6 +34,14 @@ export type CourseStatusItem = Schemas["CourseStatusItemOut"];
 export type CourseStatusSummary = Schemas["CourseStatusSummaryOut"];
 export type Recommendations = Schemas["RecommendationsOut"];
 export type RecommendationItem = Schemas["RecommendationItemOut"];
+
+// §6.10 bảng điểm tự nhập (API-4, #38).
+export type TranscriptIn = Schemas["TranscriptIn"];
+export type TranscriptResultIn = Schemas["TranscriptResultIn"];
+export type TranscriptOut = Schemas["TranscriptOut"];
+export type TranscriptCourseStatusItem = Schemas["TranscriptCourseStatusItemOut"];
+export type TranscriptLastAttempt = Schemas["TranscriptLastAttemptOut"];
+export type TranscriptWarningOut = Schemas["TranscriptWarningOut"];
 export type RecommendationReason = Schemas["RecommendationReasonOut"];
 export type RecommendationBody = Schemas["RecommendationBodyIn"];
 export type Assumption = Schemas["AssumptionIn"];
