@@ -129,3 +129,45 @@ Hệ thống cần hai loại dữ liệu:
 - **Dữ liệu học tập của sinh viên:** các môn đã học, điểm và trạng thái từng lần học, cùng thông tin sinh viên tự khai như chủ đề quan tâm.
 
 Để bảo vệ quyền riêng tư, dự án **không sử dụng dữ liệu sinh viên thật**. Dữ liệu sinh viên được tạo giả lập theo các quy luật hợp lý, ví dụ: chỉ học môn khi đã đủ điều kiện, trượt thì học lại, không vượt số tín chỉ tối đa. Nhờ vậy dữ liệu vẫn sát thực tế mà không lộ thông tin cá nhân. Các thông tin nhạy cảm, nếu có, được tách riêng và chỉ dùng để kiểm tra tính công bằng, không bao giờ được đưa vào thuật toán gợi ý.
+
+## Chạy thử live
+
+Bật PostgreSQL, nạp dữ liệu và chạy API thật trên máy cá nhân, rồi thử với 4 bảng điểm mẫu ở `test/fixtures/transcripts/`.
+
+**Cần cài:** Docker (có Compose v2), Python 3.11+ và `pip install -r requirements.txt`, Node 22 nếu muốn bật giao diện web.
+
+**1. Bật DB và API** (chạy từ thư mục gốc repo, giữ cửa sổ này mở):
+
+```sh
+sh scripts/live.sh               # Linux/macOS
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/live.ps1   # Windows
+```
+
+Script bật PostgreSQL bằng `build/deploy/docker-compose.yml`, chạy `python -m tools.build_db` với `DATABASE_URL`
+trỏ vào DB đó, rồi chạy API ở `http://127.0.0.1:8000`. Nếu máy đã có PostgreSQL khác chiếm cổng 5432 (lỗi
+`password authentication failed for user "coursereco"`), đặt cổng khác trước khi chạy: `POSTGRES_PORT=55432 sh scripts/live.sh`
+hoặc `$env:POSTGRES_PORT = "55432"` trên PowerShell.
+
+**2. Gửi 4 bảng điểm mẫu** (cửa sổ khác):
+
+```sh
+python scripts/smoke_transcripts.py
+```
+
+Kết quả mong đợi: cột `transcript` là `200` cho cả 4 file. Cột `recommendations` là `200` kèm số gợi ý khi đã có
+API-5 (#51); trước đó là `404` và ghi `chưa có API-5`.
+
+**3. Bật giao diện web trỏ vào API thật** (tùy chọn):
+
+```sh
+cd src/web
+npm ci
+VITE_API_MODE=live npm run dev          # PowerShell: $env:VITE_API_MODE = "live"; npm run dev
+```
+
+Mở `http://localhost:5173`. Dev server chuyển mọi yêu cầu `/v1` về `http://127.0.0.1:8000`.
+
+**Tắt:** Ctrl+C ở cửa sổ API, rồi `docker compose -f build/deploy/docker-compose.yml down` (giữ dữ liệu; thêm `-v` để xóa sạch).
