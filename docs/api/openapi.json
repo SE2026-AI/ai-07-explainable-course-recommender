@@ -305,6 +305,35 @@
         "title": "CourseStatusSummaryOut",
         "type": "object"
       },
+      "CreditWindowOut": {
+        "description": "Khoảng tín chỉ sinh viên đặt và tổng tín chỉ thực tế được xếp (mục 6.11).",
+        "properties": {
+          "max_credits": {
+            "title": "Max Credits",
+            "type": "integer"
+          },
+          "min_credits": {
+            "title": "Min Credits",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "total_credits": {
+            "title": "Total Credits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "min_credits",
+          "max_credits",
+          "total_credits",
+          "text"
+        ],
+        "title": "CreditWindowOut",
+        "type": "object"
+      },
       "CurriculumBlockOut": {
         "description": "Thông tin một khối kiến thức trong khung CTĐT.",
         "properties": {
@@ -776,6 +805,69 @@
           "curriculum_codes"
         ],
         "title": "MetaOut",
+        "type": "object"
+      },
+      "NotSelectedCourseOut": {
+        "description": "Học phần học được nhưng không được xếp vào học kỳ gợi ý (mục 4.6 và 6.11).",
+        "properties": {
+          "block_code": {
+            "title": "Block Code",
+            "type": "string"
+          },
+          "course_code": {
+            "title": "Course Code",
+            "type": "string"
+          },
+          "course_name": {
+            "title": "Course Name",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "reason": {
+            "enum": [
+              "skipped",
+              "block_full",
+              "credit_budget"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "retake",
+              "eligible"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_code",
+          "course_name",
+          "credits",
+          "block_code",
+          "status",
+          "score",
+          "reason",
+          "text"
+        ],
+        "title": "NotSelectedCourseOut",
         "type": "object"
       },
       "PlanCheckBodyIn": {
@@ -1734,6 +1826,164 @@
         "title": "TranscriptOut",
         "type": "object"
       },
+      "TranscriptRecommendationIn": {
+        "additionalProperties": false,
+        "description": "Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11).\n\nKhông nhận `limit`, `assumptions`, `swap` (extra='forbid' tự từ chối với 422 validation_error).",
+        "properties": {
+          "include": {
+            "items": {
+              "maxLength": 32,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Include",
+            "type": "array"
+          },
+          "max_credits": {
+            "anyOf": [
+              {
+                "maximum": 40.0,
+                "minimum": 10.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Credits"
+          },
+          "min_credits": {
+            "default": 10,
+            "maximum": 40.0,
+            "minimum": 10.0,
+            "title": "Min Credits",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptResultIn"
+            },
+            "maxItems": 200,
+            "title": "Results",
+            "type": "array"
+          },
+          "semesters_completed": {
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Semesters Completed",
+            "type": "integer"
+          },
+          "skip": {
+            "items": {
+              "maxLength": 32,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Skip",
+            "type": "array"
+          },
+          "weights": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weights"
+          }
+        },
+        "required": [
+          "semesters_completed"
+        ],
+        "title": "TranscriptRecommendationIn",
+        "type": "object"
+      },
+      "TranscriptRecommendationsOut": {
+        "description": "Phản hồi gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập (mục 6.11).",
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "candidate_count": {
+            "title": "Candidate Count",
+            "type": "integer"
+          },
+          "credit_window": {
+            "$ref": "#/components/schemas/CreditWindowOut"
+          },
+          "curriculum_code": {
+            "title": "Curriculum Code",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "not_eligible": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptCourseStatusItemOut"
+            },
+            "title": "Not Eligible",
+            "type": "array"
+          },
+          "not_selected": {
+            "items": {
+              "$ref": "#/components/schemas/NotSelectedCourseOut"
+            },
+            "title": "Not Selected",
+            "type": "array"
+          },
+          "target_semester": {
+            "title": "Target Semester",
+            "type": "integer"
+          },
+          "university_code": {
+            "title": "University Code",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptWarningOut"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Weights",
+            "type": "object"
+          },
+          "what_if": {
+            "title": "What If",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "university_code",
+          "curriculum_code",
+          "algorithm_version",
+          "what_if",
+          "weights",
+          "target_semester",
+          "credit_window",
+          "candidate_count"
+        ],
+        "title": "TranscriptRecommendationsOut",
+        "type": "object"
+      },
       "TranscriptResultIn": {
         "additionalProperties": false,
         "description": "Một dòng kết quả học tập trong bảng điểm tự nhập (mục 6.10).",
@@ -2502,6 +2752,98 @@
         "summary": "Sơ đồ tiên quyết của khung CTĐT",
         "tags": [
           "Danh mục & Chương trình đào tạo"
+        ]
+      }
+    },
+    "/v1/universities/{uni}/curricula/{curriculum_code}/recommendations": {
+      "post": {
+        "description": "Gợi ý danh sách học phần cho kỳ kế tiếp trong khoảng tín chỉ [min_credits, max_credits] trực tiếp từ bảng điểm trong body, kèm not_selected, not_eligible và warnings (mục 6.11).",
+        "operationId": "post_curriculum_recommendations_v1_universities__uni__curricula__curriculum_code__recommendations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uni",
+            "required": true,
+            "schema": {
+              "title": "Uni",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "curriculum_code",
+            "required": true,
+            "schema": {
+              "title": "Curriculum Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptRecommendationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptRecommendationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Tài nguyên không tìm thấy"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Xung đột nghiệp vụ (no_primary_program)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dữ liệu không hợp lệ hoặc chứa khóa lạ"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Lỗi nội bộ hệ thống"
+          }
+        },
+        "summary": "Gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập",
+        "tags": [
+          "Bảng điểm tự nhập"
         ]
       }
     },

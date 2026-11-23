@@ -1,4 +1,4 @@
-"""Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10."""
+"""Router cho luồng bảng điểm sinh viên tự nhập (stateless) theo hợp đồng mục 6.10 và 6.11."""
 from __future__ import annotations
 
 import logging
@@ -10,6 +10,7 @@ from typing import Any
 import pandas as pd
 from fastapi import APIRouter, Depends
 
+import src.recommender
 import src.rules.status
 from src import explain
 from src.api.deps import get_repo
@@ -21,6 +22,8 @@ from src.api.schemas.transcript import (
     TranscriptIn,
     TranscriptLastAttemptOut,
     TranscriptOut,
+    TranscriptRecommendationIn,
+    TranscriptRecommendationsOut,
     TranscriptWarningOut,
 )
 from src.api.services.students import (
@@ -30,6 +33,7 @@ from src.api.services.students import (
     validate_university,
 )
 from src.data.repository import Repository
+from src.recommender.scoring import merge_weights
 from src.rules.transcript import build_student
 
 logger = logging.getLogger(__name__)
@@ -228,3 +232,95 @@ def post_curriculum_transcript(
     curriculum = repo.curriculum(curriculum_code)
     courses_df = repo.curriculum_courses(curriculum_code)
     return _run_transcript_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)
+
+
+def _validate_and_merge_weights(weights: dict[str, float] | None) -> dict[str, float] | None:
+    """Ghép trọng số bằng `merge_weights()`; lỗi gắn khóa `weights.<mã>` theo từng trọng số (mục 5).
+
+    Mọi quy tắc kiểm tra nằm ở `merge_weights()`: router chỉ chạy lại hàm đó cho từng khóa để biết khóa nào sai.
+    """
+    if weights is None:
+        return None
+    try:
+        return merge_weights(weights)
+    except ValueError as exc:
+        fields: dict[str, str] = {}
+        for key, value in weights.items():
+            try:
+                merge_weights({key: value})
+            except ValueError as key_exc:
+                fields[f"weights.{key}"] = str(key_exc)
+        raise ApiError(
+            code="validation_error",
+            message="Dữ liệu gợi ý không hợp lệ.",
+            status=422,
+            details={"fields": fields or {"weights": str(exc)}},
+        ) from exc
+
+
+def _run_recommendation_pipeline(
+    repo: Repository,
+    uni: str,
+    curriculum_code: str,
+    curriculum: pd.Series,
+    courses_df: pd.DataFrame,
+    body: TranscriptRecommendationIn,
+) -> TranscriptRecommendationsOut:
+    """Chạy luồng gợi ý từ bảng điểm tự nhập (`RULES-4`/`DATA-4`/`RANK-3`/`EXPLAIN-2`, §6.11)."""
+    merged_weights = _validate_and_merge_weights(body.weights)
+    student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
+
+    try:
+        rec: dict[str, Any] = src.recommender.recommend(
+            repo,
+            student,
+            weights=merged_weights,
+            skip=list(body.skip) or None,
+            include=list(body.include) or None,
+            min_credits=body.min_credits,
+            max_credits=body.max_credits,  # None: recommend() tự tính mặc định và trả lại trong credit_window
+        )
+    except ValueError as exc:
+        api_err = _transcript_value_error(exc)
+        if api_err is None:
+            raise
+        raise api_err from exc
+
+    # `recommend()` ghi `last_attempt` theo term_code; bảng điểm tự nhập chỉ có học kỳ (semester).
+    attempts = student.get("latest_attempts") or {}
+    for item in rec.get("not_eligible", []):
+        last_attempt = item.get("last_attempt")
+        if last_attempt is not None and item.get("course_code") in attempts:
+            last_attempt["semester"] = attempts[item["course_code"]]["semester"]
+
+    return TranscriptRecommendationsOut(
+        university_code=uni,
+        curriculum_code=curriculum_code,
+        algorithm_version=src.recommender.ALGORITHM_VERSION,
+        **rec,
+    )
+
+
+@router.post(
+    "/universities/{uni}/curricula/{curriculum_code}/recommendations",
+    response_model=TranscriptRecommendationsOut,
+    summary="Gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập",
+    description=(
+        "Gợi ý danh sách học phần cho kỳ kế tiếp trong khoảng tín chỉ [min_credits, max_credits] trực tiếp từ "
+        "bảng điểm trong body, kèm not_selected, not_eligible và warnings (mục 6.11)."
+    ),
+    responses={**ERROR_RESPONSES},
+)
+def post_curriculum_recommendations(
+    uni: str,
+    curriculum_code: str,
+    body: TranscriptRecommendationIn,
+    repo: Repository = Depends(get_repo),  # noqa: B008
+) -> TranscriptRecommendationsOut:
+    """POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11)."""
+    validate_university(repo, uni)
+    validate_curriculum(repo, uni, curriculum_code)
+
+    curriculum = repo.curriculum(curriculum_code)
+    courses_df = repo.curriculum_courses(curriculum_code)
+    return _run_recommendation_pipeline(repo, uni, curriculum_code, curriculum, courses_df, body)

@@ -164,6 +164,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/universities/{uni}/curricula/{curriculum_code}/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập
+         * @description Gợi ý danh sách học phần cho kỳ kế tiếp trong khoảng tín chỉ [min_credits, max_credits] trực tiếp từ bảng điểm trong body, kèm not_selected, not_eligible và warnings (mục 6.11).
+         */
+        post: operations["post_curriculum_recommendations_v1_universities__uni__curricula__curriculum_code__recommendations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/universities/{uni}/curricula/{curriculum_code}/transcript": {
         parameters: {
             query?: never;
@@ -447,6 +467,20 @@ export interface components {
             retake: number;
         };
         /**
+         * CreditWindowOut
+         * @description Khoảng tín chỉ sinh viên đặt và tổng tín chỉ thực tế được xếp (mục 6.11).
+         */
+        CreditWindowOut: {
+            /** Max Credits */
+            max_credits: number;
+            /** Min Credits */
+            min_credits: number;
+            /** Text */
+            text: string;
+            /** Total Credits */
+            total_credits: number;
+        };
+        /**
          * CurriculumBlockOut
          * @description Thông tin một khối kiến thức trong khung CTĐT.
          */
@@ -649,6 +683,38 @@ export interface components {
             default_term: string;
             /** Schema Version */
             schema_version: string;
+        };
+        /**
+         * NotSelectedCourseOut
+         * @description Học phần học được nhưng không được xếp vào học kỳ gợi ý (mục 4.6 và 6.11).
+         */
+        NotSelectedCourseOut: {
+            /** Block Code */
+            block_code: string;
+            /** Course Code */
+            course_code: string;
+            /** Course Name */
+            course_name: string;
+            /** Credits */
+            credits: number;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "skipped" | "block_full" | "credit_budget";
+            /** Score */
+            score: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "retake" | "eligible";
+            /** Text */
+            text: string;
         };
         /**
          * PlanCheckBodyIn
@@ -1037,6 +1103,64 @@ export interface components {
             university_code: string;
             /** Warnings */
             warnings?: components["schemas"]["TranscriptWarningOut"][];
+        };
+        /**
+         * TranscriptRecommendationIn
+         * @description Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/recommendations (mục 6.11).
+         *
+         *     Không nhận `limit`, `assumptions`, `swap` (extra='forbid' tự từ chối với 422 validation_error).
+         */
+        TranscriptRecommendationIn: {
+            /** Include */
+            include?: string[];
+            /** Max Credits */
+            max_credits?: number | null;
+            /**
+             * Min Credits
+             * @default 10
+             */
+            min_credits: number;
+            /** Results */
+            results?: components["schemas"]["TranscriptResultIn"][];
+            /** Semesters Completed */
+            semesters_completed: number;
+            /** Skip */
+            skip?: string[];
+            /** Weights */
+            weights?: {
+                [key: string]: number;
+            } | null;
+        };
+        /**
+         * TranscriptRecommendationsOut
+         * @description Phản hồi gợi ý học phần theo khoảng tín chỉ từ bảng điểm tự nhập (mục 6.11).
+         */
+        TranscriptRecommendationsOut: {
+            /** Algorithm Version */
+            algorithm_version: string;
+            /** Candidate Count */
+            candidate_count: number;
+            credit_window: components["schemas"]["CreditWindowOut"];
+            /** Curriculum Code */
+            curriculum_code: string;
+            /** Items */
+            items?: components["schemas"]["RecommendationItemOut"][];
+            /** Not Eligible */
+            not_eligible?: components["schemas"]["TranscriptCourseStatusItemOut"][];
+            /** Not Selected */
+            not_selected?: components["schemas"]["NotSelectedCourseOut"][];
+            /** Target Semester */
+            target_semester: number;
+            /** University Code */
+            university_code: string;
+            /** Warnings */
+            warnings?: components["schemas"]["TranscriptWarningOut"][];
+            /** Weights */
+            weights: {
+                [key: string]: number;
+            };
+            /** What If */
+            what_if: boolean;
         };
         /**
          * TranscriptResultIn
@@ -1537,6 +1661,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrerequisiteGraphOut"];
+                };
+            };
+            /** @description Tài nguyên không tìm thấy */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Xung đột nghiệp vụ (no_primary_program) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc chứa khóa lạ */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lỗi nội bộ hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_curriculum_recommendations_v1_universities__uni__curricula__curriculum_code__recommendations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uni: string;
+                curriculum_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranscriptRecommendationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptRecommendationsOut"];
                 };
             };
             /** @description Tài nguyên không tìm thấy */
