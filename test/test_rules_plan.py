@@ -7,10 +7,12 @@ from src.rules.plan import check_plan
 
 
 class _Repo:
-    def __init__(self, courses, blocks=(), max_credits=20):
-        self.courses = pd.DataFrame(courses)
+    def __init__(self, courses, blocks=(), max_credits=20, min_credits=None):
+        self.courses = pd.DataFrame(courses, columns=["course_code", "credits", "elective_block",
+                                                   "prerequisite_groups", "counts_toward_total"])
         self.blocks = pd.DataFrame(blocks, columns=["block_code", "required_credits"])
         self.max_credits = max_credits
+        self.min_credits = min_credits
 
     def curriculum_courses(self, _code):
         return self.courses
@@ -19,7 +21,8 @@ class _Repo:
         return self.blocks
 
     def curriculum(self, _code):
-        return {"max_credits_per_term": self.max_credits}
+        result = {"max_credits_per_term": self.max_credits}
+        return result
 
 
 def _course(code, credits=3, block=None, groups=None, counts=True):
@@ -42,6 +45,69 @@ def test_credit_limit_reports_actual_total_and_configured_limit():
         "data": {"max_credits_per_term": 10, "total_credits": 11},
     }]
 
+
+def test_minimum_credits_are_unconstrained_without_explicit_argument():
+    courses = [_course("A", 4), _course("B", 3), _course("C", 5)]
+    for codes in [["A"], ["A", "B"], ["A", "B", "C"]]:
+        assert check_plan(_Repo(courses), _student(), codes) == []
+
+
+def test_maximum_credit_limit_and_inclusive_boundary():
+    courses = [_course("A", 4), _course("B", 3), _course("C", 5)]
+    assert check_plan(_Repo(courses, max_credits=7, min_credits=1), _student(), ["A"]) == []
+    assert check_plan(_Repo(courses, max_credits=7, min_credits=1), _student(), ["A", "B"]) == []
+    assert check_plan(_Repo(courses, max_credits=7, min_credits=1), _student(), ["A", "B", "C"]) == [{
+        "code": "credit_limit_exceeded", "course_code": "C",
+        "data": {"max_credits_per_term": 7, "total_credits": 12},
+    }]
+
+
+def test_explicit_minimum_validates_empty_plan():
+    result = check_plan(_Repo([]), _student(), [], min_credits=5)
+    assert result == [{"code": "credit_below_minimum", "course_code": None,
+                       "data": {"min_credits": 5, "total_credits": 0}}]
+
+
+def test_optional_minimum_configuration_is_unconstrained_and_plan_is_not_mutated():
+    plan = ["A", "B"]
+    repo = _Repo([_course("A", 2), _course("B", 3)])
+    assert check_plan(repo, _student(), plan) == []
+    assert plan == ["A", "B"]
+
+
+
+def test_explicit_maximum_overrides_curriculum_limit():
+    repo = _Repo([_course("A", 4), _course("B", 3)], max_credits=20)
+    assert check_plan(repo, _student(), ["A", "B"], max_credits=6) == [{
+        "code": "credit_limit_exceeded", "course_code": "B",
+        "data": {"max_credits": 6, "total_credits": 7},
+    }]
+
+
+def test_explicit_minimum_warning_is_last():
+    repo = _Repo([_course("A", 4, groups=[["P"]])])
+    result = check_plan(repo, _student(), ["A"], min_credits=5)
+    assert result == [
+        {"code": "missing_prerequisite", "course_code": "A",
+         "data": {"missing_prerequisites": [["P"]]}},
+        {"code": "credit_below_minimum", "course_code": None,
+         "data": {"min_credits": 5, "total_credits": 4}},
+    ]
+
+
+def test_duplicate_course_credits_count_once_for_plan_limit():
+    repo = _Repo([_course("A", 6)], max_credits=10)
+    result = check_plan(repo, _student(), ["A", "A"], max_credits=10)
+    assert [v for v in result if v["code"] == "credit_limit_exceeded"] == []
+    assert check_plan(repo, _student(), ["A", "A"], min_credits=7)[-1]["data"]["total_credits"] == 6
+
+
+def test_empty_plan_without_minimum_does_not_query_repository():
+    class NoCalls:
+        def __getattr__(self, name):
+            raise AssertionError(f"repository queried through {name}")
+
+    assert check_plan(NoCalls(), _student(), []) == []
 
 def test_missing_prerequisite_preserves_and_or_groups_and_plan_does_not_unlock():
     repo = _Repo([_course("A"), _course("B"), _course("C", groups=[["A", "B"], ["P", "Q"]])])

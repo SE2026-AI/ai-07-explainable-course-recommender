@@ -15,21 +15,21 @@ def _value(course: Mapping[str, Any] | pd.Series, key: str, default: Any = None)
 
 
 def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
-               course_codes: Sequence[str]) -> list[dict[str, Any]]:
+               course_codes: Sequence[str], min_credits=None, max_credits=None) -> list[dict[str, Any]]:
     """Return all rule violations for ``course_codes`` in their supplied order.
 
     Prerequisites are checked against courses already passed by the student. Courses in
     this plan never satisfy prerequisites for another planned course.
     """
-    if not course_codes:
+    if not course_codes and min_credits is None:
         return []
-
     curriculum_code = student["curriculum_code"]
     courses = repo.curriculum_courses(curriculum_code)
     by_code = {str(row["course_code"]): row for _, row in courses.iterrows()}
     passed = set(student["passed_courses"])
     curriculum = repo.curriculum(curriculum_code)
-    max_credits = int(curriculum["max_credits_per_term"])
+    configured_max = int(curriculum["max_credits_per_term"])
+    maximum = max_credits if max_credits is not None else configured_max
     seen: set[str] = set()
     violations: list[tuple[int, str, dict[str, Any]]] = []
 
@@ -37,11 +37,14 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
     # takes the cumulative total over the limit, while reporting the final total.
     total_credits = 0
     total_crossing: int | None = None
+    counted_total_codes: set[str] = set()
     for index, code in enumerate(course_codes):
         course = by_code.get(code)
-        if course is not None and bool(_value(course, "counts_toward_total", True)):
+        if (course is not None and code not in counted_total_codes
+                and bool(_value(course, "counts_toward_total", True))):
             total_credits += int(course["credits"])
-            if total_crossing is None and total_credits > max_credits:
+            counted_total_codes.add(code)
+            if total_crossing is None and total_credits > maximum:
                 total_crossing = index
 
     blocks = repo.elective_blocks(curriculum_code)
@@ -92,10 +95,16 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
 
     if total_crossing is not None:
         violations.append((total_crossing, "credit_limit_exceeded", {
-            "max_credits_per_term": max_credits,
+            ("max_credits" if max_credits is not None else "max_credits_per_term"): maximum,
             "total_credits": total_credits,
         }))
 
     violations.sort(key=lambda item: (item[0], item[1]))
-    return [{"code": code, "course_code": course_codes[index], "data": data}
-            for index, code, data in violations]
+    result = [{"code": code, "course_code": course_codes[index] if index >= 0 else None, "data": data}
+              for index, code, data in violations]
+
+    # Explicit caller minimum is independent and always appears last.
+    if min_credits is not None and total_credits < min_credits:
+        result.append({"code": "credit_below_minimum", "course_code": None,
+                       "data": {"min_credits": min_credits, "total_credits": total_credits}})
+    return result
