@@ -2349,7 +2349,337 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
 
 
 # =====================================================================
-# 22. Kiểu dữ liệu chặt (Strict types) cho /transcript và /recommendations (Lỗi 2 / §6.10, §6.11)
+# 21. API-6: POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (§6.12)
+# =====================================================================
+
+
+def test_transcript_plan_check_404_errors(api_client_all: TestClient):
+    """API-6: 404 university_not_found và curriculum_not_found (kể cả khung thuộc trường khác)."""
+    body = {"semesters_completed": 0, "results": [], "course_codes": []}
+
+    r_uni = api_client_all.post(
+        "/v1/universities/UNKNOWN_UNI/curricula/HUS-7480113QTD-2022/plan-check",
+        json=body,
+    )
+    assert r_uni.status_code == 404
+    assert r_uni.json()["error"]["code"] == "university_not_found"
+
+    r_cur = api_client_all.post(
+        "/v1/universities/HUS/curricula/NO-SUCH-CURRICULUM/plan-check",
+        json=body,
+    )
+    assert r_cur.status_code == 404
+    assert r_cur.json()["error"]["code"] == "curriculum_not_found"
+
+    r_wrong_uni = api_client_all.post(
+        "/v1/universities/DEMO/curricula/HUS-7480113QTD-2022/plan-check",
+        json=body,
+    )
+    assert r_wrong_uni.status_code == 404
+    assert r_wrong_uni.json()["error"]["code"] == "curriculum_not_found"
+
+
+@pytest.mark.parametrize(
+    "url,body,expected_field",
+    [
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": -1, "results": [], "course_codes": []},
+            "semesters_completed",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 13, "results": [], "course_codes": []},
+            "semesters_completed",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": []},
+            "course_codes",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "min_credits": 9},
+            "min_credits",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "min_credits": 41},
+            "min_credits",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "min_credits": 25, "max_credits": 20},
+            "min_credits",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "max_credits": 41},
+            "max_credits",
+        ),
+        (
+            f"{DEMO_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "min_credits": 10, "max_credits": 15},
+            "max_credits",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {
+                "semesters_completed": 1,
+                "results": [{"course_code": "MAT2505", "semester": 2, "score": 7.0}],
+                "course_codes": [],
+            },
+            "results[0].semester",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {
+                "semesters_completed": 1,
+                "results": [{"course_code": "MAT2505", "semester": 1, "score": 11.0}],
+                "course_codes": [],
+            },
+            "results[0].score",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {
+                "semesters_completed": 1,
+                "results": [{"course_code": "NOPE999", "semester": 1, "score": 7.0}],
+                "course_codes": [],
+            },
+            "results[0].course_code",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "extra_forbidden": 1},
+            "extra_forbidden",
+        ),
+    ],
+)
+def test_transcript_plan_check_validation_422_fields(
+    api_client_all: TestClient, url: str, body: dict, expected_field: str
+):
+    """API-6: Kiểm tra các ca 422 validation_error và đường dẫn trường trong details.fields."""
+    r = api_client_all.post(url, json=body)
+    assert r.status_code == 422, r.text
+    err = r.json()["error"]
+    assert err["code"] == "validation_error"
+    actual_fields = set(err["details"]["fields"])
+    assert actual_fields == {expected_field}, f"Kỳ vọng {{{expected_field}}} nhưng có {actual_fields}"
+    assert "request_id" not in err
+
+
+def test_transcript_plan_check_credits_determinism_stateless_and_privacy(
+    api_client_all: TestClient, repo_all
+):
+    """API-6: Tính total_credits (bỏ trùng + chỉ cộng counts_toward_total=true), tất định, không ghi DB."""
+    before = _table_row_counts(repo_all)
+
+    body = {
+        **T03_TRANSCRIPT_BODY,
+        "course_codes": [
+            "MAT2505", "MAT2323", "MAT2503", "PHI1002", "HIS1056", "MAT3533",
+            "HUS1012",  # counts_toward_total = False (khối I.3)
+            "MAT2505",  # mã môn trùng lặp
+        ],
+    }
+    r1 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/plan-check", json=body)
+    r2 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/plan-check", json=body)
+
+    after = _table_row_counts(repo_all)
+    assert before == after, f"Bảng DB thay đổi sau request stateless: {before} -> {after}"
+    assert r1.status_code == 200, r1.text
+    assert r1.content == r2.content
+    assert "fairness_group" not in r1.text
+    assert "gender" not in r1.text
+
+    data = r1.json()
+    assert data["university_code"] == "HUS"
+    assert data["curriculum_code"] == "HUS-7480113QTD-2022"
+    assert data["target_semester"] == 3
+    assert data["min_credits"] == 10
+    assert data["max_credits"] == 20
+    assert data["total_credits"] == 17
+    assert data["max_credits_per_term"] == 40
+    assert isinstance(data["violations"], list)
+    assert isinstance(data["warnings"], list)
+
+
+def test_transcript_plan_check_live_pipeline_wiring(
+    api_client_all: TestClient, repo_all, monkeypatch: pytest.MonkeyPatch
+):
+    """API-6: Kiểm tra nối tầng thật (DATA-4 + RULES-4 + RULES-6 + EXPLAIN-2) cho plan-check."""
+    import pandas as pd
+
+    import src.explain
+    import src.rules.plan
+
+    captured: dict = {}
+
+    def fake_grade_conversions(curriculum_code: str):
+        return pd.DataFrame([{"letter": "B", "min_score": 7.0, "max_score": 7.9, "grade_point": 3.0, "is_pass": 1}])
+
+    def fake_build_student(curriculum, courses, conversions, semesters_completed, results):
+        return {
+            "student_id": None,
+            "university_code": "HUS",
+            "curriculum_code": "HUS-7480113QTD-2022",
+            "target_semester": semesters_completed + 1,
+            "passed_courses": ["PHI1006"],
+            "outstanding_courses": ["MAT2505"],
+            "latest_scores": {"PHI1006": 7.5, "MAT2505": 3.0},
+            "latest_attempts": {},
+            "warnings": [],
+        }
+
+    def fake_check_plan(repo, student, course_codes, min_credits=10, max_credits=20):
+        captured["check_plan_args"] = {
+            "course_codes": list(course_codes),
+            "min_credits": min_credits,
+            "max_credits": max_credits,
+        }
+        return [
+            {
+                "code": "missing_prerequisite",
+                "course_code": "MAT3533",
+                "data": {"missing_prerequisites": [["MAT2323"]]},
+            },
+            {
+                "code": "duplicate_course",
+                "course_code": "MAT3533",
+                "data": {"occurrence": 2},
+            },
+        ]
+
+    monkeypatch.setattr(transcript_router, "build_student", fake_build_student)
+    monkeypatch.setattr(repo_all, "grade_conversions", fake_grade_conversions, raising=False)
+    monkeypatch.setattr(src.rules.plan, "check_plan", fake_check_plan)
+
+    body = {
+        **T03_TRANSCRIPT_BODY,
+        "course_codes": ["MAT3533", "MAT3533"],
+        "min_credits": 12,
+        "max_credits": 18,
+    }
+    r = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/plan-check", json=body)
+    assert r.status_code == 200, r.text
+    assert captured["check_plan_args"] == {
+        "course_codes": ["MAT3533", "MAT3533"],
+        "min_credits": 12,
+        "max_credits": 18,
+    }
+    data = r.json()
+    assert data["valid"] is False
+    assert data["total_credits"] == 3
+    assert len(data["violations"]) == 2
+    assert all("Học máy" in v["text"] for v in data["violations"])
+
+    # ValueError có đường dẫn trường từ check_plan -> 422
+    def failing_plan(repo, student, course_codes, min_credits=10, max_credits=20):
+        raise ValueError("max_credits: vượt quá mức tối đa của khung")
+
+    monkeypatch.setattr(src.rules.plan, "check_plan", failing_plan)
+    r_422 = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/plan-check", json=body)
+    assert r_422.status_code == 422
+    assert list(r_422.json()["error"]["details"]["fields"]) == ["max_credits"]
+
+
+@pytest.mark.parametrize(
+    ("url", "extra_body", "expected_max_credits"),
+    [
+        # HUS có max_credits_per_term = 40: min(max(20, min_credits), 40)
+        (TRANSCRIPT_CURRICULUM_URL, {}, 20),
+        (TRANSCRIPT_CURRICULUM_URL, {"min_credits": 25}, 25),
+        # DEMO có max_credits_per_term = 12: mặc định bị chặn bởi trần của khung, không ra 422
+        (DEMO_CURRICULUM_URL, {}, 12),
+        # Client gửi max_credits thì giữ nguyên
+        (TRANSCRIPT_CURRICULUM_URL, {"max_credits": 15}, 15),
+    ],
+)
+def test_transcript_plan_check_default_max_credits_is_computed_by_endpoint(
+    api_client_all: TestClient,
+    repo_all,
+    monkeypatch: pytest.MonkeyPatch,
+    url: str,
+    extra_body: dict,
+    expected_max_credits: int,
+):
+    """API-6: `check_plan()` không lấy mặc định, nên endpoint tự tính `min(max(20, min_credits), trần của khung)` (§6.12)."""
+    import pandas as pd
+
+    import src.rules.plan
+
+    captured: dict = {}
+
+    def fake_build_student(curriculum, courses, conversions, semesters_completed, results):
+        return {"student_id": None, "target_semester": semesters_completed + 1, "warnings": []}
+
+    def fake_check_plan(repo, student, course_codes, min_credits=None, max_credits=None):
+        captured["max_credits"] = max_credits
+        return []
+
+    monkeypatch.setattr(transcript_router, "build_student", fake_build_student)
+    monkeypatch.setattr(
+        repo_all,
+        "grade_conversions",
+        lambda curriculum_code: pd.DataFrame(
+            [{"letter": "B", "min_score": 7.0, "max_score": 7.9, "grade_point": 3.0, "is_pass": 1}]
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(src.rules.plan, "check_plan", fake_check_plan)
+
+    r = api_client_all.post(
+        f"{url}/plan-check", json={"semesters_completed": 0, "results": [], "course_codes": [], **extra_body}
+    )
+    assert r.status_code == 200, r.text
+    assert captured["max_credits"] == expected_max_credits
+    assert r.json()["max_credits"] == expected_max_credits
+
+
+def test_transcript_plan_check_reports_violations_with_real_layers(api_client_all: TestClient):
+    """API-6: Kế hoạch có môn chưa đủ tiên quyết và thiếu tín chỉ phải `valid=false` (không được luôn hợp lệ)."""
+    r = api_client_all.post(
+        f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+        json={**T03_TRANSCRIPT_BODY, "course_codes": ["MAT3533"]},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["valid"] is False
+    by_code = {(v["code"], v.get("course_code")) for v in data["violations"]}
+    # T03 chưa đạt MAT2323 nên MAT3533 chưa đủ tiên quyết (§6.11: `not_eligible`)
+    assert ("missing_prerequisite", "MAT3533") in by_code
+    # 3 tín chỉ thấp hơn min_credits mặc định (10): vi phạm `credit_below_minimum`, không phải cảnh báo
+    assert any(v["code"] == "credit_below_minimum" for v in data["violations"])
+    assert "below_min_credits" not in [w["code"] for w in data["warnings"]]
+
+
+def _contract_json_examples(section: str) -> list[dict]:
+    """Các khối ```json trong một mục `### <section>` của hợp đồng, theo thứ tự xuất hiện."""
+    import re
+
+    text = (PROJECT_ROOT / "docs" / "architecture" / "api-contract.md").read_text(encoding="utf-8")
+    start = text.index(f"### {section} ")
+    end = text.find("\n### ", start + 1)
+    body = text[start : end if end != -1 else len(text)]
+    return [json.loads(block) for block in re.findall(r"```json\n(.*?)\n```", body, flags=re.DOTALL)]
+
+
+def test_transcript_plan_check_matches_contract_example(api_client_all: TestClient):
+    """API-6: Phản hồi khớp ví dụ §6.12 (body T03 của §6.10 cộng body §6.12), như test của §6.10 và §6.11."""
+    examples = _contract_json_examples("6.12")
+    assert len(examples) >= 2, "§6.12 phải có ví dụ body và ví dụ phản hồi (xem RANK-3, DATA-3, #36)"
+    request_example, response_example = examples[0], examples[1]
+    # Ví dụ trong hợp đồng ghi `results` là chuỗi giữ chỗ "... như mục 6.10 ...": chỉ lấy phần bổ sung, giữ bảng điểm T03.
+    extra = {key: request_example[key] for key in ("course_codes", "min_credits", "max_credits")}
+
+    r = api_client_all.post(f"{TRANSCRIPT_CURRICULUM_URL}/plan-check", json={**T03_TRANSCRIPT_BODY, **extra})
+    assert r.status_code == 200, r.text
+    assert r.json() == response_example
+
+
+# =====================================================================
+# 22. Kiểu dữ liệu chặt (Strict types) cho cả 3 endpoint transcript (Lỗi 2 / §6.10, §6.11, §6.12)
 # =====================================================================
 
 
@@ -2422,7 +2752,7 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
             {"semesters_completed": 0, "results": [], "weights": {"unlocks": "1.5"}},
             "weights.unlocks",
         ),
-        # --- skip: chứa số, chuỗi rỗng hoặc > 200 phần tử ---
+        # --- skip: chứa số hoặc chuỗi rỗng ---
         (
             f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
             {"semesters_completed": 0, "results": [], "skip": [123]},
@@ -2433,6 +2763,17 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
             {"semesters_completed": 0, "results": [], "skip": [""]},
             "skip[0]",
         ),
+        # --- course_codes: chứa mã dài hơn 32 ký tự ---
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {
+                "semesters_completed": 0,
+                "results": [],
+                "course_codes": ["X" * 33],
+            },
+            "course_codes[0]",
+        ),
+        # --- skip: dài hơn 200 phần tử ---
         (
             f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
             {
@@ -2441,6 +2782,12 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
                 "skip": [f"M{i}" for i in range(201)],
             },
             "skip",
+        ),
+        # --- min_credits cho plan-check: chuỗi bị từ chối ---
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "min_credits": "15"},
+            "min_credits",
         ),
         # --- course_code: chuỗi rỗng và mã > 32 ký tự trong results ---
         (
@@ -2453,7 +2800,7 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
             {"semesters_completed": 2, "results": [{"course_code": "X" * 33, "semester": 1, "score": 7.0}]},
             "results[0].course_code",
         ),
-        # --- include: chứa số, chuỗi rỗng hoặc > 200 phần tử ---
+        # --- include: chứa số hoặc chuỗi rỗng hoặc > 200 phần tử ---
         (
             f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
             {"semesters_completed": 0, "results": [], "include": [123]},
@@ -2469,7 +2816,23 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
             {"semesters_completed": 0, "results": [], "include": [f"M{i}" for i in range(201)]},
             "include",
         ),
-        # --- max_credits sai kiểu ---
+        # --- course_codes cho plan-check: chứa chuỗi rỗng hoặc > 200 phần tử ---
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [""]},
+            "course_codes[0]",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [f"M{i}" for i in range(201)]},
+            "course_codes",
+        ),
+        # --- min_credits và max_credits sai kiểu cho cả hai endpoint ---
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "min_credits": True},
+            "min_credits",
+        ),
         (
             f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
             {"semesters_completed": 0, "results": [], "max_credits": "20"},
@@ -2478,6 +2841,16 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
         (
             f"{TRANSCRIPT_CURRICULUM_URL}/recommendations",
             {"semesters_completed": 0, "results": [], "max_credits": True},
+            "max_credits",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "max_credits": "20"},
+            "max_credits",
+        ),
+        (
+            f"{TRANSCRIPT_CURRICULUM_URL}/plan-check",
+            {"semesters_completed": 0, "results": [], "course_codes": [], "max_credits": True},
             "max_credits",
         ),
     ],

@@ -1,4 +1,4 @@
-"""Schema Pydantic cho luồng bảng điểm sinh viên tự nhập theo hợp đồng mục 6.10 và 6.11."""
+"""Schema Pydantic cho luồng bảng điểm sinh viên tự nhập theo hợp đồng mục 6.10, 6.11 và 6.12."""
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
@@ -6,7 +6,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, field_validator, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError, ValidationError
 
-from src.api.schemas.recommendations import RecommendationItemOut
+from src.api.schemas.recommendations import PlanViolationOut, RecommendationItemOut
 from src.api.schemas.students import (
     CourseStatusCode,
     CourseStatusSummaryOut,
@@ -229,4 +229,34 @@ class TranscriptRecommendationsOut(BaseModel):
     items: list[RecommendationItemOut] = Field(default_factory=list)
     not_selected: list[NotSelectedCourseOut] = Field(default_factory=list)
     not_eligible: list[TranscriptCourseStatusItemOut] = Field(default_factory=list)
+    warnings: list[TranscriptWarningOut] = Field(default_factory=list)
+
+
+class TranscriptPlanCheckIn(TranscriptIn):
+    """Body đầu vào cho POST /v1/universities/{uni}/curricula/{curriculum_code}/plan-check (mục 6.12)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    course_codes: list[Annotated[StrictStr, Field(min_length=1, max_length=32)]] = Field(..., max_length=200)
+    min_credits: StrictInt = Field(default=DEFAULT_MIN_CREDITS, ge=MIN_CREDITS_FLOOR, le=40)
+    max_credits: StrictInt | None = Field(default=None, ge=MIN_CREDITS_FLOOR, le=40)
+
+    @model_validator(mode="after")
+    def _check_credit_window(self) -> TranscriptPlanCheckIn:
+        _validate_credit_window_order(self.__class__.__name__, self.min_credits, self.max_credits)
+        return self
+
+
+class TranscriptPlanCheckOut(BaseModel):
+    """Kết quả kiểm tra kế hoạch học kỳ dựa trên bảng điểm tự nhập (mục 6.12)."""
+
+    university_code: str
+    curriculum_code: str
+    target_semester: int
+    min_credits: int
+    max_credits: int
+    total_credits: int
+    max_credits_per_term: int
+    valid: bool
+    violations: list[PlanViolationOut] = Field(default_factory=list)
     warnings: list[TranscriptWarningOut] = Field(default_factory=list)
