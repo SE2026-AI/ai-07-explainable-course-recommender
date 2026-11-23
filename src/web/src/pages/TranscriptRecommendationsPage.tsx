@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { ApiError, type ApiClient } from "../api/client";
 import { WEIGHT_KEYS } from "../api/schema";
 import type { NotSelected, TranscriptRecommendationBody, TranscriptRecommendations } from "../api/transcript";
+import { ChatPanel, type Turn } from "../components/ChatPanel";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { IconSliders } from "../components/Icons";
 import { Prerequisites } from "../components/Prerequisites";
@@ -70,6 +71,7 @@ function TranscriptRecs({
   );
 
   const [opts, setOpts] = useState<Options>({ skip: [], include: [] });
+  const [chat, setChat] = useState<Turn[]>([]);
   const [result, retry] = useApi(
     transcript ? (s) => client.recommendTranscript(uni, curriculum, { ...transcript.body, ...opts }, s) : null,
     [client, uni, curriculum, transcript, JSON.stringify(opts)],
@@ -216,7 +218,15 @@ function TranscriptRecs({
             <RecsError error={result.error} codes={transcript?.codes ?? []} opts={opts} onRetry={retry} back={query} />
           )}
           {result.state === "ok" && (
-            <Results data={result.data} include={opts.include} onSkip={skip} onInclude={include} onUnset={unset} />
+            <Results
+              data={result.data}
+              include={opts.include}
+              chat={chat}
+              setChat={setChat}
+              onSkip={skip}
+              onInclude={include}
+              onUnset={unset}
+            />
           )}
         </div>
       </div>
@@ -300,12 +310,16 @@ function RecsError({
 function Results({
   data,
   include,
+  chat,
+  setChat,
   onSkip,
   onInclude,
   onUnset,
 }: {
   data: TranscriptRecommendations;
   include: string[];
+  chat: Turn[];
+  setChat: (update: (t: Turn[]) => Turn[]) => void;
   onSkip: (code: string) => void;
   onInclude: (code: string) => void;
   onUnset: (code: string) => void;
@@ -384,6 +398,8 @@ function Results({
           </ol>
         )}
       </section>
+
+      <ChatPanel data={data} turns={chat} setTurns={setChat} onSkip={onSkip} />
 
       <section className="panel">
         <div className="panel-head">

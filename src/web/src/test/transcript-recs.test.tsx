@@ -82,6 +82,23 @@ describe("WEB-7: gợi ý cho bảng điểm tự nhập (§6.11)", () => {
     expect(screen.queryByText(/kịch bản giả định/)).not.toBeInTheDocument();
   });
 
+  it("hỏi đáp: bỏ môn gửi skip qua API và giữ lịch sử hỏi đáp khi gợi ý tải lại", async () => {
+    const user = userEvent.setup();
+    const spy = setup();
+    await screen.findByTestId("credit-window");
+    await user.type(screen.getByRole("textbox", { name: "Câu hỏi về gợi ý" }), "Bỏ môn MAT2407{Enter}");
+    await waitFor(() =>
+      expect(spy).toHaveBeenLastCalledWith(
+        UNI,
+        CODE,
+        expect.objectContaining({ skip: ["MAT2407"] }),
+        expect.anything(),
+      ),
+    );
+    expect(await screen.findByText(/kịch bản giả định/)).toBeInTheDocument();
+    expect(screen.getByText("Bỏ môn MAT2407")).toBeInTheDocument();
+  });
+
   it("chưa học / học kỳ này gửi skip và include, một mã chỉ ở một danh sách", async () => {
     const user = userEvent.setup();
     const spy = setup();
