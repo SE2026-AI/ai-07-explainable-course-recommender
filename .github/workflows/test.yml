@@ -38,3 +38,22 @@ jobs:
           git diff --exit-code data/synthetic test/fixtures/students data/schema
       - name: Nạp được vào database thật
         run: python -m tools.build_db
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Vite 7 cần Node >= 20.19
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - name: Kiểu API sinh từ openapi.json khớp với code
+        run: npm run check:api
+      - run: npm run build
