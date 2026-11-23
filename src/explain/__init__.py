@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from decimal import ROUND_HALF_UP, Decimal
 
 STATUSES = ("passed", "block_complete", "missing_prerequisite", "retake", "eligible")
-VIOLATIONS = ("credit_limit_exceeded", "missing_prerequisite", "already_passed",
+VIOLATIONS = ("credit_limit_exceeded", "credit_below_minimum", "missing_prerequisite", "already_passed",
               "block_limit_exceeded", "duplicate_course", "not_in_curriculum")
 NOT_SELECTED_REASONS = ("skipped", "block_full", "credit_budget")
 WARNINGS = ("below_min_credits", "prerequisite_not_in_transcript", "studied_before_prerequisite")
@@ -124,10 +124,14 @@ def violation_text(violation: Mapping, course: Mapping | None, names: Mapping[st
 
     | `code` | `data` |
     | --- | --- |
-    | `credit_limit_exceeded` | `total_credits`, `max_credits_per_term` |
+    | `credit_limit_exceeded` | `total_credits`, `max_credits_per_term`; mục 6.12 thay bằng `max_credits` |
+    | `credit_below_minimum` | `total_credits`, `min_credits` |
     | `missing_prerequisite` | `missing_prerequisites` |
     | `block_limit_exceeded` | `block_code`, `required_credits`, `total_credits`; `block_name` nếu có |
     | `duplicate_course` | `occurrence`: lần xuất hiện thứ mấy, mỗi lần lặp là một vi phạm |
+
+    Ở mục 6.12 sinh viên tự đặt khoảng tín chỉ, nên `credit_limit_exceeded` so với `max_credits` của khoảng đó
+    và câu nói "bạn đặt"; `credit_below_minimum` không gắn với môn nào (`course_code` là `None`).
 
     `total_credits` của `block_limit_exceeded` là tín chỉ của khối sau khi thêm môn này: đã đạt cộng môn của
     khối đứng trước trong kế hoạch cộng chính nó. Tầng luật chưa gửi `block_name` thì câu gọi khối bằng mã.
@@ -135,9 +139,15 @@ def violation_text(violation: Mapping, course: Mapping | None, names: Mapping[st
     code, data = violation["code"], violation.get("data", {})
     name = course["course_name"] if course else violation.get("course_code")
     if code == "credit_limit_exceeded":
-        over = data["total_credits"] - data["max_credits_per_term"]
-        return (f"Kế hoạch có {data['total_credits']} tín chỉ, vượt mức tối đa {data['max_credits_per_term']} "
-                f"tín chỉ một học kỳ: cần bỏ bớt ít nhất {over} tín chỉ.")
+        if "max_credits" in data:
+            limit, whose = data["max_credits"], "tín chỉ bạn đặt cho học kỳ này"
+        else:
+            limit, whose = data["max_credits_per_term"], "tín chỉ một học kỳ"
+        return (f"Kế hoạch có {data['total_credits']} tín chỉ, vượt mức tối đa {limit} {whose}: "
+                f"cần bỏ bớt ít nhất {data['total_credits'] - limit} tín chỉ.")
+    if code == "credit_below_minimum":
+        return (f"Kế hoạch có {data['total_credits']} tín chỉ, chưa đủ mức tối thiểu {data['min_credits']} tín chỉ "
+                f"bạn đặt: cần thêm ít nhất {data['min_credits'] - data['total_credits']} tín chỉ.")
     if code == "missing_prerequisite":
         phrase = prerequisite_phrase(data["missing_prerequisites"], names)
         return f"{name} chưa học được: cần hoàn thành {phrase} trước."

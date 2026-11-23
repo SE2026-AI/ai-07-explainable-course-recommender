@@ -16,7 +16,8 @@ import pandas as pd
 import pytest
 
 import src.recommender as rec
-from src.explain import status_text
+from src.explain import status_text, violation_text
+from src.rules.plan import check_plan
 from src.rules.status import course_status_details
 
 FIXTURES = sorted(Path("test/fixtures/transcripts").glob("*.json"))
@@ -221,3 +222,36 @@ def test_the_credit_window_example_of_the_contract_is_what_t03_really_gets(repo_
     without = rec.recommend(repo_all, row, skip=body["skip"], **_window_kwargs(body))
     assert "MAT2407" not in {item["course_code"] for item in without["items"]}
     assert "MAT2403" in {item["course_code"] for item in without["items"]}, "chỗ đó thuộc về MAT2403 khi không include"
+
+
+def test_the_plan_check_example_of_the_contract_is_t03(repo_all):
+    """Mục 6.12: kế hoạch của mục 6.7 với bảng điểm của T03. Vi phạm gắn với môn lấy từ `check_plan()` của tầng
+    luật; khoảng tín chỉ chưa có ở tầng luật (RULES-6), nên `credit_below_minimum` được kiểm bằng phép so và câu
+    `text` của tầng giải thích. Khi `check_plan()` nhận `min_credits`, `max_credits`, test này phải gọi thẳng nó."""
+    body = _contract_block("6.12", "Body gồm mọi trường")
+    example = _contract_block("6.12", "Phản hồi:")
+    curriculum_code = example["curriculum_code"]
+    row = _transcript_row(repo_all, "HUS", curriculum_code, _t03_body())
+    courses = repo_all.curriculum_courses(curriculum_code).set_index("course_code")
+    blocks = repo_all.blocks(curriculum_code).set_index("block_code")
+    names = courses["course_name"].to_dict()
+
+    total = sum(int(courses.loc[code, "credits"]) for code in dict.fromkeys(body["course_codes"])
+                if code in courses.index and bool(blocks.loc[courses.loc[code, "block_code"], "counts_toward_total"]))
+    assert (example["min_credits"], example["max_credits"]) == (body["min_credits"], body["max_credits"])
+    assert example["total_credits"] == total == 17
+    assert example["target_semester"] == _t03_body()["semesters_completed"] + 1
+    assert example["max_credits_per_term"] == int(repo_all.curriculum(curriculum_code)["max_credits_per_term"])
+    assert body["min_credits"] > total, "ví dụ phải có credit_below_minimum"
+    assert body["max_credits"] >= total, "nên không có credit_limit_exceeded"
+
+    expected = [{**v, "text": violation_text(v, courses.loc[v["course_code"]].to_dict(), names)}
+                for v in check_plan(repo_all, row, body["course_codes"]) if v["code"] != "credit_limit_exceeded"]
+    below = {"code": "credit_below_minimum", "course_code": None,
+             "data": {"min_credits": body["min_credits"], "total_credits": total}}
+    expected.append({**below, "text": violation_text(below, None, names)})
+    # Mục 3.2: trường không áp dụng thì vắng mặt, nên `course_code = None` của tầng luật không có trong ví dụ.
+    fields = ("code", "course_code", "text", "data")
+    assert example["violations"] == [{k: v[k] for k in fields if v.get(k) is not None} for v in expected]
+    assert example["valid"] is False
+    assert example["warnings"] == row["warnings"] == []
