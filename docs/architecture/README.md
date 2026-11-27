@@ -33,18 +33,19 @@ ORM không mang lại lợi ích, trong khi làm khó việc đọc ra SQL thự
 Toàn bộ SQL nằm trong `src/data`. `Repository` là cửa duy nhất mà tầng nghiệp vụ đi qua, nên không có câu
 SQL nào rải rác trong code xử lý luật học vụ hay code API.
 
-### Chưa dùng công cụ migration
+### Migration bằng Alembic từ v2
 
-Lược đồ được dựng lại từ `schema.py` và dữ liệu được nạp lại từ CSV, nên việc chuyển đổi dần từng phiên bản
-database chưa cần thiết. Thay vào đó:
+Tới v1, lược đồ được dựng lại từ `schema.py` và dữ liệu nạp lại từ CSV, nên chưa cần migration. v2 lưu tài
+khoản, bảng điểm và kế hoạch của sinh viên thật: dữ liệu đó không sinh lại được, nên lược đồ đổi qua Alembic
+(`migrations/`, `python -m tools.migrate`).
 
-- `app_settings.schema_version` ghi phiên bản lược đồ, tăng khi cấu trúc bảng đổi;
-- `RETIRED_TABLES` trong `src/data/db/build.py` liệt kê bảng đã bỏ, để database dựng từ phiên bản cũ được
-  dọn đúng cách;
-- `data/schema/schema_postgresql.sql` được sinh tự động để đọc và review, không chạy tay.
-
-Lựa chọn này chỉ còn đúng khi dữ liệu có thể sinh lại được. Khi hệ thống mang dữ liệu cần giữ, nâng cấp
-lược đồ sẽ cần một công cụ migration.
+- `schema.py` vẫn là nguồn sự thật duy nhất. Migration được sinh từ nó (`python -m tools.new_migration`), và
+  `test/test_migrations.py` kiểm migration luôn ra đúng `schema.py`.
+- Bảng người dùng (`USER_TABLES`) không có khóa ngoại tới bảng tham chiếu, chỉ ghi mã tự nhiên. Nhờ vậy dữ liệu
+  tham chiếu vẫn nạp lại được từ CSV (`tools.build_db --production --reload-reference`) mà không đụng dữ liệu
+  người dùng.
+- `app_settings.schema_version` vẫn ghi phiên bản lược đồ; `RETIRED_TABLES` vẫn dọn bảng đã bỏ ở database
+  dựng bằng `build()`; `data/schema/schema_postgresql.sql` vẫn được sinh để đọc và review.
 
 ### Xếp hạng dựa trên quy tắc, không dùng thư viện học máy
 

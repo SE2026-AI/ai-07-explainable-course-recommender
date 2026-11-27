@@ -26,6 +26,7 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    Uuid,
     func,
     text,
 )
@@ -52,6 +53,10 @@ def fk(name, target, nullable=False, ondelete="RESTRICT", comment=None):
 
 def created_at():
     return Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.current_timestamp())
+
+
+def updated_at():
+    return Column("updated_at", DateTime(timezone=True), nullable=False, server_default=func.current_timestamp())
 
 
 # ======================= Nguồn dữ liệu =======================
@@ -367,6 +372,118 @@ recommendation_feedback = Table(
     created_at(),
     CheckConstraint("action IN ('viewed', 'accepted', 'rejected', 'registered')", name="action"))
 
+# ======================= Tài khoản và dữ liệu người dùng (v2, lược đồ 4.0.0) =======================
+# Hợp đồng v2 (docs/architecture/api-contract-v2.md). Ba quy tắc cho mọi bảng dưới đây:
+# 1. Chỉ có khóa ngoại tới bảng người dùng khác, không bao giờ tới bảng tham chiếu: khung và học phần ghi bằng
+#    MÃ TỰ NHIÊN (curriculum_code, course_code), vì `id` của bảng tham chiếu đổi mỗi lần nạp lại CSV.
+# 2. Mọi khóa ngoại tới `users` là ON DELETE CASCADE: xóa tài khoản xóa sạch dữ liệu của nó.
+# 3. Nạp lại dữ liệu tham chiếu (src/data/db/build.py) không bao giờ xóa hay đổi các bảng này: USER_TABLES.
+users = Table(
+    "users", metadata, pk(),
+    Column("public_id", Uuid, nullable=False, unique=True, server_default=text("gen_random_uuid()"),
+           comment="`user_id` trong API; `id` không bao giờ ra ngoài"),
+    Column("email", String(254), nullable=False, unique=True, comment="Đã chuẩn hóa: bỏ khoảng trắng, chữ thường"),
+    Column("password_hash", Text, nullable=False, comment="argon2id; không bao giờ trả về hay ghi log"),
+    Column("role", String(20), nullable=False, server_default="student"),
+    created_at(),
+    updated_at(),
+    CheckConstraint("role IN ('student', 'admin')", name="role"),
+    CheckConstraint("email = lower(btrim(email))", name="email_normalized"),
+    comment="Tài khoản: sinh viên tự đăng ký bằng email và mật khẩu; admin tạo bằng tools.create_admin")
+
+sessions = Table(
+    "sessions", metadata, pk(),
+    fk("user_id", "users.id", ondelete="CASCADE"),
+    Column("token_hash", String(64), nullable=False, unique=True, comment="SHA-256 (hex) của giá trị cookie"),
+    created_at(),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    CheckConstraint("expires_at > created_at", name="expiry"),
+    comment="Phiên đăng nhập; database chỉ giữ SHA-256 của token nên lộ database không lộ phiên")
+
+login_attempts = Table(
+    "login_attempts", metadata, pk(),
+    Column("email", String(254), nullable=False),
+    Column("ip_hash", String(64), comment="SHA-256 của địa chỉ IP, không lưu IP gốc"),
+    Column("succeeded", Boolean, nullable=False),
+    created_at(),
+    comment="Lần đăng nhập, để giới hạn số lần sai (hợp đồng v2 mục 2.3); dòng cũ hơn một ngày được xóa")
+
+student_profiles = Table(
+    "student_profiles", metadata,
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("university_code", String(20), nullable=False),
+    Column("curriculum_code", String(50), nullable=False),
+    Column("cohort_year", Integer),
+    Column("semesters_completed", Integer, nullable=False, server_default="0"),
+    Column("transcript_updated_at", DateTime(timezone=True), comment="NULL = chưa lưu bảng điểm lần nào"),
+    updated_at(),
+    CheckConstraint("semesters_completed BETWEEN 0 AND 12", name="semesters_completed"),
+    CheckConstraint("cohort_year IS NULL OR cohort_year BETWEEN 2000 AND 2100", name="cohort_year"),
+    comment="Khung sinh viên chọn và số kỳ đã học; ghi khung bằng mã, không bằng khóa ngoại")
+
+transcript_results = Table(
+    "transcript_results", metadata, pk(),
+    fk("user_id", "users.id", ondelete="CASCADE"),
+    Column("course_code", String(20), nullable=False),
+    Column("semester", Integer, nullable=False),
+    Column("score", Numeric(4, 2), comment="NULL khi miễn"),
+    Column("exempted", Boolean, nullable=False, server_default=FALSE),
+    UniqueConstraint("user_id", "course_code"),
+    CheckConstraint("semester BETWEEN 1 AND 12", name="semester"),
+    CheckConstraint("(exempted AND score IS NULL) OR (NOT exempted AND score IS NOT NULL AND score >= 0)",
+                    name="score_or_exempted"),
+    comment="Bảng điểm đã lưu: mỗi môn một dòng = lần học gần nhất, đúng một dòng results[] của §6.10 v1")
+
+study_plans = Table(
+    "study_plans", metadata, pk(),
+    fk("user_id", "users.id", ondelete="CASCADE"),
+    Column("semester", Integer, nullable=False, comment="Kỳ thứ mấy của sinh viên, không phải mã học kỳ"),
+    Column("version", Integer, nullable=False, server_default="1"),
+    Column("course_codes", JSONB, nullable=False, server_default=text("'[]'::jsonb"),
+           comment="Mảng mã học phần theo thứ tự sinh viên xếp"),
+    Column("min_credits", Integer),
+    Column("max_credits", Integer),
+    created_at(),
+    updated_at(),
+    UniqueConstraint("user_id", "semester"),
+    CheckConstraint("semester BETWEEN 1 AND 12", name="semester"),
+    CheckConstraint("version >= 1", name="version"),
+    CheckConstraint("jsonb_typeof(course_codes) = 'array'", name="course_codes_array"),
+    comment="Kế hoạch học kỳ hiện tại: mỗi sinh viên một kế hoạch cho mỗi kỳ")
+
+study_plan_versions = Table(
+    "study_plan_versions", metadata, pk(),
+    fk("plan_id", "study_plans.id", ondelete="CASCADE"),
+    Column("version", Integer, nullable=False),
+    Column("course_codes", JSONB, nullable=False),
+    Column("min_credits", Integer),
+    Column("max_credits", Integer),
+    created_at(),
+    UniqueConstraint("plan_id", "version"),
+    CheckConstraint("version >= 1", name="version"),
+    CheckConstraint("jsonb_typeof(course_codes) = 'array'", name="course_codes_array"),
+    comment="Mọi phiên bản đã lưu của một kế hoạch, kể cả phiên bản hiện tại; để hoàn tác")
+
+plan_undo_snapshots = Table(
+    "plan_undo_snapshots", metadata, pk(),
+    fk("plan_id", "study_plans.id", ondelete="CASCADE"),
+    Column("token_hash", String(64), nullable=False, unique=True, comment="SHA-256 (hex) của undo_token"),
+    Column("version_before", Integer, nullable=False, comment="Phiên bản ngay trước lần bỏ môn; undo khôi phục nó"),
+    Column("version_after", Integer, nullable=False, comment="Phiên bản do lần bỏ môn tạo ra"),
+    Column("removed_codes", JSONB, nullable=False),
+    created_at(),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("consumed_at", DateTime(timezone=True), comment="NULL = chưa hoàn tác; mỗi lần bỏ chỉ hoàn tác một lần"),
+    CheckConstraint("version_after > version_before", name="versions"),
+    CheckConstraint("expires_at > created_at", name="expiry"),
+    comment="Một lần bỏ môn khỏi kế hoạch, để hoàn tác (VT-097 chuyển sang v2, hợp đồng v2 mục 6.12)")
+
+# Bảng của người dùng: nạp lại dữ liệu tham chiếu không bao giờ xóa hay đổi chúng (build.py, data-model.md mục 3).
+USER_TABLES = ("users", "sessions", "login_attempts", "student_profiles", "transcript_results", "study_plans",
+               "study_plan_versions", "plan_undo_snapshots")
+
+Index("ix_login_attempts_email_created_at", login_attempts.c.email, login_attempts.c.created_at)
+Index("ix_login_attempts_ip_hash_created_at", login_attempts.c.ip_hash, login_attempts.c.created_at)
 Index("ix_course_results_student_course", course_results.c.student_id, course_results.c.course_id)
 # Mỗi sinh viên tối đa MỘT chương trình chính (song ngành thì chương trình thứ hai có is_primary = false)
 Index("uq_student_programs_one_primary", student_programs.c.student_id, unique=True,

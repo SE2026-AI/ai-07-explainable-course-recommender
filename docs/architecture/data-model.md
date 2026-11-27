@@ -2,13 +2,14 @@
 
 | | |
 | --- | --- |
-| Phiên bản lược đồ | `3.0.0` (`app_settings.schema_version`) |
+| Phiên bản lược đồ | `4.0.0` (`app_settings.schema_version`) |
 | Nguồn sự thật | `src/data/db/schema.py` — SQLAlchemy Core, chạy trên PostgreSQL 16 |
 | Bản SQL để đọc | `data/schema/schema_postgresql.sql` — sinh tự động, không chạy tay |
-| Cửa duy nhất để đọc dữ liệu | `src/data/repository.py` |
+| Migration | `migrations/` (Alembic) — `python -m tools.migrate` |
+| Cửa duy nhất để đọc dữ liệu | `src/data/repository.py`; dữ liệu người dùng: `src/data/user_data.py` |
 
-Lý do chọn PostgreSQL cho mọi môi trường, chọn SQLAlchemy Core thay vì ORM, và chưa dùng công cụ
-migration: xem `README.md` cùng thư mục. Tài liệu này chỉ mô tả *dữ liệu có hình gì*.
+Lý do chọn PostgreSQL cho mọi môi trường, chọn SQLAlchemy Core thay vì ORM, và dùng Alembic từ v2: xem
+`README.md` cùng thư mục. Tài liệu này chỉ mô tả *dữ liệu có hình gì*.
 
 ---
 
@@ -113,6 +114,29 @@ xuất hiện ở `data_issues`.
 
 Thuật toán gợi ý **không được đọc** `student_attributes`. Lớp `Repository` để bảng này sau một hàm riêng
 `sensitive_attributes()` và không trả nó ở `students()`, để việc đọc nhầm phải là một hành động có ý thức.
+
+### Tài khoản và dữ liệu người dùng (v2, lược đồ 4.0.0)
+
+Hợp đồng v2 (`api-contract-v2.md`) lưu dữ liệu của sinh viên thật. Đọc và ghi qua `src/data/user_data.py`, riêng
+tài khoản và phiên đăng nhập qua `src/data/accounts.py`.
+
+| Bảng | Nội dung |
+| --- | --- |
+| `users` | Tài khoản: email đã chuẩn hóa, mật khẩu băm argon2id, vai trò `student`/`admin`. `public_id` (UUID) là `user_id` của API |
+| `sessions` | Phiên đăng nhập; chỉ lưu SHA-256 của token cookie |
+| `login_attempts` | Lần đăng nhập, để giới hạn số lần sai; IP chỉ lưu dạng SHA-256, dòng cũ hơn một ngày bị xóa |
+| `student_profiles` | Khung sinh viên chọn (ghi bằng `curriculum_code`), khóa, số kỳ đã học, thời điểm lưu bảng điểm gần nhất |
+| `transcript_results` | Bảng điểm đã lưu: mỗi môn một dòng, đúng một dòng `results[]` của §6.10 v1 (điểm hoặc miễn) |
+| `study_plans` | Kế hoạch hiện tại của mỗi kỳ: `version`, danh sách môn (`JSONB`), khoảng tín chỉ |
+| `study_plan_versions` | Mọi phiên bản đã lưu của một kế hoạch, kể cả phiên bản hiện tại |
+| `plan_undo_snapshots` | Mỗi lần bỏ môn khỏi kế hoạch: phiên bản trước và sau, môn đã bỏ, hạn hoàn tác, đã dùng chưa |
+
+Ba quy tắc, `test/test_user_data.py` kiểm cả ba:
+
+1. Các bảng này chỉ có khóa ngoại tới nhau, **không bao giờ** tới bảng tham chiếu. Khung và học phần ghi bằng mã tự
+   nhiên, vì `id` của bảng tham chiếu đổi mỗi lần nạp lại CSV.
+2. Mọi khóa ngoại tới `users` là `ON DELETE CASCADE`: xóa tài khoản xóa sạch dữ liệu của nó.
+3. Nạp lại dữ liệu tham chiếu không bao giờ xóa hay đổi các bảng này (`USER_TABLES` trong `schema.py`, mục 8).
 
 ### Lịch sử gợi ý (lược đồ có, v1 chưa ghi vào)
 
@@ -236,9 +260,23 @@ Khối kiến thức nạp hai bước: chèn mọi khối trước, gán `paren
 trong cùng một file.
 
 ```bash
-python -m tools.build_db                      # dựng lại database đang trỏ tới từ CSV
+python -m tools.build_db                      # dựng lại bảng tham chiếu từ CSV, giữ bảng người dùng
 python -m tools.build_db --dirs data/seed      # chỉ dữ liệu chương trình đào tạo
+python -m tools.build_db --drop-user-data      # máy phát triển: xóa luôn tài khoản, bảng điểm, kế hoạch
 ```
+
+Từ v2, "CSV là nguồn" chỉ đúng với dữ liệu tham chiếu. Dữ liệu người dùng chỉ có trong database, nên database
+production không bao giờ được dựng lại bằng lệnh trên. Thay vào đó:
+
+```bash
+python -m tools.build_db --production                      # migrate, rồi nạp data/seed nếu database chưa có
+python -m tools.build_db --production --reload-reference   # thay dữ liệu tham chiếu bằng data/seed
+```
+
+Chế độ `--production` chỉ nạp `data/seed`, không nạp dữ liệu giả lập, và nạp lại bằng `TRUNCATE` trong một
+transaction trên đúng các bảng tham chiếu (`reload_reference()` trong `build.py`). Database đã có dữ liệu tham
+chiếu thì lệnh từ chối nạp lại khi thiếu `--reload-reference`, vì khung admin thêm qua API (hợp đồng v2 mục 6.14)
+không có trong `data/seed` và sẽ mất.
 
 ## 9. Đổi lược đồ
 
@@ -247,7 +285,16 @@ python -m tools.build_db --dirs data/seed      # chỉ dữ liệu chương trì
    trị này ở `GET /v1/meta`, nên client biết database đang ở phiên bản nào.
 3. Bỏ một bảng thì thêm tên nó vào `RETIRED_TABLES` trong `src/data/db/build.py`, để database dựng từ
    phiên bản cũ được dọn đúng cách. Hiện danh sách này chứa bốn bảng về nghề nghiệp đã bỏ ở `3.0.0`.
-4. Sinh lại các file dẫn xuất rồi commit kèm trong cùng pull request:
+   Bảng mới chứa dữ liệu người dùng thì thêm tên nó vào `USER_TABLES` trong `schema.py`.
+4. Tạo migration, đọc lại file sinh ra, viết docstring nói migration làm gì:
+
+```bash
+python -m tools.new_migration "them cot x vao bang y"    # migrations/versions/NNNN_them_cot_x_vao_bang_y.py
+```
+
+   Autogenerate không thấy đổi tên bảng, đổi tên cột hay sửa view: những thứ đó phải viết tay trong file. Không
+   sửa một migration đã merge; thay đổi tiếp theo là một migration mới.
+5. Sinh lại các file dẫn xuất rồi commit kèm trong cùng pull request:
 
 ```bash
 python -m tools.export_schema        # data/schema/schema_postgresql.sql
@@ -256,7 +303,7 @@ python -m tools.generate_fixtures    # test/fixtures/students/*.csv
 ```
 
 CI sinh lại đúng ba lệnh trên rồi chạy `git diff --exit-code`: file dẫn xuất lệch khỏi code sinh ra chúng
-thì build đỏ.
+thì build đỏ. `test/test_migrations.py` kiểm migration luôn ra đúng `schema.py`, nên quên bước 4 thì test đỏ.
 
-Lựa chọn "không dùng migration" chỉ còn đúng khi dữ liệu sinh lại được. Khi hệ thống bắt đầu lưu dữ liệu
-cần giữ — lịch sử gợi ý, phản hồi người dùng — nâng cấp lược đồ sẽ cần một công cụ migration.
+Nâng database đang chạy lên lược đồ mới: `python -m tools.migrate`. Lệnh chạy được trên database trống, database
+dựng bằng `tools.build_db` của v1 (lược đồ 3.0.0) và database đã migrate trước đó (`src/data/db/migrate.py`).

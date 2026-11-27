@@ -68,22 +68,18 @@ docker compose -f build/deploy/docker-compose.prod.yml ps        # chờ trạng
 # 2. Build image ứng dụng
 docker compose -f build/deploy/docker-compose.prod.yml build api
 
-# 3. Tạo lược đồ và nạp dữ liệu
-docker compose -f build/deploy/docker-compose.prod.yml run --rm api python -m tools.build_db
+# 3. Tạo lược đồ (migration) và nạp dữ liệu chương trình đào tạo
+docker compose -f build/deploy/docker-compose.prod.yml run --rm api python -m tools.build_db --production
 
 # 4. Khởi động API
 docker compose -f build/deploy/docker-compose.prod.yml up -d api
 ```
 
-Bước 3 **xóa và tạo lại toàn bộ bảng** rồi nạp lại từ CSV, nên chỉ chạy khi triển khai lần đầu hoặc khi
-cố ý dựng lại dữ liệu. Lệnh in số dòng đã nạp theo từng bảng; đối chiếu con số đó với số dòng trong CSV là
-cách kiểm tra nhanh nhất rằng dữ liệu vào đủ.
-
-Nạp riêng dữ liệu chương trình đào tạo, không nạp sinh viên giả lập:
-
-```bash
-docker compose -f build/deploy/docker-compose.prod.yml run --rm api python -m tools.build_db --dirs data/seed
-```
+Bước 3 chạy migration (`python -m tools.migrate`) rồi nạp `data/seed`. Lệnh **không bao giờ** nạp dữ liệu sinh
+viên giả lập và không đụng tới tài khoản, bảng điểm hay kế hoạch của sinh viên. Database đã có dữ liệu chương
+trình đào tạo thì lệnh từ chối nạp lại; thay bằng `data/seed` chỉ khi cố ý, với `--reload-reference` (khung admin
+thêm qua API sẽ mất). Lệnh in số dòng đã nạp theo từng bảng; đối chiếu con số đó với số dòng trong CSV là cách
+kiểm tra nhanh nhất rằng dữ liệu vào đủ.
 
 ---
 
@@ -111,7 +107,11 @@ docker compose -f build/deploy/docker-compose.prod.yml up -d api
 ```
 
 Cập nhật chỉ thay container `api`; `db` và volume `pgdata` không bị ảnh hưởng. Nếu phiên bản mới đổi lược
-đồ hoặc đổi dữ liệu, xem mục 7.
+đồ, chạy migration trước khi `up -d api`:
+
+```bash
+docker compose -f build/deploy/docker-compose.prod.yml run --rm api python -m tools.migrate
+```
 
 Quay về phiên bản trước: `git checkout` lại tag cũ rồi build và `up -d` như trên. Nếu phiên bản mới đã đổi
 lược đồ thì phải nạp lại dữ liệu theo mục 7.
@@ -120,12 +120,13 @@ lược đồ thì phải nạp lại dữ liệu theo mục 7.
 
 ## 7. Dựng lại từ đầu
 
-Dựng lại hoàn toàn, xóa sạch dữ liệu:
+Dựng lại hoàn toàn, **xóa sạch dữ liệu, kể cả tài khoản, bảng điểm và kế hoạch của sinh viên**. Từ v2 đây là
+thao tác không lấy lại được nếu không có bản sao lưu (mục 8):
 
 ```bash
 docker compose -f build/deploy/docker-compose.prod.yml down -v
 docker compose -f build/deploy/docker-compose.prod.yml up -d db
-docker compose -f build/deploy/docker-compose.prod.yml run --rm api python -m tools.build_db
+docker compose -f build/deploy/docker-compose.prod.yml run --rm api python -m tools.build_db --production
 docker compose -f build/deploy/docker-compose.prod.yml up -d api
 ```
 
@@ -133,8 +134,9 @@ docker compose -f build/deploy/docker-compose.prod.yml up -d api
 
 ## 8. Sao lưu và khôi phục
 
-Trong phạm vi hiện tại, **sao lưu định kỳ không phải yêu cầu bắt buộc**: dữ liệu là CSV trong repo và
-database dựng lại được bằng một lệnh (mục 7). Cách khôi phục rẻ nhất là nạp lại.
+Từ v2, **sao lưu định kỳ là bắt buộc**: tài khoản, bảng điểm và kế hoạch của sinh viên chỉ có trong database,
+không có trong CSV của repo, nên không dựng lại được. Lịch sao lưu và nơi giữ bản sao chốt cùng nơi triển khai.
+Dữ liệu chương trình đào tạo thì vẫn nạp lại được từ `data/seed`.
 
 Khi cần bản chụp database — ví dụ để điều tra một sự cố — dùng `pg_dump` trong container:
 

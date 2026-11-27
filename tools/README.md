@@ -12,7 +12,9 @@ database luôn lấy từ `DATABASE_URL`.
 
 | Script | Đọc | Ghi | Ghi vào database |
 | --- | --- | --- | --- |
-| `build_db.py` | `data/seed`, `data/synthetic` | – | Có: xóa và tạo lại database đang trỏ tới |
+| `build_db.py` | `data/seed`, `data/synthetic` | – | Có: tạo lại bảng tham chiếu, giữ bảng người dùng |
+| `migrate.py` | `migrations/` | – | Có: nâng lược đồ lên bản mới nhất, không mất dữ liệu |
+| `new_migration.py` | `src/data/db/schema.py` | `migrations/versions/*.py` | Không: tự tạo database tạm rồi xóa |
 | `generate_synthetic.py` | `data/seed` | `data/synthetic/*.csv` | Không: tự tạo database tạm rồi xóa |
 | `generate_fixtures.py` | `data/seed`, `test/fixtures/seed_demo` | `test/fixtures/students/*.csv` | Không: tự tạo database tạm rồi xóa |
 | `export_schema.py` | `src/data/db/` | `data/schema/schema_postgresql.sql` | Không |
@@ -28,8 +30,30 @@ python -m tools.build_db --dirs data/seed                        # chỉ dữ li
 python -m tools.build_db --url postgresql+psycopg://u:p@host:5432/db
 ```
 
-**Xóa và tạo lại toàn bộ bảng** rồi nạp lại từ CSV, in số dòng theo từng bảng. Dùng sau mỗi lần sửa CSV
-hoặc sửa lược đồ.
+**Xóa và tạo lại các bảng tham chiếu** rồi nạp lại từ CSV, in số dòng theo từng bảng. Dùng sau mỗi lần sửa
+CSV hoặc sửa lược đồ. Bảng người dùng của v2 (tài khoản, bảng điểm, kế hoạch) được giữ nguyên;
+`--drop-user-data` xóa luôn chúng.
+
+Database production không dựng lại bằng lệnh này, vì dữ liệu người dùng không sinh lại được từ CSV:
+
+```bash
+python -m tools.build_db --production                      # migrate, rồi nạp data/seed nếu database chưa có
+python -m tools.build_db --production --reload-reference   # thay dữ liệu tham chiếu bằng data/seed
+```
+
+Chi tiết: `docs/architecture/data-model.md` mục 8.
+
+---
+
+## `migrate.py`, `new_migration.py` — migration lược đồ
+
+```bash
+python -m tools.migrate                          # nâng database đang trỏ tới lên bản mới nhất
+python -m tools.new_migration "them bang x"      # sau khi sửa schema.py: sinh migrations/versions/NNNN_*.py
+```
+
+`migrate` chạy được trên database trống, database dựng bằng `build_db` của v1 và database đã migrate. Quy trình
+đổi lược đồ: `docs/architecture/data-model.md` mục 9.
 
 CSV dùng mã nghiệp vụ (`course_code`, `curriculum_code`…) cho dễ đọc và dễ sửa bằng tay; khi nạp, mã được
 đổi sang `id` của bảng đích. Thứ tự nạp do `LOAD_ORDER` trong `src/data/db/build.py` quyết định, nên một
