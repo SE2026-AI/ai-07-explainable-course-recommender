@@ -3,6 +3,7 @@
 | Tài liệu | Nội dung |
 | --- | --- |
 | `api-contract.md` | Hợp đồng API v1 giữa backend và các ứng dụng web, di động |
+| `api-contract-v2.md` | Hợp đồng API v2: tài khoản, bảng điểm và kế hoạch lưu trên server, admin bổ sung CTĐT |
 | `data-model.md` | Lược đồ dữ liệu, khóa nghiệp vụ, quy ước đặt tên, cách đọc qua `Repository` |
 | `ranking.md` | Công thức sáu tiêu chí xếp hạng và cách dựng lời giải thích |
 
