@@ -4,7 +4,7 @@
 | --- | --- |
 | Phiên bản hợp đồng | 1.1.0 |
 | Cập nhật | 2026-11-19 |
-| Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
+| Lược đồ dữ liệu áp dụng | `schema_version = 4.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
 client triển khai độc lập theo tài liệu này.
@@ -308,7 +308,7 @@ cùng một định dạng.
 ```json
 {
   "api_version": "1.0.0",
-  "schema_version": "3.0.0",
+  "schema_version": "4.0.0",
   "algorithm": "rule_based_weighted",
   "algorithm_version": "1.1.0",
   "default_term": "20261",

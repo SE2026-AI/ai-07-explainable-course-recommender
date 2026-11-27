@@ -10,6 +10,7 @@ pydantic>=2.8
 # Tầng dữ liệu (src/data): PostgreSQL + nạp CSV
 pandas>=2.0
 SQLAlchemy>=2.0
+alembic>=1.13           # migration lược đồ (src/data/db/migrate.py), bắt buộc khi có dữ liệu người dùng
 psycopg[binary]>=3.1
 openpyxl>=3.1            # chỉ dùng cho tools/export_excel.py
 

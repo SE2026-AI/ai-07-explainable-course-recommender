@@ -15,8 +15,11 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
-from .schema import metadata
+from .schema import USER_TABLES, metadata
 from .views import VIEWS
+
+# Bảng tham chiếu và bảng sinh viên giả lập: mọi bảng của schema.py trừ bảng người dùng. Chỉ chúng được nạp lại.
+REFERENCE_TABLES = [t for t in metadata.sorted_tables if t.name not in USER_TABLES]
 
 LOAD_ORDER = [
     "data_sources.csv", "data_issues.csv", "universities.csv", "faculties.csv", "majors.csv",
@@ -74,7 +77,12 @@ def temporary_database(base_url=None, prefix="tmp_coursereco"):
 RETIRED_TABLES = ["student_career_goals", "major_careers", "career_skills", "careers"]     # bỏ ở 3.0.0
 
 
-def create_schema(engine, drop=False):
+def create_schema(engine, drop=False, drop_user_data=False):
+    """Tạo các bảng còn thiếu và dựng lại view. `drop=True` xóa rồi tạo lại bảng tham chiếu.
+
+    Bảng người dùng (`USER_TABLES`) chỉ bị xóa khi `drop_user_data=True`, kể cả khi `drop=True`: dựng lại
+    database cho máy phát triển không được làm mất tài khoản, bảng điểm hay kế hoạch đang có. Xóa được bảng
+    tham chiếu mà không đụng bảng người dùng vì bảng người dùng không có khóa ngoại tới chúng (schema.py)."""
     with engine.begin() as conn:
         for name in VIEWS:
             conn.execute(text(f"DROP VIEW IF EXISTS {name} CASCADE"))
@@ -82,7 +90,7 @@ def create_schema(engine, drop=False):
             for name in RETIRED_TABLES:
                 conn.execute(text(f"DROP TABLE IF EXISTS {name}"))
     if drop:
-        metadata.drop_all(engine)
+        metadata.drop_all(engine, tables=metadata.sorted_tables if drop_user_data else REFERENCE_TABLES)
     metadata.create_all(engine)
     with engine.begin() as conn:
         for name, sql in VIEWS.items():
@@ -287,28 +295,56 @@ def _term(terms_map, ids, university_code, term_code):
     return _need(terms_map, (university_code, str(term_code).strip()), "học kỳ")
 
 
+def _load(conn, folder):
+    """Nạp mọi file CSV có trong `folder` theo LOAD_ORDER, trong transaction của `conn`."""
+    dem = {}
+    ids = _Ids(conn)
+    for name in LOAD_ORDER:
+        path = os.path.join(folder, name)
+        if not os.path.exists(path):
+            continue
+        df = pd.read_csv(path, keep_default_na=False, dtype=str)
+        table, rows = _rows(ids, name, df)
+        if rows:
+            conn.execute(metadata.tables[table].insert(), rows)
+        dem[table] = len(rows)
+        if name == "curriculum_blocks.csv":     # khối cha-con: nạp xong mới gán khối cha
+            b = ids.map("block")
+            for r in df.itertuples():
+                if _opt(r.parent_code):
+                    conn.execute(text("UPDATE curriculum_blocks SET parent_block_id = :p WHERE id = :i"),
+                                 {"p": _need(b, (r.curriculum_code, r.parent_code), "khối"),
+                                  "i": b[(r.curriculum_code, r.code)]})
+    return dem
+
+
 def load_directory(engine, folder):
     """Nạp mọi file CSV có trong `folder` theo LOAD_ORDER. Trả về số dòng đã nạp theo bảng."""
-    dem = {}
     with engine.begin() as conn:
-        ids = _Ids(conn)
-        for name in LOAD_ORDER:
-            path = os.path.join(folder, name)
-            if not os.path.exists(path):
-                continue
-            df = pd.read_csv(path, keep_default_na=False, dtype=str)
-            table, rows = _rows(ids, name, df)
-            if rows:
-                conn.execute(metadata.tables[table].insert(), rows)
-            dem[table] = len(rows)
-            if name == "curriculum_blocks.csv":     # khối cha-con: nạp xong mới gán khối cha
-                b = ids.map("block")
-                for r in df.itertuples():
-                    if _opt(r.parent_code):
-                        conn.execute(text("UPDATE curriculum_blocks SET parent_block_id = :p WHERE id = :i"),
-                                     {"p": _need(b, (r.curriculum_code, r.parent_code), "khối"),
-                                      "i": b[(r.curriculum_code, r.code)]})
-    return dem
+        return _load(conn, folder)
+
+
+def reference_loaded(engine):
+    """Database đã có dữ liệu tham chiếu chưa (ít nhất một khung chương trình)."""
+    with engine.connect() as conn:
+        return bool(conn.execute(text("SELECT EXISTS (SELECT 1 FROM curricula)")).scalar())
+
+
+def reload_reference(engine, folders=("data/seed",)):
+    """Thay toàn bộ dữ liệu tham chiếu bằng CSV của `folders`, giữ nguyên mọi bảng người dùng.
+
+    Chế độ production của `tools.build_db`: lược đồ do migration quản lý (`src/data/db/migrate.py`), nên ở đây chỉ
+    TRUNCATE rồi nạp lại, không DROP hay CREATE bảng nào. Cả hai bước nằm trong một transaction: nạp lỗi giữa
+    chừng thì database giữ nguyên như trước. Không dùng CASCADE: nếu sau này ai đó thêm khóa ngoại từ bảng người
+    dùng tới bảng tham chiếu, lệnh TRUNCATE báo lỗi thay vì lặng lẽ xóa dữ liệu người dùng."""
+    names = ", ".join(t.name for t in REFERENCE_TABLES)
+    tong = {}
+    with engine.begin() as conn:
+        conn.execute(text(f"TRUNCATE TABLE {names} RESTART IDENTITY"))
+        for f in folders:
+            for k, v in _load(conn, f).items():
+                tong[k] = tong.get(k, 0) + v
+    return tong
 
 
 @contextmanager
@@ -322,10 +358,13 @@ def scratch_build(folders, base_url=None):
             engine.dispose()
 
 
-def build(url, folders, drop=True):
-    """Tạo lại toàn bộ cơ sở dữ liệu rồi nạp các thư mục CSV theo thứ tự."""
+def build(url, folders, drop=True, drop_user_data=False):
+    """Tạo lại các bảng tham chiếu rồi nạp các thư mục CSV theo thứ tự. Dùng cho máy phát triển và kiểm thử.
+
+    Bảng người dùng được giữ nguyên trừ khi `drop_user_data=True` (xem `create_schema`). Database production dùng
+    `migrate()` và `reload_reference()` thay vì hàm này."""
     engine = get_engine(url)
-    create_schema(engine, drop=drop)
+    create_schema(engine, drop=drop, drop_user_data=drop_user_data)
     tong = {}
     for f in folders:
         for k, v in load_directory(engine, f).items():

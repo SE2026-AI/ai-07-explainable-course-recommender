@@ -73,7 +73,7 @@ def test_meta(api_client: TestClient):
     assert r.status_code == 200
     data = r.json()
     assert data["api_version"] == "1.0.0"
-    assert data["schema_version"] == "3.0.0"
+    assert data["schema_version"] == "4.0.0"
     assert data["algorithm"] == "rule_based_weighted"
     assert data["algorithm_version"] == ALGORITHM_VERSION
     assert data["default_term"] == "20261"

@@ -15,6 +15,8 @@ RUN pip install -r requirements.txt
 COPY src/ ./src/
 COPY tools/ ./tools/
 COPY data/ ./data/
+COPY alembic.ini ./
+COPY migrations/ ./migrations/
 COPY pytest.ini ./
 
 # Không chạy bằng root.
