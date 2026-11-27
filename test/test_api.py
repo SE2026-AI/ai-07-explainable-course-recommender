@@ -772,8 +772,8 @@ def test_plan_check_credits(api_client_all: TestClient, monkeypatch: pytest.Monk
 
     Kiểm tra bất biến §6.7:
     - Bỏ trùng: mã môn lặp lại không cộng dồn tín chỉ nhiều lần.
-    - Khối không tích lũy: môn thuộc khối có counts_toward_total = False (ví dụ HUS1012 khối I.3)
-      không được cộng vào total_credits.
+    - Khối không tích lũy: môn thuộc khối có counts_toward_total = False (ví dụ HUS1012 khối I.3) không tính vào
+      tổng tín chỉ tốt nghiệp, nhưng VẪN cộng vào total_credits của học kỳ (lỗi số 1 của review 27/11).
     """
     import src.explain
     import src.rules.plan
@@ -794,18 +794,18 @@ def test_plan_check_credits(api_client_all: TestClient, monkeypatch: pytest.Monk
     assert data["valid"] is True
 
     # Thêm môn HUS1012 (khối I.3 có counts_toward_total = False, 3 tín chỉ)
-    # và lặp lại môn MAT2505 -> total_credits vẫn phải bằng 17
+    # và lặp lại môn MAT2505 -> 17 + 3 = 20: HUS1012 chiếm tín chỉ của học kỳ, MAT2505 chỉ cộng một lần
     body_with_extra = {
         "term": "20261",
         "course_codes": [
             "MAT2505", "MAT2323", "MAT2503", "PHI1002", "HIS1056", "MAT3533",
-            "HUS1012",  # counts_toward_total = False
+            "HUS1012",  # counts_toward_total = False, vẫn tính vào tín chỉ học kỳ
             "MAT2505",  # mã môn trùng lặp
         ],
     }
     r2 = api_client_all.post("/v1/universities/HUS/students/T03/plan-check", json=body_with_extra)
     assert r2.status_code == 200
-    assert r2.json()["total_credits"] == 17
+    assert r2.json()["total_credits"] == 20
 
 
 def test_plan_check_violations_contract(api_client_all: TestClient):
@@ -2472,14 +2472,14 @@ def test_transcript_plan_check_validation_422_fields(
 def test_transcript_plan_check_credits_determinism_stateless_and_privacy(
     api_client_all: TestClient, repo_all
 ):
-    """API-6: Tính total_credits (bỏ trùng + chỉ cộng counts_toward_total=true), tất định, không ghi DB."""
+    """API-6: Tính total_credits (bỏ trùng, cộng cả khối counts_toward_total=false), tất định, không ghi DB."""
     before = _table_row_counts(repo_all)
 
     body = {
         **T03_TRANSCRIPT_BODY,
         "course_codes": [
             "MAT2505", "MAT2323", "MAT2503", "PHI1002", "HIS1056", "MAT3533",
-            "HUS1012",  # counts_toward_total = False (khối I.3)
+            "HUS1012",  # counts_toward_total = False (khối I.3), vẫn tính vào tín chỉ học kỳ
             "MAT2505",  # mã môn trùng lặp
         ],
     }
@@ -2499,7 +2499,7 @@ def test_transcript_plan_check_credits_determinism_stateless_and_privacy(
     assert data["target_semester"] == 3
     assert data["min_credits"] == 10
     assert data["max_credits"] == 20
-    assert data["total_credits"] == 17
+    assert data["total_credits"] == 20
     assert data["max_credits_per_term"] == 40
     assert isinstance(data["violations"], list)
     assert isinstance(data["warnings"], list)

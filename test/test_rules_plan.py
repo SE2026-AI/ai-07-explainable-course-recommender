@@ -3,7 +3,7 @@
 import pandas as pd
 
 from src.recommender import recommend
-from src.rules.plan import check_plan
+from src.rules.plan import check_plan, plan_total_credits, term_credits
 
 
 class _Repo:
@@ -152,9 +152,21 @@ def test_elective_block_limit_accounts_for_passed_credits_and_non_divisible_limi
     }]
 
 
-def test_non_counting_block_courses_do_not_add_to_term_total():
+def test_non_counting_block_courses_still_add_to_term_total():
+    """Kỹ năng bổ trợ (khối `counts_toward_total = false`) không tính vào tổng tín chỉ tốt nghiệp, nhưng vẫn chiếm
+    tín chỉ của học kỳ, như khoảng tín chỉ của mục 6.11 (lỗi số 1 của review 27/11)."""
     repo = _Repo([_course("A", 8), _course("X", 8, counts=False)], max_credits=8)
-    assert check_plan(repo, _student(), ["A", "X"]) == []
+    assert check_plan(repo, _student(), ["A", "X"]) == [{
+        "code": "credit_limit_exceeded", "course_code": "X",
+        "data": {"max_credits_per_term": 8, "total_credits": 16},
+    }]
+
+
+def test_plan_total_counts_every_known_course_once_whatever_its_block():
+    courses = pd.DataFrame([_course("A", 4), _course("X", 3, counts=False), _course("B", 2)])
+    assert term_credits(_course("X", 3, counts=False)) == 3, "cờ counts_toward_total không áp cho tín chỉ học kỳ"
+    assert plan_total_credits(courses, ["A", "X", "A", "NOPE", "B"]) == 9
+    assert plan_total_credits(courses, []) == 0
 
 
 def test_passed_elective_in_plan_is_not_counted_twice_for_its_block():

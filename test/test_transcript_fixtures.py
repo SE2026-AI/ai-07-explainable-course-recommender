@@ -17,7 +17,7 @@ import pytest
 
 import src.recommender as rec
 from src.explain import status_text, violation_text
-from src.rules.plan import check_plan
+from src.rules.plan import check_plan, plan_total_credits
 from src.rules.status import course_status_details
 
 FIXTURES = sorted(Path("test/fixtures/transcripts").glob("*.json"))
@@ -224,6 +224,42 @@ def test_the_credit_window_example_of_the_contract_is_what_t03_really_gets(repo_
     assert "MAT2403" in {item["course_code"] for item in without["items"]}, "chỗ đó thuộc về MAT2403 khi không include"
 
 
+def _contract_t03_window():
+    """Bảng điểm và khoảng tín chỉ của ví dụ mục 6.11: danh sách gợi ý có HUS1012 (Kỹ năng bổ trợ)."""
+    body = _contract_block("6.11", "Body gồm mọi trường")
+    return "HUS", "HUS-7480113QTD-2022", {**_t03_body(), **{key: body[key] for key in ("min_credits", "max_credits")}}
+
+
+def _window_cases():
+    return [(path.stem, path) for path in FIXTURES] + [("vi-du-6.11-T03", None)]
+
+
+@pytest.mark.parametrize("name,path", _window_cases(), ids=[name for name, _ in _window_cases()])
+def test_a_recommended_list_passes_the_plan_check_credit_rules(repo_all, name, path):
+    """Bất biến "Gợi ý khớp kiểm tra kế hoạch" (mục 7): đưa `items` của mục 6.11 vào mục 6.12, cùng bảng điểm và cùng
+    khoảng tín chỉ, thì hai mục ra cùng một tổng, không có `credit_limit_exceeded`, và có `credit_below_minimum` khi
+    và chỉ khi mục 6.11 cảnh báo `below_min_credits`. Lỗi số 1 của review 27/11: mục 6.12 từng bỏ tín chỉ của Kỹ năng
+    bổ trợ (khối không tính vào tổng tín chỉ tốt nghiệp) mà mục 6.11 thì cộng, nên cùng danh sách ra hai tổng."""
+    if path is None:
+        university_code, curriculum_code, request = _contract_t03_window()
+    else:
+        data = _load(path)
+        university_code, curriculum_code, request = data["university_code"], data["curriculum_code"], data["request"]
+    row = _transcript_row(repo_all, university_code, curriculum_code, request)
+    result = rec.recommend(repo_all, row, **_window_kwargs(request))
+    codes = [item["course_code"] for item in result["items"]]
+
+    total = result["credit_window"]["total_credits"]
+    assert total == plan_total_credits(repo_all.curriculum_courses(curriculum_code), codes), "tổng của mục 6.12"
+    violations = {v["code"] for v in check_plan(repo_all, row, codes, **_window_kwargs(request))}
+    assert "credit_limit_exceeded" not in violations
+    below = "below_min_credits" in {warning["code"] for warning in result["warnings"]}
+    assert ("credit_below_minimum" in violations) == below
+    # Tầng luật cũng ra đúng tổng đó: khoảng khít bằng tổng của mục 6.11 thì không có vi phạm tín chỉ nào.
+    tight = {v["code"] for v in check_plan(repo_all, row, codes, min_credits=total, max_credits=total)}
+    assert not tight & {"credit_limit_exceeded", "credit_below_minimum"}, tight
+
+
 def test_the_plan_check_example_of_the_contract_is_t03(repo_all):
     """Mục 6.12: kế hoạch của mục 6.7 với bảng điểm của T03. Vi phạm gắn với môn lấy từ `check_plan()` của tầng
     luật; khoảng tín chỉ chưa có ở tầng luật (RULES-6), nên `credit_below_minimum` được kiểm bằng phép so và câu
@@ -233,11 +269,9 @@ def test_the_plan_check_example_of_the_contract_is_t03(repo_all):
     curriculum_code = example["curriculum_code"]
     row = _transcript_row(repo_all, "HUS", curriculum_code, _t03_body())
     courses = repo_all.curriculum_courses(curriculum_code).set_index("course_code")
-    blocks = repo_all.blocks(curriculum_code).set_index("block_code")
     names = courses["course_name"].to_dict()
 
-    total = sum(int(courses.loc[code, "credits"]) for code in dict.fromkeys(body["course_codes"])
-                if code in courses.index and bool(blocks.loc[courses.loc[code, "block_code"], "counts_toward_total"]))
+    total = plan_total_credits(courses.reset_index(), body["course_codes"])
     assert (example["min_credits"], example["max_credits"]) == (body["min_credits"], body["max_credits"])
     assert example["total_credits"] == total == 17
     assert example["target_semester"] == _t03_body()["semesters_completed"] + 1

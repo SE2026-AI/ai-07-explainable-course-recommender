@@ -34,7 +34,6 @@ from src.api.schemas.transcript import (
     TranscriptWarningOut,
 )
 from src.api.services.students import (
-    calculate_plan_total_credits,
     filter_leaf_blocks,
     summarize_course_status,
     validate_curriculum,
@@ -389,8 +388,7 @@ def _run_plan_check_pipeline(
         else _plan_check_default_max_credits(curriculum, body.min_credits)
     )
     cap = int(curriculum["max_credits_per_term"])
-    blocks_df = repo.blocks(curriculum_code).set_index("block_code")
-    total_credits = calculate_plan_total_credits(courses_df, blocks_df, body.course_codes)
+    total_credits = src.rules.plan.plan_total_credits(courses_df, body.course_codes)
     student = _build_transcript_student(repo, uni, curriculum_code, curriculum, courses_df, body)
 
     try:

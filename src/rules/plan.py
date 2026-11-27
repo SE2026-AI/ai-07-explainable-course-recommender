@@ -14,6 +14,25 @@ def _value(course: Mapping[str, Any] | pd.Series, key: str, default: Any = None)
     return default if value is None or (not isinstance(value, (list, tuple, dict)) and pd.isna(value)) else value
 
 
+def term_credits(course: Mapping[str, Any] | pd.Series) -> int:
+    """Credits one course takes up in a term's total (contract 6.7, 6.11, 6.12): all of its credits.
+
+    This is the single place of that rule. A block that does not count toward the graduation
+    total (soft skills, HUS1012) still takes up the term's load, so ``counts_toward_total`` is
+    deliberately ignored here: it only affects graduation progress and GPA. Plan checking, the
+    credit-window selection of the ranking layer and the synthetic data generator all call this,
+    so a recommended list always has the same total when it is checked as a plan.
+    """
+    return int(course["credits"])
+
+
+def plan_total_credits(courses: pd.DataFrame, course_codes: Sequence[str]) -> int:
+    """Credits a one-term plan takes up (contract 6.7): ``term_credits()`` of each curriculum
+    course once, whatever its block and however often it is listed. Unknown codes add nothing."""
+    by_code = {str(row["course_code"]): row for row in courses.to_dict("records")}
+    return sum(term_credits(by_code[code]) for code in dict.fromkeys(course_codes) if code in by_code)
+
+
 def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
                course_codes: Sequence[str], min_credits=None, max_credits=None) -> list[dict[str, Any]]:
     """Return all rule violations for ``course_codes`` in their supplied order.
@@ -35,14 +54,14 @@ def check_plan(repo: Any, student: Mapping[str, Any] | pd.Series,
 
     # Associate plan-wide limit violations with the first course occurrence that
     # takes the cumulative total over the limit, while reporting the final total.
+    # Same total as plan_total_credits(): term_credits() of every known course, once.
     total_credits = 0
     total_crossing: int | None = None
     counted_total_codes: set[str] = set()
     for index, code in enumerate(course_codes):
         course = by_code.get(code)
-        if (course is not None and code not in counted_total_codes
-                and bool(_value(course, "counts_toward_total", True))):
-            total_credits += int(course["credits"])
+        if course is not None and code not in counted_total_codes:
+            total_credits += term_credits(course)
             counted_total_codes.add(code)
             if total_crossing is None and total_credits > maximum:
                 total_crossing = index

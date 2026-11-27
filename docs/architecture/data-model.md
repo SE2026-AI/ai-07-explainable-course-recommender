@@ -162,7 +162,10 @@ Các cột dưới đây bị ràng buộc `CHECK` trong lược đồ. Enum tro
 | `recommendation_feedback.action` | `viewed`, `accepted`, `rejected`, `registered` |
 
 `counts_toward_total = false` ở `curriculum_blocks` nghĩa là khối không tính vào tổng tín chỉ tốt nghiệp
-(Giáo dục thể chất, Giáo dục quốc phòng – an ninh, Kỹ năng bổ trợ). Mọi phép tính tiến độ phải tôn trọng cờ này.
+(Giáo dục thể chất, Giáo dục quốc phòng – an ninh, Kỹ năng bổ trợ). Mọi phép tính tiến độ phải tôn trọng cờ này:
+tín chỉ tích lũy, tín chỉ còn nợ và GPA bỏ qua các khối đó. Cờ này KHÔNG áp dụng cho tổng tín chỉ của một học kỳ:
+môn của khối đó vẫn chiếm tín chỉ khi đăng ký. Luật này chỉ nằm ở `rules.plan.term_credits()`, hàm mà kiểm tra
+kế hoạch, bước chọn theo khoảng tín chỉ và bộ sinh dữ liệu giả lập cùng gọi (hợp đồng mục 6.7, 6.11, 6.12).
 
 ## 6. View
 

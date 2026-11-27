@@ -29,6 +29,7 @@ from src.recommender.scoring import (
 )
 from src.recommender.selection import pick_items, pick_within_credits
 from src.recommender.whatif import apply_assumptions, check_choices, check_window_choices
+from src.rules.plan import term_credits
 from src.rules.status import course_status_details, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
@@ -329,7 +330,7 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     low, high = window
     items, left_out = pick_within_credits(ranked, high, required, taken, open_courses, chosen, skipped)
     _require_included(left_out, chosen, high)
-    total = sum(item["credits"] for item in items)
+    total = sum(term_credits(item) for item in items)
     credit_window = {"min_credits": low, "max_credits": high, "total_credits": total}
     names = dict(zip(courses["course_code"], courses["course_name"], strict=True))
     return {"what_if": bool(assumptions or skip or include),
