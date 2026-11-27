@@ -773,7 +773,7 @@ def test_plan_check_credits(api_client_all: TestClient, monkeypatch: pytest.Monk
     Kiểm tra bất biến §6.7:
     - Bỏ trùng: mã môn lặp lại không cộng dồn tín chỉ nhiều lần.
     - Khối không tích lũy: môn thuộc khối có counts_toward_total = False (ví dụ HUS1012 khối I.3) không tính vào
-      tổng tín chỉ tốt nghiệp, nhưng VẪN cộng vào total_credits của học kỳ (lỗi số 1 của review 27/11).
+      tổng tín chỉ tốt nghiệp, nhưng VẪN cộng vào total_credits của học kỳ, như khoảng tín chỉ của mục 6.11.
     """
     import src.explain
     import src.rules.plan
@@ -2344,7 +2344,7 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
     cw = data["credit_window"]
     assert cw["total_credits"] <= cw["max_credits"]
     has_below = any(w["code"] == "below_min_credits" for w in data["warnings"])
-    assert has_below == (cw["total_credits"] < cw["min_credits"])
+    assert has_below == (cw["total_credits"] < min(cw["min_credits"], cw.get("credits_to_graduate", cw["min_credits"])))
     assert len(data["items"]) + len(data["not_selected"]) == data["candidate_count"]
 
 

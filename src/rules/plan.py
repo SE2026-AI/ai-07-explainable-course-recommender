@@ -26,6 +26,22 @@ def term_credits(course: Mapping[str, Any] | pd.Series) -> int:
     return int(course["credits"])
 
 
+def credits_to_graduate(curriculum: Mapping[str, Any] | pd.Series,
+                        student: Mapping[str, Any] | pd.Series) -> int | None:
+    """Credits still missing to graduate: the curriculum's ``total_credits`` minus the student's
+    ``credits_earned``, never below 0. ``None`` when the student row carries no ``credits_earned``.
+
+    In a student's last term this can be below ``min_credits``, and then the term cannot (and need
+    not) reach that minimum. Contract 6.11 lowers its credit floor to this number; contract 6.12
+    should use the same function for ``credit_below_minimum``. ``credits_earned`` only counts blocks
+    that count toward the graduation total, exactly like ``total_credits``.
+    """
+    earned = _value(student, "credits_earned")
+    if earned is None:
+        return None
+    return max(0, int(curriculum["total_credits"]) - int(earned))
+
+
 def plan_total_credits(courses: pd.DataFrame, course_codes: Sequence[str]) -> int:
     """Credits a one-term plan takes up (contract 6.7): ``term_credits()`` of each curriculum
     course once, whatever its block and however often it is listed. Unknown codes add nothing."""

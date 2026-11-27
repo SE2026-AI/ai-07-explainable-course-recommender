@@ -198,6 +198,10 @@ class CreditWindowOut(BaseModel):
     min_credits: int
     max_credits: int
     total_credits: int
+    credits_to_graduate: int | None = Field(
+        default=None,
+        description="Số tín chỉ còn thiếu để tốt nghiệp; chỉ có khi nhỏ hơn min_credits, và khi đó là mức sàn (mục 6.11)",
+    )
     text: str
 
 

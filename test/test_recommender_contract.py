@@ -362,9 +362,11 @@ def curriculum_of(repo_all):
     return read
 
 
-def test_credit_window_invariants_hold_for_every_student(windowed_all, curriculum_of):
-    """Bất biến "Khoảng tín chỉ" và "Không môn học được nào bị bỏ lặng lẽ" (mục 7), quy định 3–6 của mục 6.11."""
+def test_credit_window_invariants_hold_for_every_student(repo_all, windowed_all, curriculum_of):
+    """Bất biến "Khoảng tín chỉ" và "Không môn học được nào bị bỏ lặng lẽ" (mục 7), quy định 3–6 của mục 6.11.
+    Mức sàn là `min_credits`, hoặc số tín chỉ còn thiếu để tốt nghiệp khi số đó nhỏ hơn (quy định 4)."""
     errors = []
+    totals = repo_all.curricula().set_index("curriculum_code")["total_credits"].to_dict()
     for student, (low, high), result in windowed_all:
         who = (student["university_code"], student["student_code"])
         items, left_out = result["items"], result["not_selected"]
@@ -376,8 +378,11 @@ def test_credit_window_invariants_hold_for_every_student(windowed_all, curriculu
             errors.append((who, "credit_window", window))
         if total > high:
             errors.append((who, "vượt max_credits", total))
-        if ("below_min_credits" in {w["code"] for w in result["warnings"]}) != (total < low):
-            errors.append((who, "below_min_credits", total))
+        to_graduate = max(0, int(totals[student["curriculum_code"]]) - int(student["credits_earned"]))
+        if ("below_min_credits" in {w["code"] for w in result["warnings"]}) != (total < min(low, to_graduate)):
+            errors.append((who, "below_min_credits", total, to_graduate))
+        if window.get("credits_to_graduate") != (to_graduate if to_graduate < low else None):
+            errors.append((who, "credits_to_graduate", window, to_graduate))
         codes = [row["course_code"] for row in items + left_out]
         not_eligible = {row["course_code"] for row in result["not_eligible"]}
         every = set(curriculum_of(student["curriculum_code"])[0].index)

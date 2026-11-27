@@ -491,6 +491,11 @@ export interface components {
          * @description Khoảng tín chỉ sinh viên đặt và tổng tín chỉ thực tế được xếp (mục 6.11).
          */
         CreditWindowOut: {
+            /**
+             * Credits To Graduate
+             * @description Số tín chỉ còn thiếu để tốt nghiệp; chỉ có khi nhỏ hơn min_credits, và khi đó là mức sàn (mục 6.11)
+             */
+            credits_to_graduate?: number | null;
             /** Max Credits */
             max_credits: number;
             /** Min Credits */

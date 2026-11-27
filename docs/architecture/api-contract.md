@@ -227,7 +227,7 @@ và `course_code` khi gắn với một môn.
 
 | `code` | Nghĩa | Trường trong `data` |
 | --- | --- | --- |
-| `below_min_credits` | Tổng tín chỉ đã xếp thấp hơn `min_credits`: không còn môn học được nào vừa với `max_credits` và luật khối tự chọn | `min_credits`, `total_credits` |
+| `below_min_credits` | Tổng tín chỉ đã xếp thấp hơn mức sàn: `min_credits`, hoặc số tín chỉ còn thiếu để tốt nghiệp khi số đó nhỏ hơn (mục 6.11, quy định 4). `cause` cho biết vì sao: `skipped` (sinh viên đã chọn chưa học một số môn), `limits` (không môn còn lại nào vừa với `max_credits` và luật khối tự chọn), `no_more_courses` (kỳ này không còn môn nào học được) | `min_credits`, `total_credits`, `cause`; `credits_to_graduate` khi nhỏ hơn `min_credits`; `skipped_courses`, `skipped_credits` khi `cause = skipped` |
 | `prerequisite_not_in_transcript` | Bảng điểm ghi đã đạt một môn nhưng chưa đạt môn nào của một nhóm tiên quyết của nó | `missing_prerequisites` |
 | `studied_before_prerequisite` | Một môn ghi học ở kỳ sớm hơn hoặc cùng kỳ với môn tiên quyết đã đạt của nó | `semester`, `prerequisite_code`, `prerequisite_semester` |
 
@@ -310,7 +310,7 @@ cùng một định dạng.
   "api_version": "1.0.0",
   "schema_version": "3.0.0",
   "algorithm": "rule_based_weighted",
-  "algorithm_version": "1.1.0",
+  "algorithm_version": "1.1.1",
   "default_term": "20261",
   "curriculum_codes": ["HUS-7460108-2022", "HUS-7480113QTD-2022"]
 }
@@ -539,7 +539,7 @@ Phản hồi, rút gọn còn hai học phần:
   "student_code": "T03",
   "curriculum_code": "HUS-7480113QTD-2022",
   "term": "20261",
-  "algorithm_version": "1.1.0",
+  "algorithm_version": "1.1.1",
   "what_if": false,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
@@ -846,7 +846,7 @@ Phản hồi, `items` rút gọn còn môn đầu và môn cuối, `not_selected
 {
   "university_code": "HUS",
   "curriculum_code": "HUS-7480113QTD-2022",
-  "algorithm_version": "1.1.0",
+  "algorithm_version": "1.1.1",
   "what_if": true,
   "weights": {"outstanding_retake": 3.0, "overdue": 2.0, "on_time": 2.0,
               "unlocks": 1.5, "strong_topic": 1.0, "interest": 0.5},
@@ -936,8 +936,12 @@ Quy định của endpoint này:
    được. Môn không vừa thì bỏ qua và XÉT TIẾP môn dưới, nên còn trống 2 tín chỉ thì môn 2 tín chỉ xếp dưới vẫn
    vào được.
 3. `credit_window.total_credits` = tổng `credits` của `items`, luôn `<= max_credits`.
-4. `total_credits < min_credits` chỉ khi không còn môn học được nào vừa: khi đó `warnings` có
-   `below_min_credits`. Tầng xếp hạng KHÔNG ĐƯỢC phá ràng buộc cứng để đạt `min_credits`.
+4. Mức sàn là `min_credits`, trừ kỳ cuối: khi số tín chỉ còn thiếu để tốt nghiệp (`total_credits` của khung trừ
+   `credits_earned` của mục 6.10) nhỏ hơn `min_credits`, `credit_window` có thêm `credits_to_graduate` bằng số đó và
+   mức sàn là số đó. Tổng thấp hơn mức sàn chỉ khi không xếp thêm được môn nào: khi đó `warnings` có
+   `below_min_credits`, kèm nguyên nhân. Tầng xếp hạng KHÔNG ĐƯỢC phá ràng buộc cứng để đạt mức sàn. Ví dụ bảng
+   điểm mẫu `sap-tot-nghiep`: còn 7 tín chỉ để tốt nghiệp, xếp được đúng 7, nên không có cảnh báo và `text` là
+   "Tổng 7 tín chỉ: bạn chỉ còn 7 tín chỉ để tốt nghiệp, nên không cần đủ mức tối thiểu 10 bạn đặt."
 5. Mỗi học phần có `status` là `retake` hoặc `eligible` nằm ở đúng một trong hai danh sách `items` và
    `not_selected`. Vì vậy `candidate_count` = số phần tử của `items` + số phần tử của `not_selected`, và
    cộng thêm `not_eligible` thì bằng số học phần của khung.
@@ -1033,7 +1037,7 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 | Có ích | precision@5 của `items` so với `data/synthetic/course_registrations.csv` của học kỳ tương ứng, trung bình trên mọi sinh viên, không thấp hơn **0,85** |
 | Lỗi đúng định dạng | Mọi phản hồi từ 400 trở lên khớp lược đồ ở mục 5 |
 | Bảng điểm tự nhập trùng cơ sở dữ liệu | Chép kết quả của một sinh viên thành body mục 6.10: tiến độ và trạng thái trùng mục 6.4, 6.5 |
-| Khoảng tín chỉ | Ở mục 6.11: `total_credits <= max_credits`; `total_credits < min_credits` khi và chỉ khi có `below_min_credits` |
+| Khoảng tín chỉ | Ở mục 6.11: `total_credits <= max_credits`; `total_credits` thấp hơn mức sàn (`min_credits`, hoặc `credits_to_graduate` khi có) khi và chỉ khi có `below_min_credits` |
 | Không môn học được nào bị bỏ lặng lẽ | Ở mục 6.11: mỗi học phần `retake` hoặc `eligible` ở đúng một trong `items` và `not_selected` |
 | Bảng điểm tự nhập không được lưu | Gọi mục 6.10, 6.11 và 6.12 rồi đếm số dòng của mọi bảng: không bảng nào đổi |
 | Kế hoạch trong khoảng tín chỉ | Ở mục 6.12: có `credit_below_minimum` khi và chỉ khi `total_credits < min_credits`, có `credit_limit_exceeded` khi và chỉ khi `total_credits > max_credits` |
@@ -1077,4 +1081,6 @@ viên thật. Đổi ngưỡng là thay đổi hợp đồng.
 
 - Danh sách học phần được mở theo từng học kỳ. Khi có dữ liệu này, `term` sẽ lọc thêm theo khả năng mở lớp,
   và `course-status` có thêm một trạng thái cho học phần đủ điều kiện nhưng kỳ đó không mở.
-- Học kỳ cuối. Sinh viên còn ít hơn 10 tín chỉ học được (sắp tốt nghiệp) luôn nhận `credit_below_minimum` ở mục 6.12, vì sàn của `min_credits` là 10. Quy chế cho kỳ cuối học dưới mức tối thiểu; khi dữ liệu có quy định này, mục 6.12 sẽ bỏ vi phạm đó cho kỳ cuối.
+- Học kỳ cuối ở mục 6.12. Mục 6.11 đã hạ mức sàn xuống số tín chỉ còn thiếu để tốt nghiệp (quy định 4), nhưng mục
+  6.12 vẫn báo `credit_below_minimum` cho sinh viên còn ít hơn `min_credits` tín chỉ để tốt nghiệp. Mục 6.12 sẽ dùng
+  cùng mức sàn, tính bằng cùng hàm `rules.plan.credits_to_graduate()`.

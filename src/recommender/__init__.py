@@ -29,12 +29,12 @@ from src.recommender.scoring import (
 )
 from src.recommender.selection import pick_items, pick_within_credits
 from src.recommender.whatif import apply_assumptions, check_choices, check_window_choices
-from src.rules.plan import term_credits
+from src.rules.plan import credits_to_graduate, term_credits
 from src.rules.status import course_status_details, elective_credits_passed
 
 # Tầng API đọc hai hằng số này cho GET /v1/meta (mục 6.1).
 ALGORITHM = "rule_based_weighted"
-ALGORITHM_VERSION = "1.1.0"
+ALGORITHM_VERSION = "1.1.1"
 
 # Chỉ hai trạng thái này được vào danh sách gợi ý (mục 6.6, quy định 1).
 RECOMMENDABLE_STATUSES = ("retake", "eligible")
@@ -218,12 +218,37 @@ def _not_selected(left_out, block_names):
     return rows
 
 
-def _warnings(student, window, total, names):
+def _shortfall_cause(left_out):
+    """Vì sao tổng tín chỉ thấp hơn mức sàn (mục 4.7), để câu cảnh báo nói đúng điều sinh viên làm được.
+
+    `skipped` xét trước: sinh viên tự bỏ qua môn thì việc nên làm là bỏ bớt môn khỏi danh sách đó, dù cùng lúc
+    cũng có môn vướng mức tối đa. Không có môn nào bị bỏ qua hay vướng luật thì kỳ này đã hết môn học được."""
+    reasons = {reason for _, reason, _ in left_out}
+    if "skipped" in reasons:
+        return "skipped"
+    if reasons & {"credit_budget", "block_full"}:
+        return "limits"
+    return "no_more_courses"
+
+
+def _credit_floor(low, to_graduate):
+    """Mức sàn thật của khoảng tín chỉ: `min_credits`, hoặc số tín chỉ còn thiếu để tốt nghiệp khi số đó nhỏ hơn.
+    Kỳ cuối của sinh viên sắp tốt nghiệp không thể, và không cần, đạt `min_credits` (mục 6.11, quy định 4)."""
+    return low if to_graduate is None else min(low, to_graduate)
+
+
+def _warnings(student, low, to_graduate, total, left_out, names):
     """Cảnh báo của bảng điểm (do tầng luật đưa vào dòng sinh viên) rồi cảnh báo của chính lượt gợi ý (mục 4.7)."""
     raw = list(student.get("warnings") or [])
-    low, _ = window
-    if total < low:
-        raw.append({"code": "below_min_credits", "data": {"min_credits": low, "total_credits": total}})
+    if total < _credit_floor(low, to_graduate):
+        data = {"min_credits": low, "total_credits": total, "cause": _shortfall_cause(left_out)}
+        if to_graduate is not None and to_graduate < low:
+            data["credits_to_graduate"] = to_graduate
+        if data["cause"] == "skipped":
+            skipped = [item for item, reason, _ in left_out if reason == "skipped"]
+            data["skipped_courses"] = len(skipped)
+            data["skipped_credits"] = sum(item["credits"] for item in skipped)
+        raw.append({"code": "below_min_credits", "data": data})
     rows = []
     for warning in raw:
         row = {"code": warning["code"]}
@@ -332,6 +357,9 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
     _require_included(left_out, chosen, high)
     total = sum(term_credits(item) for item in items)
     credit_window = {"min_credits": low, "max_credits": high, "total_credits": total}
+    to_graduate = credits_to_graduate(grading, student)
+    if to_graduate is not None and to_graduate < low:
+        credit_window["credits_to_graduate"] = to_graduate
     names = dict(zip(courses["course_code"], courses["course_name"], strict=True))
     return {"what_if": bool(assumptions or skip or include),
             "weights": weights,
@@ -341,4 +369,4 @@ def recommend(repo, student, k=5, weights=None, assumptions=None, term_code=None
             "items": items,
             "not_selected": _not_selected(left_out, blocks["block_name"].to_dict()),
             "not_eligible": _not_eligible(courses, details),
-            "warnings": _warnings(student, window, total, names)}
+            "warnings": _warnings(student, low, to_graduate, total, left_out, names)}
