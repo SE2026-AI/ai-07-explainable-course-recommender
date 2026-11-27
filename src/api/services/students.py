@@ -196,38 +196,6 @@ def filter_leaf_blocks(blocks_raw: Any) -> list[StudentProfileBlockOut]:
     return blocks_out
 
 
-def calculate_plan_total_credits(
-    courses_df: pd.DataFrame,
-    blocks_df: pd.DataFrame,
-    course_codes: list[str],
-) -> int:
-    """Tính tổng tín chỉ kế hoạch theo mục 6.7:
-    - Bỏ trùng (dedupe): mỗi mã học phần chỉ cộng một lần theo thứ tự xuất hiện đầu tiên.
-    - Chỉ cộng học phần thuộc khối có counts_toward_total = true.
-    Dùng chung cho cả /students/{student_code}/plan-check và /curricula/{curriculum_code}/plan-check.
-    """
-    seen: set[str] = set()
-    unique_codes: list[str] = []
-    for code in course_codes:
-        if code not in seen:
-            seen.add(code)
-            unique_codes.append(code)
-
-    total = 0
-    courses_map = courses_df.set_index("course_code").to_dict("index")
-    blocks_indexed = blocks_df if "block_code" not in blocks_df.columns else blocks_df.set_index("block_code")
-    for code in unique_codes:
-        if code in courses_map:
-            c_info = courses_map[code]
-            b_code = str(c_info["block_code"])
-            counts_toward_total = True
-            if b_code in blocks_indexed.index:
-                counts_toward_total = bool(blocks_indexed.loc[b_code]["counts_toward_total"])
-            if counts_toward_total:
-                total += int(c_info["credits"])
-    return total
-
-
 def summarize_course_status(statuses: Iterable[str]) -> CourseStatusSummaryOut:
     """Đếm số học phần theo trạng thái đã có sẵn trong danh sách trả về (`summary` của mục 6.5 và 6.10).
 

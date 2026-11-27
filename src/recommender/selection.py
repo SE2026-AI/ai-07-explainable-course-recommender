@@ -8,6 +8,7 @@ Tầng này KHÔNG đọc cơ sở dữ liệu, nên `test/test_selection.py` ch
 """
 from collections.abc import Collection
 
+from src.rules.plan import term_credits
 from src.rules.status import fits_in_block
 
 
@@ -105,13 +106,15 @@ def pick_within_credits(ranked: list[tuple[dict, str | None]], max_credits: int,
             if not fits_elective_block(credits, taken.get(block, 0), int(required[block]), others):
                 refused[code] = "block_full"
                 continue
-        if total + credits > max_credits:
+        # Tín chỉ chiếm trong tổng của học kỳ theo đúng luật của kiểm tra kế hoạch (mục 6.7, 6.12).
+        cost = term_credits(item)
+        if total + cost > max_credits:
             refused[code] = "credit_budget"
             continue
         if block in required:
             taken[block] = taken.get(block, 0) + credits
             open_courses.get(block, {}).pop(code, None)
-        total += credits
+        total += cost
         accepted.add(code)
 
     picked = [item for item, _ in ranked if item["course_code"] in accepted]

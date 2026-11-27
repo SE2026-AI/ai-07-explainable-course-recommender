@@ -22,7 +22,7 @@ from src.api.schemas.recommendations import (
     RecommendationsOut,
     SwapIn,
 )
-from src.api.services.students import calculate_plan_total_credits, load_student
+from src.api.services.students import load_student
 from src.data.repository import Repository
 from src.recommender.scoring import merge_weights
 
@@ -215,8 +215,7 @@ def post_plan_check(
     max_credits = int(curriculum["max_credits_per_term"])
 
     courses_df = repo.curriculum_courses(curriculum_code)
-    blocks_df = repo.blocks(curriculum_code)
-    total_credits = calculate_plan_total_credits(courses_df, blocks_df, body.course_codes)
+    total_credits = src.rules.plan.plan_total_credits(courses_df, body.course_codes)
 
     # check_plan (src/rules/plan.py) và violation_text (src/explain) tra cứu lúc gọi để test thay thế được.
     violations_raw = src.rules.plan.check_plan(repo, student, body.course_codes)

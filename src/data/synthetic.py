@@ -6,6 +6,8 @@ Không viết cứng mã khối, mã học phần hay mã CTĐT nào: mọi lu�
 import random
 from itertools import combinations
 
+from src.rules.plan import term_credits
+
 # Giả định khi sinh dữ liệu (không phải quy định của trường)
 PREFER_COURSE = {"FLF1107": 4.0}      # phần lớn sinh viên chọn Tiếng Anh B1
 EXEMPT_RATE = {"FLF1107": 0.10}       # 10% sinh viên chọn Tiếng Anh được miễn nhờ chứng chỉ
@@ -32,8 +34,9 @@ class Curriculum:
         self.cohort_from = int(info["effective_from_cohort"])
         c = courses.set_index("course_code")
         self.credits = c["credits"].astype(int).to_dict()
+        # Tín chỉ mỗi môn chiếm trong tổng của học kỳ, theo đúng luật của kiểm tra kế hoạch (hợp đồng mục 6.7).
+        self.term_credits = {code: term_credits(row) for code, row in c.to_dict("index").items()}
         self.semester = c["recommended_semester"].astype(int).to_dict()
-        self.counts = c["counts_toward_total"].astype(int).to_dict()
         self.groups = c["prerequisite_groups"].to_dict()
         self.skills = c["skills"].to_dict()
         self.topic = c["primary_topic"].to_dict()
@@ -88,12 +91,13 @@ class Curriculum:
                 if self.semester[m] == t and rng.random() < defer_p:
                     continue
                 cand.append((1, self.semester[m], m))
+        # Mọi môn đều chiếm tín chỉ của học kỳ, kể cả khối không tính vào tổng tín chỉ tốt nghiệp (Kỹ năng bổ
+        # trợ): `rules.term_credits()`, cùng luật với kiểm tra kế hoạch (hợp đồng mục 6.7).
         out, credits = [], 0
         for _, _, m in sorted(cand):
-            if self.counts[m]:
-                if credits + self.credits[m] > self.max_credits:
-                    continue
-                credits += self.credits[m]
+            if credits + self.term_credits[m] > self.max_credits:
+                continue
+            credits += self.term_credits[m]
             out.append(m)
         return out
 

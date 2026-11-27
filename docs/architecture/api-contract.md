@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Phiên bản hợp đồng | 1.1.0 |
-| Cập nhật | 2026-11-19 |
+| Cập nhật | 2026-11-27 |
 | Lược đồ dữ liệu áp dụng | `schema_version = 3.0.0` |
 
 Tài liệu đặc tả giao diện HTTP mà backend cung cấp và các ứng dụng web, di động sử dụng. Backend và
@@ -636,8 +636,11 @@ Body:
 }
 ```
 
-- `total_credits` chỉ cộng học phần thuộc khối có `counts_toward_total = true`, mỗi mã một lần dù mã lặp lại
-  trong `course_codes`. `total_credits` trong `data` của vi phạm tín chỉ là chính con số này.
+- `total_credits` cộng tín chỉ của mọi học phần thuộc khung có trong `course_codes`, mỗi mã một lần dù mã lặp lại.
+  Học phần thuộc khối có `counts_toward_total = false` (Kỹ năng bổ trợ) cũng được cộng: chúng không tính vào tổng
+  tín chỉ tốt nghiệp nhưng vẫn chiếm tín chỉ của học kỳ. Khoảng tín chỉ của mục 6.11 tính đúng như vậy, nên
+  `items` của mục 6.11 đưa vào mục 6.12 ra cùng tổng. `total_credits` trong `data` của vi phạm tín chỉ là chính con
+  số này.
 - `valid` là `true` khi `violations` rỗng.
 - Một học phần có thể sinh nhiều vi phạm.
 - Theo mục 4.2, học phần khác trong cùng kế hoạch không được tính là đã đạt khi xét tiên quyết. Trong ví
@@ -1034,6 +1037,7 @@ Những tính chất sau là phần bắt buộc của hợp đồng, kiểm th�
 | Không môn học được nào bị bỏ lặng lẽ | Ở mục 6.11: mỗi học phần `retake` hoặc `eligible` ở đúng một trong `items` và `not_selected` |
 | Bảng điểm tự nhập không được lưu | Gọi mục 6.10, 6.11 và 6.12 rồi đếm số dòng của mọi bảng: không bảng nào đổi |
 | Kế hoạch trong khoảng tín chỉ | Ở mục 6.12: có `credit_below_minimum` khi và chỉ khi `total_credits < min_credits`, có `credit_limit_exceeded` khi và chỉ khi `total_credits > max_credits` |
+| Gợi ý khớp kiểm tra kế hoạch | Đưa `items` của mục 6.11 vào `course_codes` của mục 6.12, cùng `results`, `min_credits`, `max_credits`: `total_credits` bằng `credit_window.total_credits`, không có `credit_limit_exceeded`, và có `credit_below_minimum` khi và chỉ khi mục 6.11 có `below_min_credits` |
 | Khối tự chọn hoàn thành đúng | Tín chỉ đã đạt cộng tín chỉ trong `items` của mỗi khối `choose_credits` không vượt `required_credits`, và phần còn thiếu ghép đúng được bằng các môn chưa đạt của khối |
 
 Ngưỡng 0,85 của bất biến "Có ích" là **mốc chống thụt lùi, không phải mục tiêu chất lượng**. Lần đo đầu
