@@ -154,7 +154,7 @@ def test_elective_block_limit_accounts_for_passed_credits_and_non_divisible_limi
 
 def test_non_counting_block_courses_still_add_to_term_total():
     """Kỹ năng bổ trợ (khối `counts_toward_total = false`) không tính vào tổng tín chỉ tốt nghiệp, nhưng vẫn chiếm
-    tín chỉ của học kỳ, như khoảng tín chỉ của mục 6.11 (lỗi số 1 của review 27/11)."""
+    tín chỉ của học kỳ, như khoảng tín chỉ của mục 6.11."""
     repo = _Repo([_course("A", 8), _course("X", 8, counts=False)], max_credits=8)
     assert check_plan(repo, _student(), ["A", "X"]) == [{
         "code": "credit_limit_exceeded", "course_code": "X",

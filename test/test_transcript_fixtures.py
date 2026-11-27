@@ -243,7 +243,7 @@ def _window_cases():
 def test_a_recommended_list_passes_the_plan_check_credit_rules(repo_all, name, path):
     """Bất biến "Gợi ý khớp kiểm tra kế hoạch" (mục 7): đưa `items` của mục 6.11 vào mục 6.12, cùng bảng điểm và cùng
     khoảng tín chỉ, thì hai mục ra cùng một tổng, không có `credit_limit_exceeded`, và có `credit_below_minimum` khi
-    và chỉ khi mục 6.11 cảnh báo `below_min_credits`. Lỗi số 1 của review 27/11: mục 6.12 từng bỏ tín chỉ của Kỹ năng
+    và chỉ khi mục 6.11 cảnh báo `below_min_credits`. Trước đây mục 6.12 từng bỏ tín chỉ của Kỹ năng
     bổ trợ (khối không tính vào tổng tín chỉ tốt nghiệp) mà mục 6.11 thì cộng, nên cùng danh sách ra hai tổng."""
     if path is None:
         university_code, curriculum_code, request = _contract_t03_window()

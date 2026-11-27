@@ -773,7 +773,7 @@ def test_plan_check_credits(api_client_all: TestClient, monkeypatch: pytest.Monk
     Kiểm tra bất biến §6.7:
     - Bỏ trùng: mã môn lặp lại không cộng dồn tín chỉ nhiều lần.
     - Khối không tích lũy: môn thuộc khối có counts_toward_total = False (ví dụ HUS1012 khối I.3) không tính vào
-      tổng tín chỉ tốt nghiệp, nhưng VẪN cộng vào total_credits của học kỳ (lỗi số 1 của review 27/11).
+      tổng tín chỉ tốt nghiệp, nhưng VẪN cộng vào total_credits của học kỳ, như khoảng tín chỉ của mục 6.11.
     """
     import src.explain
     import src.rules.plan
