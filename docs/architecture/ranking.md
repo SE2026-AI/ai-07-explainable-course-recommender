@@ -262,6 +262,23 @@ Mục 6.11 của hợp đồng chọn theo tín chỉ thay cho `k`: sinh viên �
 có thể cao hơn không": môn nào còn trong `not_selected` với lý do `credit_budget` đều có `credits` lớn hơn
 phần tín chỉ còn trống.
 
+Mức sàn thật là `min(min_credits, credits_to_graduate)`, với `credits_to_graduate` = `total_credits` của khung trừ
+`credits_earned` (`rules.plan.credits_to_graduate()`). Sinh viên kỳ cuối còn 7 tín chỉ để tốt nghiệp không thể, và
+không cần, học đủ 10: bản 1.1.0 vẫn cảnh báo họ, dù danh sách 7 tín chỉ đó là đúng thứ họ cần. Khi
+`credits_to_graduate < min_credits`, `credit_window` mang thêm số đó để câu `text` nói được vì sao.
+
+Câu cảnh báo `below_min_credits` nói đúng nguyên nhân, vì mỗi nguyên nhân có một việc khác nhau để làm
+(`_shortfall_cause()`), xét theo thứ tự:
+
+| `cause` | Khi nào | Sinh viên làm gì |
+| --- | --- | --- |
+| `skipped` | Có môn trong `not_selected` với lý do `skipped` | Bỏ bớt môn khỏi danh sách "chưa học kỳ này" |
+| `limits` | Có môn với lý do `credit_budget` hoặc `block_full` | Nới `max_credits`, hoặc chấp nhận |
+| `no_more_courses` | Mọi môn học được đã nằm trong `items` | Không làm gì được: kỳ này hết môn học được |
+
+Bản 1.1.0 luôn nói "không còn môn học được nào vừa với mức tối đa và luật khối tự chọn", kể cả khi sinh viên tự
+bỏ qua 20 môn vừa, hay khi kỳ đó không còn môn nào học được.
+
 Mặc định là 10–20 tín chỉ. Sàn 10 là của sản phẩm, đặt ở `MIN_CREDITS_FLOOR`; trần là `max_credits_per_term`
 của từng khung (HUS 40, DEMO 12), không phải hằng số. Mặc định 20 là lựa chọn của nhóm, chưa dựa trên số
 đo nào: đủ cho 6–7 môn, và sinh viên nâng được tới trần của khung. Mặc định của `max_credits` không bao giờ
@@ -303,6 +320,7 @@ ngưỡng precision@5 ≥ 0,85, đo trên 200 sinh viên của `data/synthetic` 
 | 1.0.0 | 0,8890 | 0,5620 |
 | 1.0.1 | 0,8900 | 0,5625 |
 | 1.1.0 | 0,8900 | 0,5625 |
+| 1.1.1 | 0,8900 | 0,5625 |
 
 precision@10 thấp vì mỗi sinh viên chỉ đăng ký trung bình 6,2 môn, nên trần của nó khoảng 0,62. Đăng ký dự
 kiến được sinh theo lộ trình chuẩn của khung — môn nợ trước, rồi môn đúng hoặc trễ kỳ — trùng ba tiêu chí
@@ -316,7 +334,7 @@ bảng. Muốn so các phương án cần một thước đo không dựng từ 
 | Hằng số | Giá trị |
 | --- | --- |
 | `ALGORITHM` | `rule_based_weighted` |
-| `ALGORITHM_VERSION` | `1.1.0` |
+| `ALGORITHM_VERSION` | `1.1.1` |
 
 Tăng `ALGORITHM_VERSION` mỗi khi **cách tính điểm hoặc cách dựng lời giải thích** thay đổi, kể cả khi chỉ
 đổi một mốc đạt trần hay sửa câu chữ của `text`. Đổi trọng số mặc định cũng là đổi cách tính điểm. Thêm
@@ -327,3 +345,4 @@ trọng số mới vào `DEFAULT_WEIGHTS` còn là thay đổi hợp đồng, ph
 | 1.0.0 | Sáu tiêu chí và bảng trọng số mặc định của mục 2 |
 | 1.0.1 | Khối tự chọn phải còn hoàn thành đúng được sau mỗi môn được chọn (mục 5); số thập phân trong `text` làm tròn nửa lên, 5,25 thành 5,3; phản hồi có `not_eligible` kèm `text` cho mọi học phần không gợi ý được |
 | 1.1.0 | Chọn trong khoảng tín chỉ cho bảng điểm tự nhập (mục 5.4): `not_selected` kèm lý do, cảnh báo, `skip` và `include`; lý do `outstanding_retake` ghi kỳ thứ mấy khi dòng sinh viên không có mã học kỳ. Chọn theo `k` không đổi, nên precision@5 giữ 0,8900 |
+| 1.1.1 | Mức sàn của khoảng tín chỉ hạ xuống số tín chỉ còn thiếu để tốt nghiệp khi số đó nhỏ hơn `min_credits`; `credit_window` có `credits_to_graduate`; câu `below_min_credits` nói đúng nguyên nhân (`cause`). Chọn theo `k` không đổi |

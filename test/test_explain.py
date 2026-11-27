@@ -240,6 +240,17 @@ def test_every_not_selected_reason_has_a_clean_sentence_and_unknown_ones_raise()
     ({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 7}},
      "Chỉ xếp được 7 tín chỉ, thấp hơn mức tối thiểu 10 bạn đặt: không còn môn học được nào vừa với mức tối đa "
      "và luật khối tự chọn."),
+    ({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 6, "cause": "skipped",
+                                            "skipped_courses": 20, "skipped_credits": 74}},
+     "Chỉ xếp được 6 tín chỉ, thấp hơn mức tối thiểu 10 bạn đặt: bạn đã chọn chưa học 20 môn (74 tín chỉ) ở kỳ "
+     "này; bỏ bớt môn khỏi danh sách đó để đủ tín chỉ."),
+    ({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 4, "cause": "no_more_courses"}},
+     "Chỉ xếp được 4 tín chỉ, thấp hơn mức tối thiểu 10 bạn đặt: kỳ này không còn môn nào học được nữa, các môn "
+     "còn lại đã đạt, khối đã đủ tín chỉ hoặc chưa đủ điều kiện tiên quyết."),
+    ({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 4, "cause": "limits",
+                                            "credits_to_graduate": 7}},
+     "Chỉ xếp được 4 tín chỉ, ít hơn 7 tín chỉ bạn còn thiếu để tốt nghiệp: không còn môn học được nào vừa với mức "
+     "tối đa và luật khối tự chọn."),
     ({"code": "prerequisite_not_in_transcript", "course_code": "MAT2323",
       "data": {"missing_prerequisites": [["MAT2502"]]}},
      "Bảng điểm ghi đã đạt Xác suất - Thống kê nhưng chưa đạt Giải tích 2 (MAT2502): kiểm tra lại bảng điểm."),
@@ -269,6 +280,19 @@ def test_the_credit_window_says_whether_the_total_reached_the_minimum():
     short = credit_window_text({"min_credits": 10, "max_credits": 20, "total_credits": 7})
     assert reached == "Tổng 20 tín chỉ, trong khoảng 15–20 bạn đặt."
     assert short == "Tổng 7 tín chỉ, thấp hơn mức tối thiểu 10 bạn đặt."
+
+
+def test_in_the_last_term_the_credit_window_explains_why_fewer_credits_are_enough():
+    """Sinh viên còn 7 tín chỉ để tốt nghiệp (bảng điểm mẫu `sap-tot-nghiep`): 7 tín chỉ là đủ, không phải thiếu."""
+    enough = credit_window_text({"min_credits": 10, "max_credits": 20, "total_credits": 7, "credits_to_graduate": 7})
+    short = credit_window_text({"min_credits": 10, "max_credits": 20, "total_credits": 4, "credits_to_graduate": 7})
+    assert enough == "Tổng 7 tín chỉ: bạn chỉ còn 7 tín chỉ để tốt nghiệp, nên không cần đủ mức tối thiểu 10 bạn đặt."
+    assert short == "Tổng 4 tín chỉ, ít hơn 7 tín chỉ bạn còn thiếu để tốt nghiệp."
+
+
+def test_an_unknown_shortfall_cause_raises():
+    with pytest.raises(ValueError):
+        warning_text({"code": "below_min_credits", "data": {"min_credits": 10, "total_credits": 7, "cause": "x"}}, NAMES)
 
 
 def test_every_course_of_every_test_student_gets_a_clean_and_specific_sentence(repo_all):

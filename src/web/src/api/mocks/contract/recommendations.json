@@ -3,7 +3,7 @@
   "student_code": "T03",
   "curriculum_code": "HUS-7480113QTD-2022",
   "term": "20261",
-  "algorithm_version": "1.1.0",
+  "algorithm_version": "1.1.1",
   "what_if": false,
   "weights": {
     "outstanding_retake": 3.0,

@@ -1,5 +1,5 @@
 {
-  "description": "Sắp tốt nghiệp: kết quả thật sau 6 kỳ, cộng giả định đạt 7,0 mọi môn đã đăng ký ở học kỳ 20261 (kỳ 7). Chỉ còn ít môn học được nên tổng tín chỉ thấp hơn mức tối thiểu: phản hồi có cảnh báo `below_min_credits`.",
+  "description": "Sắp tốt nghiệp: kết quả thật sau 6 kỳ, cộng giả định đạt 7,0 mọi môn đã đăng ký ở học kỳ 20261 (kỳ 7). Chỉ còn 7 tín chỉ để tốt nghiệp, ít hơn mức tối thiểu 10: tổng 7 tín chỉ là đủ, nên phản hồi không có cảnh báo `below_min_credits` và `credit_window` có `credits_to_graduate`.",
   "source": {
     "student_code": "23000002",
     "term": "20261",
@@ -243,9 +243,7 @@
         "MAT3397": "block_full",
         "MAT3398": "block_full"
       },
-      "warnings": [
-        "below_min_credits"
-      ]
+      "warnings": []
     }
   }
 }

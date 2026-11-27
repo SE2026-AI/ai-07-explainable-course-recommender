@@ -2344,7 +2344,7 @@ def test_transcript_recommendations_matches_contract_fixtures(api_client_all: Te
     cw = data["credit_window"]
     assert cw["total_credits"] <= cw["max_credits"]
     has_below = any(w["code"] == "below_min_credits" for w in data["warnings"])
-    assert has_below == (cw["total_credits"] < cw["min_credits"])
+    assert has_below == (cw["total_credits"] < min(cw["min_credits"], cw.get("credits_to_graduate", cw["min_credits"])))
     assert len(data["items"]) + len(data["not_selected"]) == data["candidate_count"]
 
 

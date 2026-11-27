@@ -199,15 +199,19 @@ def warning_text(warning: Mapping, names: Mapping[str, str]) -> str:
 
     | `code` | `data` |
     | --- | --- |
-    | `below_min_credits` | `min_credits`, `total_credits` |
+    | `below_min_credits` | `min_credits`, `total_credits`, `cause`, cộng các trường bên dưới khi áp dụng |
+    | | `credits_to_graduate` khi nhỏ hơn `min_credits`; `skipped_courses`, `skipped_credits` khi `cause = skipped` |
     | `prerequisite_not_in_transcript` | `missing_prerequisites` |
     | `studied_before_prerequisite` | `semester`, `prerequisite_code`, `prerequisite_semester` |
+
+    `below_min_credits` nói đúng nguyên nhân (`cause`), vì mỗi nguyên nhân có một việc khác nhau để làm: bỏ bớt môn
+    khỏi danh sách "chưa học kỳ này" (`skipped`), nới mức tối đa (`limits`), hay chấp nhận vì kỳ này không còn môn
+    nào học được (`no_more_courses`). `data` không có `cause` thì coi là `limits`, câu của bản 1.1.0.
     """
     code, data = warning["code"], warning.get("data", {})
     name = names.get(warning.get("course_code"), warning.get("course_code"))
     if code == "below_min_credits":
-        return (f"Chỉ xếp được {data['total_credits']} tín chỉ, thấp hơn mức tối thiểu {data['min_credits']} bạn "
-                f"đặt: không còn môn học được nào vừa với mức tối đa và luật khối tự chọn.")
+        return _below_min_credits_text(data)
     if code == "prerequisite_not_in_transcript":
         phrase = prerequisite_phrase(data["missing_prerequisites"], names)
         return f"Bảng điểm ghi đã đạt {name} nhưng chưa đạt {phrase}: kiểm tra lại bảng điểm."
@@ -217,9 +221,36 @@ def warning_text(warning: Mapping, names: Mapping[str, str]) -> str:
     raise ValueError(f"Mã cảnh báo không có trong hợp đồng (mục 4.7): {code!r}")
 
 
+def _below_min_credits_text(data: Mapping) -> str:
+    total, to_graduate = data["total_credits"], data.get("credits_to_graduate")
+    if to_graduate is not None:
+        head = f"Chỉ xếp được {total} tín chỉ, ít hơn {to_graduate} tín chỉ bạn còn thiếu để tốt nghiệp"
+    else:
+        head = f"Chỉ xếp được {total} tín chỉ, thấp hơn mức tối thiểu {data['min_credits']} bạn đặt"
+    cause = data.get("cause", "limits")
+    if cause == "skipped":
+        return (f"{head}: bạn đã chọn chưa học {data['skipped_courses']} môn ({data['skipped_credits']} tín chỉ) ở kỳ "
+                f"này; bỏ bớt môn khỏi danh sách đó để đủ tín chỉ.")
+    if cause == "no_more_courses":
+        return (f"{head}: kỳ này không còn môn nào học được nữa, các môn còn lại đã đạt, khối đã đủ tín chỉ hoặc chưa "
+                f"đủ điều kiện tiên quyết.")
+    if cause == "limits":
+        return f"{head}: không còn môn học được nào vừa với mức tối đa và luật khối tự chọn."
+    raise ValueError(f"Nguyên nhân thiếu tín chỉ không có trong hợp đồng (mục 4.7): {cause!r}")
+
+
 def credit_window_text(window: Mapping) -> str:
-    """Câu `text` của `credit_window` (mục 6.11): tổng tín chỉ đã xếp so với khoảng sinh viên đặt."""
+    """Câu `text` của `credit_window` (mục 6.11): tổng tín chỉ đã xếp so với khoảng sinh viên đặt.
+
+    Có `credits_to_graduate` (sinh viên còn thiếu ít tín chỉ hơn `min_credits` để tốt nghiệp) thì mức sàn là số đó,
+    và câu nói rõ vì sao không cần đủ `min_credits`."""
     total, low, high = window["total_credits"], window["min_credits"], window["max_credits"]
+    to_graduate = window.get("credits_to_graduate")
+    if to_graduate is not None:
+        if total < to_graduate:
+            return f"Tổng {total} tín chỉ, ít hơn {to_graduate} tín chỉ bạn còn thiếu để tốt nghiệp."
+        return (f"Tổng {total} tín chỉ: bạn chỉ còn {to_graduate} tín chỉ để tốt nghiệp, nên không cần đủ mức tối "
+                f"thiểu {low} bạn đặt.")
     if total < low:
         return f"Tổng {total} tín chỉ, thấp hơn mức tối thiểu {low} bạn đặt."
     return f"Tổng {total} tín chỉ, trong khoảng {low}–{high} bạn đặt."

@@ -308,6 +308,18 @@
       "CreditWindowOut": {
         "description": "Khoảng tín chỉ sinh viên đặt và tổng tín chỉ thực tế được xếp (mục 6.11).",
         "properties": {
+          "credits_to_graduate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Số tín chỉ còn thiếu để tốt nghiệp; chỉ có khi nhỏ hơn min_credits, và khi đó là mức sàn (mục 6.11)",
+            "title": "Credits To Graduate"
+          },
           "max_credits": {
             "title": "Max Credits",
             "type": "integer"

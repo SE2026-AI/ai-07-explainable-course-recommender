@@ -1,7 +1,7 @@
 {
   "university_code": "HUS",
   "curriculum_code": "HUS-7480113QTD-2022",
-  "algorithm_version": "1.1.0",
+  "algorithm_version": "1.1.1",
   "what_if": true,
   "weights": {
     "outstanding_retake": 3,
