@@ -31,6 +31,23 @@ const ROUTING_ERROR_CODES = new Set<string>([
 ]);
 
 const USER_MESSAGES: Record<string, string> = {
+  unauthenticated: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.",
+  invalid_credentials: "Email hoặc mật khẩu chưa đúng. Hãy kiểm tra lại.",
+  forbidden: "Bạn không có quyền thực hiện thao tác này, hoặc yêu cầu không hợp lệ.",
+  plan_not_found: "Bạn chưa lưu kế hoạch cho học kỳ này.",
+  user_not_found: "Không tìm thấy tài khoản này.",
+  email_taken: "Email này đã được đăng ký. Hãy đăng nhập hoặc dùng email khác.",
+  last_admin: "Không thể xóa tài khoản quản trị viên cuối cùng.",
+  profile_required: "Hãy chọn khung chương trình trước khi nhập bảng điểm.",
+  curriculum_not_active: "Khung này chưa được mở hoặc đã ngừng nhận sinh viên mới. Hãy chọn khung khác.",
+  transcript_not_empty: "Bảng điểm còn kết quả của khung cũ. Hãy xuất file dự phòng và xóa bảng điểm trước khi đổi khung.",
+  plan_read_only: "Kế hoạch của học kỳ đã qua chỉ có thể xem.",
+  plan_version_conflict: "Kế hoạch đã được sửa ở nơi khác. Hãy tải lại trước khi tiếp tục.",
+  undo_unavailable: "Không thể hoàn tác lần bỏ môn này. Hãy tải lại kế hoạch.",
+  curriculum_exists: "Mã khung chương trình này đã tồn tại.",
+  curriculum_not_draft: "Chỉ có thể sửa hoặc kích hoạt một khung đang ở trạng thái nháp.",
+  curriculum_invalid: "Gói chương trình chưa hợp lệ. Hãy kiểm tra các dòng được báo lỗi.",
+  too_many_attempts: "Bạn đã đăng nhập sai quá nhiều lần. Hãy chờ hết thời gian giới hạn rồi thử lại.",
   university_not_found: "Không tìm thấy trường này. Hãy chọn lại trường.",
   student_not_found:
     "Không tìm thấy sinh viên với mã này trong trường đã chọn. Hãy kiểm tra lại mã sinh viên.",
