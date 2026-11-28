@@ -90,3 +90,30 @@ Ghi chú và ảnh chụp: [`docs/ui/web-2-4-screens.md`](../../docs/ui/web-2-4-
 - Không tính điểm, thứ hạng hay điều kiện tiên quyết ở client. Câu giải thích lấy từ `text` của server.
 - Không hiện hay ghi log `fairness_group`, `gender`.
 - `npm test` và `npm run check:api` chưa chạy trong CI; chạy tay trước khi mở PR.
+
+
+## WEB-9–11: tài khoản và bảng điểm v2
+
+Các đường dẫn: `/dang-ky`, `/dang-nhap`, `/tai-khoan`, `/cua-toi`,
+`/cua-toi/tien-trinh`. Ba đường dẫn cuối yêu cầu phiên đăng nhập.
+401 `unauthenticated` đưa về đăng nhập và giữ đường dẫn nội bộ ban đầu.
+Danh mục vẫn dùng v1; tài khoản, hồ sơ, bảng điểm và tiến trình dùng v2.
+Mọi request live gửi `credentials: include` và `Content-Type: application/json`.
+
+`api/v2/types.ts` là kiểu viết tay theo PR #65, tách khỏi kiểu v1 sinh tự động.
+Chuyển sang kiểu sinh tự động khi OpenAPI có v2. `examples.json` sao chép các
+khối JSON §6.1–6.15; `v2-contract.test.ts` đối chiếu trực tiếp tài liệu.
+
+Mock tài khoản chỉ tồn tại trong RAM: không lưu mật khẩu, không kiểm tra mật khẩu
+khi đăng nhập, không đại diện cơ chế xác thực. Reload mất toàn bộ tài khoản mock.
+Đăng xuất/đăng nhập trong cùng lượt chạy vẫn giữ bảng điểm từng tài khoản.
+Tiến trình dùng phản hồi mẫu ghép từ hợp đồng v1/v2 vì ví dụ v2 còn dấu `...`;
+không tính lại GPA/tín chỉ từ dữ liệu vừa nhập. Không dùng thông tin thật.
+
+Bảng điểm tài khoản không tự lưu vào localStorage. Bản nháp v1 cùng khung chỉ
+được đưa lên tài khoản sau đồng ý rõ ràng; lưu thành công mới xóa đúng khóa đó.
+Đổi khung khi có bảng điểm hiện cảnh báo 409, yêu cầu xác nhận xóa bảng điểm trước.
+Giữ nhập/xuất JSON; lỗi 422 hiển thị cạnh đúng trường/dòng môn.
+
+Kiểm tra: `npm test -- --run`, `npm run lint`, `npm run build`, `npm run check:api`.
+Ảnh và kết quả: [docs/ui/web-v2-account.md](../../docs/ui/web-v2-account.md).

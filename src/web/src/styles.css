@@ -2387,3 +2387,14 @@ select {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* Account v2 reuses the existing panels and transcript editor. */
+.account-page { display: grid; gap: 1.2rem; }
+.account-form { max-width: 44rem; }
+.account-form form { display: grid; gap: 1rem; }
+.account-form label { display: grid; gap: .35rem; }
+.account-form input, .account-form select { width: 100%; min-height: 2.75rem; }
+.account-form button { justify-self: start; }
+.account-form .field-error { color: #a02230; }
+.account-metrics { display: flex; gap: 2rem; flex-wrap: wrap; }
+.danger-zone { border-left: .25rem solid #a02230; }
+.account-mock-note { margin-top: 1.5rem; font-size: .9rem; }

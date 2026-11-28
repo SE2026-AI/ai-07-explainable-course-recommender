@@ -1,7 +1,12 @@
 import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { createApiClient, type ApiClient } from "./api/client";
+import { createLiveAccountClient } from "./api/v2/client";
+import { createMockAccountClient } from "./api/v2/mock";
+import type { AccountClient } from "./api/v2/types";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { useApi } from "./lib/useApi";
+import { AccountNav, AccountProvider, RequireAccount } from "./lib/account";
+import { AccountPage, LoginPage, MyProgressPage, MyTranscriptPage } from "./pages/AccountPages";
 import { CatalogPage } from "./pages/CatalogPage";
 import { DataIssuesPage } from "./pages/DataIssuesPage";
 import { StudentPickerPage } from "./pages/StudentPickerPage";
@@ -16,11 +21,12 @@ import { RecommendationsPage } from "./pages/student/RecommendationsPage";
 import { StudentLayout } from "./pages/student/StudentLayout";
 
 const defaultClient = createApiClient();
+const defaultAccountClient = import.meta.env.VITE_API_MODE === "live" ? createLiveAccountClient() : createMockAccountClient();
 
-export default function App({ client = defaultClient }: { client?: ApiClient }) {
+export default function App({ client = defaultClient, accountClient = defaultAccountClient }: { client?: ApiClient; accountClient?: AccountClient }) {
   const [meta, retryMeta] = useApi((s) => client.meta(s), [client]);
   return (
-    <div className="app-shell">
+    <AccountProvider api={accountClient}><div className="app-shell">
       <a className="skip-link" href="#main">
         Bỏ qua thanh điều hướng
       </a>
@@ -38,6 +44,7 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
             <NavLink to="/students">Sinh viên mẫu</NavLink>
             <NavLink to="/catalog">Khung chương trình</NavLink>
             <NavLink to="/data-issues">Vấn đề dữ liệu</NavLink>
+            <AccountNav />
             {client.mode === "mock" && <span className="badge mock">mock</span>}
           </nav>
         </div>
@@ -51,6 +58,11 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
           </p>
         )}
         <Routes>
+          <Route path="/dang-nhap" element={<LoginPage />} />
+          <Route path="/dang-ky" element={<LoginPage register />} />
+          <Route path="/tai-khoan" element={<RequireAccount><AccountPage client={client} /></RequireAccount>} />
+          <Route path="/cua-toi" element={<RequireAccount><MyTranscriptPage client={client} /></RequireAccount>} />
+          <Route path="/cua-toi/tien-trinh" element={<RequireAccount><MyProgressPage /></RequireAccount>} />
           <Route path="/" element={<TranscriptWizardPage client={client} />} />
           <Route path="/bang-diem" element={<TranscriptEntryPage client={client} />} />
           <Route path="/goi-y" element={<TranscriptRecommendationsPage client={client} />} />
@@ -75,10 +87,11 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
             }
           />
         </Routes>
+        {accountClient.mode === "mock" && <p className="banner info account-mock-note">Tài khoản v2 đang dùng mock: chỉ nhập thông tin giả, không dùng mật khẩu thật. Mock không kiểm tra mật khẩu khi đăng nhập và không lưu dữ liệu sau khi tải lại trang. Tiến trình là phản hồi mẫu, không phải kết quả tính từ bảng điểm vừa lưu.</p>}
       </main>
       <footer className="foot">
         <div className="foot-inner">
-          <span>AI-07 · Dữ liệu sinh viên là dữ liệu giả lập, không dùng cho đăng ký thật.</span>
+          <span>AI-07 · V1 dùng sinh viên giả lập. V2 lưu bảng điểm theo tài khoản; không dùng để đăng ký học phần thật.</span>
           {/* §6.1: hiện algorithm_version để truy được nguyên nhân khi kết quả gợi ý thay đổi. */}
           {meta.state === "ok" && (
             <span className="mono" data-testid="meta">
@@ -88,6 +101,6 @@ export default function App({ client = defaultClient }: { client?: ApiClient }) 
           )}
         </div>
       </footer>
-    </div>
+    </div></AccountProvider>
   );
 }

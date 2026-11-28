@@ -129,3 +129,22 @@ Hệ thống cần hai loại dữ liệu:
 - **Dữ liệu học tập của sinh viên:** các môn đã học, điểm và trạng thái từng lần học, cùng thông tin sinh viên tự khai như chủ đề quan tâm.
 
 Để bảo vệ quyền riêng tư, dự án **không sử dụng dữ liệu sinh viên thật**. Dữ liệu sinh viên được tạo giả lập theo các quy luật hợp lý, ví dụ: chỉ học môn khi đã đủ điều kiện, trượt thì học lại, không vượt số tín chỉ tối đa. Nhờ vậy dữ liệu vẫn sát thực tế mà không lộ thông tin cá nhân. Các thông tin nhạy cảm, nếu có, được tách riêng và chỉ dùng để kiểm tra tính công bằng, không bao giờ được đưa vào thuật toán gợi ý.
+
+
+## Chạy thử live từ máy cá nhân
+
+Cần Python và các thư viện trong `requirements.txt`, Docker Compose, Node/npm.
+Từ thư mục gốc chạy `powershell -File scripts/live.ps1` (Windows) hoặc
+`bash scripts/live.sh` (Linux/macOS). Script tạo project Docker riêng `ai07-live`,
+nạp dữ liệu bằng `python -m tools.build_db`, rồi chạy API cổng 8000.
+Nếu cổng PostgreSQL 5432 đã dùng, đặt `POSTGRES_PORT=55432` trước khi chạy.
+Script nạp lại dữ liệu trong database thử nghiệm riêng này; không dùng URL database sản xuất.
+
+Trong terminal khác, vào `src/web`, chạy `npm ci` rồi đặt `VITE_API_MODE=live`
+và chạy `npm run dev`. Vite chuyển tiếp `/v1` và `/v2` tới cổng 8000.
+Chạy `python scripts/smoke_transcripts.py` để gửi bốn fixture tới tám request
+transcript/recommendation v1; mã thoát khác 0 là thất bại, kể cả 404.
+
+Backend v2 thuộc issue #62 và chưa có trong bản main dùng để phát triển này.
+Để thử giao diện tài khoản hiện tại, dùng `VITE_API_MODE=mock`; chỉ nhập dữ liệu giả.
+Xem [bằng chứng WEB-9–11](docs/ui/web-v2-account.md) và [hướng dẫn web](src/web/README.md).

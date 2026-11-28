@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { "/v1": "http://127.0.0.1:8000" },
+    proxy: { "/v1": "http://127.0.0.1:8000", "/v2": "http://127.0.0.1:8000" },
     // Test đọc docs/architecture/api-contract.md để so mock với ví dụ của hợp đồng.
     fs: { allow: [".", "../../docs"] },
   },

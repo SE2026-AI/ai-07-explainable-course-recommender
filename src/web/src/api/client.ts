@@ -100,9 +100,10 @@ export function createLiveClient(baseUrl = "/v1"): ApiClient {
       response = await fetch(
         root + route,
         method === "GET"
-          ? { headers: { Accept: "application/json" }, signal }
+          ? { headers: { Accept: "application/json", "Content-Type": "application/json" }, credentials: "include", signal }
           : {
               method,
+              credentials: "include",
               headers: { Accept: "application/json", "Content-Type": "application/json" },
               body: JSON.stringify(body),
               signal,

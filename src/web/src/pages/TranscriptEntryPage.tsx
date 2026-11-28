@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, type ApiClient } from "../api/client";
 import type { CurriculumCourse, CurriculumDetail } from "../api/schema";
-import type { Transcript } from "../api/transcript";
+import type { Transcript, TranscriptBody } from "../api/transcript";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { IconSearch } from "../components/Icons";
 import { ProgressBar } from "../components/ProgressBar";
@@ -52,22 +52,31 @@ export function TranscriptEntryPage({ client }: { client: ApiClient }) {
   );
 }
 
-function TranscriptEntry({
+export interface TranscriptPersistence {
+  initial: TranscriptBody;
+  save(body: TranscriptBody): Promise<Transcript>;
+  onSemestersChange(semesters: number): void;
+}
+
+export function TranscriptEntry({
   client,
   uni,
   curriculum,
   semesters,
+  persistence,
 }: {
   client: ApiClient;
   uni: string;
   curriculum: string;
   semesters: number;
+  persistence?: TranscriptPersistence;
 }) {
   const [detail, retryDetail] = useApi((s) => client.curriculum(uni, curriculum, s), [client, uni, curriculum]);
   const [list, retryList] = useApi((s) => client.curriculumCourses(uni, curriculum, s), [client, uni, curriculum]);
   const courses = useMemo(() => (list.state === "ok" ? list.data.courses : []), [list]);
 
-  const [draft, setDraft] = useState<Draft>(() => clampDraft(loadDraft(uni, curriculum), semesters));
+  const [draft, setDraft] = useState<Draft>(() => clampDraft(
+    persistence ? fromBody(persistence.initial)?.draft ?? {} : loadDraft(uni, curriculum), semesters));
   const [query, setQuery] = useState("");
   const [block, setBlock] = useState("");
   const [errors, setErrors] = useState<RowErrors>({});
@@ -75,7 +84,9 @@ function TranscriptEntry({
   const [fileError, setFileError] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => saveDraft(uni, curriculum, semesters, draft), [uni, curriculum, semesters, draft]);
+  useEffect(() => {
+    if (!persistence) saveDraft(uni, curriculum, semesters, draft);
+  }, [uni, curriculum, semesters, draft, persistence]);
 
   const maxScore = detail.state === "ok" ? detail.data.max_score : undefined;
   const electives =
@@ -141,7 +152,7 @@ function TranscriptEntry({
     try {
       setSummary({
         state: "ok",
-        data: await client.transcript(uni, curriculum, body),
+        data: await (persistence ? persistence.save(body) : client.transcript(uni, curriculum, body)),
       });
     } catch (error) {
       const rowErrors: RowErrors = {};
@@ -162,7 +173,7 @@ function TranscriptEntry({
     }
   }
 
-  const back = `/${choiceQuery({ uni, curriculum, semesters })}`;
+  const back = persistence ? "/tai-khoan" : `/${choiceQuery({ uni, curriculum, semesters })}`;
 
   /** WEB-8: tải bảng điểm về máy, cùng dạng body §6.10. Dòng chưa có điểm và chưa "Miễn" không được ghi. */
   function exportFile() {
@@ -202,8 +213,10 @@ function TranscriptEntry({
     }
     setFileError("");
     change(parsed.draft);
-    if (parsed.semesters !== semesters)
-      navigate(`/bang-diem${choiceQuery({ uni, curriculum, semesters: parsed.semesters })}`);
+    if (parsed.semesters !== semesters) {
+      if (persistence) persistence.onSemestersChange(parsed.semesters);
+      else navigate(`/bang-diem${choiceQuery({ uni, curriculum, semesters: parsed.semesters })}`);
+    }
   }
 
   return (
@@ -211,7 +224,7 @@ function TranscriptEntry({
       <section className="panel">
         <div className="panel-head">
           <div>
-            <h2>Bước 4 · Nhập bảng điểm</h2>
+            <h2>{persistence ? "Bảng điểm của tôi" : "Bước 4 · Nhập bảng điểm"}</h2>
             <p>
               {detail.state === "ok" ? detail.data.major_name : curriculum} · <span className="mono">{curriculum}</span>{" "}
               · đã học {semesters} kỳ
@@ -355,7 +368,7 @@ function TranscriptEntry({
           disabled={summary.state === "loading" || (semesters > 0 && list.state !== "ok")}
           onClick={submit}
         >
-          {summary.state === "loading" ? "Đang tính…" : "Xem tóm tắt"}
+          {summary.state === "loading" ? (persistence ? "Đang lưu…" : "Đang tính…") : (persistence ? "Lưu bảng điểm" : "Xem tóm tắt")}
         </button>
       </div>
 
@@ -383,7 +396,8 @@ function TranscriptEntry({
           data={summary.data}
           courses={courses}
           detail={detail}
-          next={`/goi-y${choiceQuery({ uni, curriculum, semesters })}`}
+          nextLabel={persistence ? "Xem tiến trình học tập" : undefined}
+          next={persistence ? "/cua-toi/tien-trinh" : `/goi-y${choiceQuery({ uni, curriculum, semesters })}`}
         />
       )}
     </div>
@@ -491,12 +505,14 @@ function TranscriptSummary({
   courses,
   detail,
   next,
+  nextLabel,
 }: {
   data: Transcript;
   courses: CurriculumCourse[];
   detail: Load<CurriculumDetail>;
   /** Bước 5: gợi ý kỳ tới (§6.11), dùng cùng bản nháp. */
   next: string;
+  nextLabel?: string;
 }) {
   const { warnings = [], outstanding_courses = [], blocks = [] } = t;
   const names = new Map(courses.map((c) => [c.course_code, c.course_name]));
@@ -510,7 +526,7 @@ function TranscriptSummary({
         <h2 id="summary-title">Tóm tắt bảng điểm</h2>
         <p>Kỳ tới là kỳ {t.target_semester} của bạn.</p>
         <Link to={next} className="button-link">
-          Xem gợi ý cho kỳ {t.target_semester}
+          {nextLabel ?? `Xem gợi ý cho kỳ ${t.target_semester}`}
         </Link>
       </div>
       <dl className="stat-grid">

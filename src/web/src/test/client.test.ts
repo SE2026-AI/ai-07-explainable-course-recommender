@@ -62,7 +62,7 @@ describe("live client: 8 endpoint đang chạy", () => {
   it.each(cases)("%s gọi đúng đường dẫn và parse đúng ví dụ", async (_name, call, url, body) => {
     const fetcher = stubFetch(json(body));
     await expect(call(createLiveClient())).resolves.toEqual(body);
-    expect(fetcher).toHaveBeenCalledWith(url, expect.objectContaining({ headers: { Accept: "application/json" } }));
+      expect(fetcher).toHaveBeenCalledWith(url, expect.objectContaining({ credentials: "include", headers: { Accept: "application/json", "Content-Type": "application/json" } }));
   });
 
   it("mã hóa mã tự nhiên trong đường dẫn và nhận baseUrl có dấu / cuối", async () => {
